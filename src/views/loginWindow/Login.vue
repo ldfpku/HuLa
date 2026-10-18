@@ -67,7 +67,7 @@
 
         <n-input
           class="pl-16px"
-          maxlength="16"
+          maxlength="128"
           minlength="6"
           size="large"
           show-password-on="click"
@@ -80,6 +80,22 @@
           :placeholder="passwordPH"
           @focus="passwordPH = ''"
           @blur="passwordPH = t('login.input.pass.placeholder')"
+          clearable />
+
+        <!-- 两步验证码：服务端要求时才显示 -->
+        <n-input
+          v-if="mfaRequired"
+          class="pl-16px"
+          maxlength="32"
+          size="large"
+          v-model:value="info.code"
+          type="text"
+          spellCheck="false"
+          autoComplete="one-time-code"
+          autoCorrect="off"
+          autoCapitalize="off"
+          :placeholder="t('login.input.code.placeholder')"
+          @keyup.enter="normalLogin('PC', true, false)"
           clearable />
 
         <!-- 协议 -->
@@ -146,7 +162,7 @@
     </n-flex>
 
     <!-- 第三方登录 -->
-    <div v-if="uiState !== 'auto'" class="w-full pb-22px pt-3px">
+    <div v-if="uiState !== 'auto' && ACCOUNT_FEATURES.thirdPartyLogin" class="w-full pb-22px pt-3px">
       <ThirdPartyLogin :login-context="loginContext" />
     </div>
 
@@ -171,12 +187,16 @@
     </div>
     <div v-else class="text-14px grid grid-cols-[1fr_auto_1fr] items-center gap-x-12px w-full" id="bottomBar">
       <div
+        v-if="ACCOUNT_FEATURES.qrCodeLogin"
         class="color-#13987f cursor-pointer justify-self-end text-right"
         :title="qrCodeTitle"
         @click="router.push('/qrCode')">
         {{ qrCodeLabel }}
       </div>
-      <div class="w-1px h-14px bg-#ccc dark:bg-#707070 justify-self-center"></div>
+      <div v-else></div>
+      <div
+        :class="ACCOUNT_FEATURES.qrCodeLogin ? 'bg-#ccc dark:bg-#707070' : ''"
+        class="w-1px h-14px justify-self-center"></div>
       <div class="justify-self-start text-left">
         <n-popover
           trigger="click"
@@ -190,6 +210,7 @@
           </template>
           <n-flex vertical :size="2">
             <div
+              v-if="ACCOUNT_FEATURES.selfRegister"
               class="register text-14px cursor-pointer hover:bg-#90909030 hover:rounded-6px p-8px"
               @click="createWebviewWindow('注册', 'register', 600, 600)">
               {{ t('login.register') }}
@@ -237,6 +258,7 @@ import { useLogin } from '@/hooks/useLogin'
 import { formatBottomText } from '@/utils/Formatting'
 import { ThemeEnum } from '@/enums'
 import ThirdPartyLogin, { type ThirdPartyLoginContext } from './ThirdPartyLogin.vue'
+import { ACCOUNT_FEATURES } from '@/common/backend'
 
 const { t } = useI18n()
 
@@ -259,8 +281,18 @@ const arrowStatus = ref(false)
 const moreShow = ref(false)
 const { createWebviewWindow, createModalWindow, getWindowPayload } = useWindow()
 const { checkUpdate, CHECK_UPDATE_LOGIN_TIME } = useCheckUpdate()
-const { normalLogin, giteeLogin, githubLogin, gitcodeLogin, loading, loginText, loginDisabled, info, uiState } =
-  useLogin()
+const {
+  normalLogin,
+  giteeLogin,
+  githubLogin,
+  gitcodeLogin,
+  loading,
+  loginText,
+  loginDisabled,
+  info,
+  uiState,
+  mfaRequired
+} = useLogin()
 const loginContext: ThirdPartyLoginContext = {
   giteeLogin,
   githubLogin,
@@ -352,13 +384,17 @@ const driverSteps = computed<DriverStepConfig[]>(() => [
       }
     }
   },
-  {
-    element: '.register',
-    popover: {
-      title: t('login.guide.register.title'),
-      description: t('login.guide.register.desc')
-    }
-  }
+  ...(ACCOUNT_FEATURES.selfRegister
+    ? [
+        {
+          element: '.register',
+          popover: {
+            title: t('login.guide.register.title'),
+            description: t('login.guide.register.desc')
+          }
+        }
+      ]
+    : [])
 ])
 
 const driverConfig = computed(() => ({

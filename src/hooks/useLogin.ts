@@ -31,6 +31,7 @@ import { useInitialSyncStore } from '@/stores/initialSync'
 import { useContactStore } from '@/stores/contacts'
 import { openExternalUrl } from './useLinkSegments'
 import { TokenManager } from '@/utils/TokenManager'
+import { MFA_REQUIRED_MESSAGE } from '@/common/backend'
 
 export const useLogin = () => {
   const { resizeWindow } = useWindow()
@@ -109,10 +110,14 @@ export const useLogin = () => {
   const info = ref({
     account: '',
     password: '',
+    /** 两步验证码，账号开启 MFA 时由服务端要求填写 */
+    code: '',
     avatar: '',
     name: '',
     uid: ''
   })
+  /** 服务端是否要求输入两步验证码 */
+  const mfaRequired = ref(false)
   const uiState = ref<'manual' | 'auto'>('manual')
   /**
    * 设置登录状态(系统托盘图标，系统托盘菜单选项)
@@ -413,6 +418,7 @@ export const useLogin = () => {
         systemType: '2',
         clientId: clientId,
         grantType: 'PASSWORD',
+        code: !auto && info.value.code ? info.value.code.trim() : null,
         isAutoLogin: auto,
         asyncData: syncRecentMessages,
         uid: auto ? userStore.userInfo!.uid : null
@@ -420,6 +426,8 @@ export const useLogin = () => {
     })
       .then(async (_: any) => {
         // 数据库切换已在后端 login_command 中完成
+        mfaRequired.value = false
+        info.value.code = ''
         loginDisabled.value = true
         loading.value = false
         loginText.value = t('login.status.success_redirect')
@@ -439,6 +447,14 @@ export const useLogin = () => {
         await routerOrOpenHomeWindow()
       })
       .catch((e: any) => {
+        if (!auto && String(e).includes(MFA_REQUIRED_MESSAGE)) {
+          mfaRequired.value = true
+          loading.value = false
+          loginDisabled.value = false
+          loginText.value = t('login.button.login.default')
+          window.$message.info(t('login.mfa.required'))
+          return
+        }
         window.$message.error(e)
         loading.value = false
         loginDisabled.value = false
@@ -783,6 +799,7 @@ export const useLogin = () => {
     loginDisabled,
     info,
     uiState,
+    mfaRequired,
     init
   }
 }

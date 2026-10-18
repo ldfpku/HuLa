@@ -10,10 +10,13 @@
   },
   "input": {
     "account": {
-      "placeholder": "이메일 / HuLa 계정"
+      "placeholder": "이메일"
     },
     "pass": {
-      "placeholder": "HuLa 비밀번호 입력"
+      "placeholder": "비밀번호"
+    },
+    "code": {
+      "placeholder": "2단계 인증 코드"
     }
   },
   "option": {
@@ -189,5 +192,8 @@
     "complete_info_before_register": "회원가입 전에 정보를 모두 입력해 주세요.",
     "register_success": "회원가입이 완료되었습니다.",
     "register_fail": "회원가입에 실패했습니다."
+  },
+  "mfa": {
+    "required": "이 계정은 2단계 인증을 사용합니다. 인증 앱의 코드를 입력한 후 다시 로그인하세요."
   }
 }
