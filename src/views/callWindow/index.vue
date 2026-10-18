@@ -25,7 +25,7 @@
         {{ remoteUserInfo?.name || t('message.call_window.unknown_user') }}
       </div>
       <div class="text-12px text-gray-500 dark:text-gray-400 flex items-center">
-        <div class="w-6px h-6px rounded-full bg-#13987f mr-6px animate-pulse"></div>
+        <div class="w-6px h-6px rounded-full bg-#034fbc mr-6px animate-pulse"></div>
         {{ t('message.call_window.incoming') }} ·
         {{
           callType === CallTypeEnum.VIDEO ? t('message.call_window.video_call') : t('message.call_window.voice_call')
@@ -46,7 +46,7 @@
       <!-- 接听按钮 -->
       <div
         @click="acceptCall"
-        class="size-40px rounded-full bg-#13987f hover:bg-#13987f flex-center cursor-pointer shadow-lg">
+        class="size-40px rounded-full bg-#034fbc hover:bg-#034fbc flex-center cursor-pointer shadow-lg">
         <svg class="color-#fff size-20px">
           <use href="#phone-telephone-entity"></use>
         </svg>

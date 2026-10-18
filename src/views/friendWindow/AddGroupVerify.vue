@@ -42,7 +42,7 @@
           type="textarea"
           :placeholder="t('message.group_verify.placeholder')" />
 
-        <n-button class="mt-120px" color="#13987f" @click="addFriend">
+        <n-button class="mt-120px" color="#034fbc" @click="addFriend">
           {{ t('message.group_verify.send_btn') }}
         </n-button>
       </n-flex>

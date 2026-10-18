@@ -9,8 +9,8 @@
         data-tauri-drag-region
         size="12"
         :border-radius="0"
-        :color="changeColor('#13987f', { alpha: 0.6 })"
-        :rail-color="changeColor('#13987f', { alpha: 0.2 })"
+        :color="changeColor('#034fbc', { alpha: 0.6 })"
+        :rail-color="changeColor('#034fbc', { alpha: 0.2 })"
         :percentage="percentage"
         :show-indicator="false" />
 
@@ -30,7 +30,7 @@
         </NCarouselItem>
       </NCarousel>
 
-      <p class="cursor-default color-#13987f text-center text-sm mt-4" data-tauri-drag-region>
+      <p class="cursor-default color-#034fbc text-center text-sm mt-4" data-tauri-drag-region>
         {{ t('message.update_window.updating') }} {{ percentage }}%
       </p>
     </div>

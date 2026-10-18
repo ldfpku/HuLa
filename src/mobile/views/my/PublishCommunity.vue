@@ -81,7 +81,7 @@
               plain
               @click="showUserSelectPopup = true"
               class="w-full"
-              :style="{ borderColor: '#13987f', color: '#13987f' }">
+              :style="{ borderColor: '#034fbc', color: '#034fbc' }">
               {{ t('mobile_post.visibility_select_btn', { count: selectedUsers.length }) }}
             </n-button>
             <div v-if="selectedUsers.length > 0" class="mt-12px flex flex-wrap gap-8px">
@@ -93,7 +93,7 @@
                 size="small"
                 round
                 closable
-                text-color="#13987f"
+                text-color="#034fbc"
                 @close="removeSelectedUser(user.uid)">
                 {{ getUserName(user) }}
               </n-tag>
@@ -124,7 +124,7 @@
                 :loading="isPublishing"
                 :disabled="!isPublishValid"
                 @click="handlePublish"
-                :style="{ background: '#13987f', borderColor: '#13987f' }">
+                :style="{ background: '#034fbc', borderColor: '#034fbc' }">
                 {{ t('mobile_post.btn.publish') }}
               </n-button>
             </n-gi>

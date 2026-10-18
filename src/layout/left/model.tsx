@@ -109,7 +109,7 @@ export const LockScreen = defineComponent(() => {
             </NFormItem>
           </NForm>
 
-          <NButton loading={lock.value.loading} onClick={lock.value.handleLock} class="w-full" color="#13987f">
+          <NButton loading={lock.value.loading} onClick={lock.value.handleLock} class="w-full" color="#034fbc">
             {t('message.lock_screen.confirm_button')}
           </NButton>
         </div>
@@ -314,7 +314,7 @@ export const CheckUpdate = defineComponent(() => {
                       <use href={'#RightArrow'}></use>
                     </svg>
 
-                    <p class="relative text-(20px #13987f) font-500">{newVersion.value}</p>
+                    <p class="relative text-(20px #034fbc) font-500">{newVersion.value}</p>
 
                     <span class="absolute top--10px right--44px p-[4px_8px] bg-#f6dfe3ff rounded-6px text-(12px #ce304f)">
                       {t('message.check_update.new_tag')}
@@ -326,12 +326,12 @@ export const CheckUpdate = defineComponent(() => {
                 {newVersionTime.value ? (
                   <>
                     <p class="text-(12px #909090)">{t('message.check_update.new_release_date')}</p>
-                    <p class="text-(12px #13987f)">{handRelativeTime(newVersionTime.value)}</p>
+                    <p class="text-(12px #034fbc)">{handRelativeTime(newVersionTime.value)}</p>
                   </>
                 ) : (
                   <>
                     <p class="text-(12px #909090)">{t('message.check_update.release_date')}</p>
-                    <p class="text-(12px #13987f)">{handRelativeTime(versionTime.value)}</p>
+                    <p class="text-(12px #034fbc)">{handRelativeTime(versionTime.value)}</p>
                   </>
                 )}
               </NFlex>
@@ -403,7 +403,7 @@ export const CheckUpdate = defineComponent(() => {
               {updating.value && (
                 <NProgress
                   type="line"
-                  color="#13987f"
+                  color="#034fbc"
                   indicator-placement="inside"
                   percentage={percentage.value}
                   processing

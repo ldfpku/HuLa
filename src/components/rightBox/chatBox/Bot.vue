@@ -775,7 +775,7 @@ onUnmounted(() => {
     }
 
     &:hover {
-      @apply bg-[#13987f40] text-[#13987f];
+      @apply bg-[#034fbc40] text-[#034fbc];
     }
   }
 
@@ -790,7 +790,7 @@ onUnmounted(() => {
     padding: 0 12px;
     &:hover {
       text-decoration-line: underline;
-      color: #13987f;
+      color: #034fbc;
     }
   }
 
@@ -815,7 +815,7 @@ onUnmounted(() => {
     }
 
     &:hover {
-      @apply bg-[#13987f40] text-[#13987f];
+      @apply bg-[#034fbc40] text-[#034fbc];
     }
   }
 
@@ -825,19 +825,19 @@ onUnmounted(() => {
     cursor: pointer;
     font-size: 13px;
     color: var(--text-color);
-    background: linear-gradient(135deg, rgba(19, 152, 127, 0.32), rgba(19, 152, 127, 0.1));
+    background: linear-gradient(135deg, rgba(3, 79, 188, 0.32), rgba(3, 79, 188, 0.1));
     transition: all 0.2s ease-in-out;
     user-select: none;
     -webkit-user-select: none;
 
     &:hover {
-      color: #13987f;
+      color: #034fbc;
     }
 
     &.active {
       color: #ffffff;
-      background: linear-gradient(135deg, #13987f, #1fb39b80);
-      border-color: rgba(19, 152, 127, 0.4);
+      background: linear-gradient(135deg, #034fbc, #1fb39b80);
+      border-color: rgba(3, 79, 188, 0.4);
     }
   }
 
@@ -857,13 +857,13 @@ onUnmounted(() => {
     -webkit-user-select: none;
 
     &:hover {
-      color: #13987f;
+      color: #034fbc;
     }
 
     &.active {
-      color: #13987f;
-      background: rgba(19, 152, 127, 0.18);
-      box-shadow: inset 0 0 0 1px rgba(19, 152, 127, 0.25);
+      color: #034fbc;
+      background: rgba(3, 79, 188, 0.18);
+      box-shadow: inset 0 0 0 1px rgba(3, 79, 188, 0.25);
     }
   }
 
@@ -887,12 +887,12 @@ onUnmounted(() => {
     -webkit-user-select: none;
 
     &:hover {
-      @apply dark:bg-[#13987f40] bg-[#e8f4f1] text-[#13987f];
+      @apply dark:bg-[#034fbc40] bg-[#edf2fb] text-[#034fbc];
     }
 
     &.active {
-      @apply dark:bg-[#13987f40] bg-[#e8f4f1] text-[#13987f];
-      box-shadow: inset 0 0 0 1px #13987f60;
+      @apply dark:bg-[#034fbc40] bg-[#edf2fb] text-[#034fbc];
+      box-shadow: inset 0 0 0 1px #034fbc60;
     }
   }
 
@@ -954,18 +954,18 @@ onUnmounted(() => {
   }
   --fgColor-default: var(--text-color);
   --fgColor-muted: var(--chat-text-color, var(--text-color));
-  --fgColor-accent: #13987f;
-  --fgColor-attention: #13987f;
-  --fgColor-success: var(--success-color, #13987f);
+  --fgColor-accent: #034fbc;
+  --fgColor-attention: #034fbc;
+  --fgColor-success: var(--success-color, #034fbc);
   --fgColor-danger: var(--danger-color, #d1242f);
   --bgColor-default: var(--bg-color);
   --bgColor-muted: var(--bg-msg-hover);
   --bgColor-neutral-muted: rgba(144, 144, 144, 0.15);
-  --bgColor-attention-muted: #13987f16;
+  --bgColor-attention-muted: #034fbc16;
   --borderColor-default: var(--line-color);
   --borderColor-muted: var(--line-color);
   --borderColor-neutral-muted: rgba(144, 144, 144, 0.2);
-  --borderColor-accent-emphasis: #13987f;
+  --borderColor-accent-emphasis: #034fbc;
 
   // 通用表格处理
   :deep(table) {
@@ -1040,7 +1040,7 @@ onUnmounted(() => {
 
   // 长 URL 和文本处理
   :deep(a) {
-    color: #13987f;
+    color: #034fbc;
     word-break: break-word;
     overflow-wrap: break-word;
     text-decoration: none;

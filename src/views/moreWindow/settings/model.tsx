@@ -45,7 +45,7 @@ const useTopicsList = () => {
             </div>
 
             <div class="flex-y-center gap-4px ml-a">
-              <div class="bg-#13987f w-28px h-6px"></div>
+              <div class="bg-#034fbc w-28px h-6px"></div>
               <div class="bg-#ccc w-6px h-6px rounded-50%"></div>
             </div>
           </div>
@@ -176,7 +176,7 @@ const versatileModel: JSX.Element = (() => (
       </div>
 
       <div class="flex-y-center gap-4px ml-a">
-        <div class="bg-#13987f w-78px h-16px rounded-4px"></div>
+        <div class="bg-#034fbc w-78px h-16px rounded-4px"></div>
         <div class="bg-[--bg-bubble] w-16px h-16px rounded-50%"></div>
       </div>
     </div>

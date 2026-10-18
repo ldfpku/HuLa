@@ -48,7 +48,7 @@
                   {{ activeItem?.name || '' }}
                 </span>
                 <span v-if="activeItem?.hotFlag === 1">
-                  <svg class="w-18px h-18px iconpark-icon text-#1A9B83">
+                  <svg class="w-18px h-18px iconpark-icon text-#03419B">
                     <use href="#auth"></use>
                   </svg>
                 </span>
@@ -66,7 +66,7 @@
               <div @click="toGroupChatMember" class="text-12px text-#6E6E6E flex flex-wrap gap-10px items-center">
                 <i18n-t keypath="mobile_chat_setting.member_count">
                   <template #count>
-                    <span class="text-#398D7E">{{ groupStore.countInfo?.memberNum || 0 }}</span>
+                    <span class="text-#03419B">{{ groupStore.countInfo?.memberNum || 0 }}</span>
                   </template>
                 </i18n-t>
 
@@ -83,7 +83,7 @@
                 v-for="i in groupMemberListSliced"
                 :key="i.uid"
                 class="flex flex-col justify-center items-center gap-5px">
-                <div class="rounded-full relative bg-#E5EFEE w-36px h-36px flex items-center justify-center">
+                <div class="rounded-full relative bg-#e9edf5 w-36px h-36px flex items-center justify-center">
                   <!-- 蒙板 -->
                   <div
                     v-if="i.activeStatus !== OnlineEnum.ONLINE"

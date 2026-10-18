@@ -145,10 +145,10 @@ const commonTheme: GlobalThemeOverrides = {
     boxShadowFocus: '0'
   },
   Checkbox: {
-    colorChecked: '#13987f',
-    borderChecked: '1px solid #13987f',
-    borderFocus: '1px solid #13987f',
-    boxShadowFocus: '0 0 0 2px rgba(19, 152, 127, 0.3)'
+    colorChecked: '#034fbc',
+    borderChecked: '1px solid #034fbc',
+    borderFocus: '1px solid #034fbc',
+    boxShadowFocus: '0 0 0 2px rgba(3, 79, 188, 0.3)'
   },
   Tag: {
     borderRadius: '4px'
@@ -156,16 +156,16 @@ const commonTheme: GlobalThemeOverrides = {
   Button: {
     borderRadiusMedium: '10px',
     borderRadiusSmall: '6px',
-    colorPrimary: '#13987f'
+    colorPrimary: '#034fbc'
   },
   Tabs: {
     tabTextColorSegment: '#707070',
     tabPaddingMediumSegment: '4px',
-    tabTextColorActiveLine: '#13987f',
-    tabTextColorHoverLine: '#13987f',
-    tabTextColorActiveBar: '#13987f',
-    tabTextColorHoverBar: '#13987f',
-    barColor: '#13987f'
+    tabTextColorActiveLine: '#034fbc',
+    tabTextColorHoverLine: '#034fbc',
+    tabTextColorActiveBar: '#034fbc',
+    tabTextColorHoverBar: '#034fbc',
+    barColor: '#034fbc'
   },
   Popover: {
     padding: '5px',
@@ -178,45 +178,49 @@ const commonTheme: GlobalThemeOverrides = {
     border: '1px solid #fff'
   },
   Switch: {
-    railColorActive: '#13987f',
-    loadingColor: '#13987f',
-    boxShadowFocus: '0 0 0 2px rgba(19, 152, 127, 0.3)'
+    railColorActive: '#034fbc',
+    loadingColor: '#034fbc',
+    boxShadowFocus: '0 0 0 2px rgba(3, 79, 188, 0.3)'
   },
   Radio: {
-    boxShadowActive: 'inset 0 0 0 1px #13987f',
-    boxShadowFocus: 'inset 0 0 0 1px #13987f,0 0 0 2px rgba(19, 152, 127, 0.3)',
-    boxShadowHover: 'inset 0 0 0 1px #13987f',
-    dotColorActive: '#13987f'
+    boxShadowActive: 'inset 0 0 0 1px #034fbc',
+    boxShadowFocus: 'inset 0 0 0 1px #034fbc,0 0 0 2px rgba(3, 79, 188, 0.3)',
+    boxShadowHover: 'inset 0 0 0 1px #034fbc',
+    dotColorActive: '#034fbc'
   },
   Message: {
-    iconColorSuccess: '#13987f',
-    iconColorLoading: '#13987f',
-    loadingColor: '#13987f',
+    iconColorSuccess: '#034fbc',
+    iconColorLoading: '#034fbc',
+    loadingColor: '#034fbc',
     borderRadius: '8px'
   },
   Slider: {
     handleSize: '12px',
     fontSize: '10px',
     markFontSize: '8px',
-    fillColor: '#13987f',
-    fillColorHover: '#13987f',
+    fillColor: '#034fbc',
+    fillColorHover: '#034fbc',
     indicatorBorderRadius: '8px'
   },
   Notification: {
     borderRadius: '8px'
   },
   Steps: {
-    indicatorBorderColorProcess: '#13987f',
-    indicatorColorProcess: '#52aea3'
+    indicatorBorderColorProcess: '#034fbc',
+    indicatorColorProcess: '#4170cb'
   },
   LoadingBar: {
-    colorLoading: '#13987f'
+    colorLoading: '#034fbc'
   }
 }
 
 /** 浅色模式的主题颜色 */
 const lightThemeOverrides: GlobalThemeOverrides = {
   ...commonTheme,
+  Empty: {
+    iconColor: '#a9c2ee',
+    textColor: '#5f6368'
+  },
   Scrollbar: {
     color: '#d5d5d5',
     colorHover: '#c5c5c5'
@@ -230,6 +234,19 @@ const lightThemeOverrides: GlobalThemeOverrides = {
 /** 深色模式的主题颜色 */
 const darkThemeOverrides: GlobalThemeOverrides = {
   ...commonTheme,
+  // SMJ Blue 在深色背景上作文字对比度不足，文字强调色改用 #7a9fe2
+  Tabs: {
+    ...commonTheme.Tabs,
+    tabTextColorActiveLine: '#7a9fe2',
+    tabTextColorHoverLine: '#7a9fe2',
+    tabTextColorActiveBar: '#7a9fe2',
+    tabTextColorHoverBar: '#7a9fe2',
+    barColor: '#7a9fe2'
+  },
+  Empty: {
+    iconColor: '#3c4043',
+    textColor: '#9aa0a6'
+  },
   Scrollbar: {
     color: 'rgba(255, 255, 255, 0.2)',
     colorHover: 'rgba(255, 255, 255, 0.3)'

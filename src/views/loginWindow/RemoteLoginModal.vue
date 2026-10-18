@@ -22,11 +22,11 @@
             </div>
             <div class="text-(13px centent [--text-color]) px-12px leading-loose mb-20px">
               您的账号在其他设备
-              <span class="text-#13987f">{{ ip }}</span>
+              <span class="text-#034fbc">{{ ip }}</span>
               登录，如非本人登录，请尽快修改密码，建议联系管理员
             </div>
           </n-flex>
-          <n-button style="color: #fff" class="w-full" color="#13987f" @click="handleConfirm">知道了</n-button>
+          <n-button style="color: #fff" class="w-full" color="#034fbc" @click="handleConfirm">知道了</n-button>
         </div>
       </div>
     </div>

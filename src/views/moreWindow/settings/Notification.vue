@@ -107,8 +107,8 @@
           </n-flex>
           <n-progress
             type="line"
-            :color="'#13987f'"
-            :rail-color="'#13987f30'"
+            :color="'#034fbc'"
+            :rail-color="'#034fbc30'"
             :percentage="progress"
             :show-indicator="false" />
         </n-flex>
@@ -139,7 +139,7 @@
                 trigger="click"
                 :scrollable="false"
                 @update:show="(show: boolean) => (isDropdownShow = show)">
-                <n-button size="small" :color="'#13987f'" text class="text-(12px [--text-color])">
+                <n-button size="small" :color="'#034fbc'" text class="text-(12px [--text-color])">
                   {{ getNotificationStatusText(session) }}
                 </n-button>
               </n-dropdown>
@@ -254,7 +254,7 @@ const getNotificationOptions = (session: SessionItem) => {
       key: 'allow',
       icon:
         !session.shield && session.muteNotification === NotificationTypeEnum.RECEPTION
-          ? () => h('svg', { class: 'size-14px text-#13987f' }, [h('use', { href: '#check-small' })])
+          ? () => h('svg', { class: 'size-14px text-#034fbc' }, [h('use', { href: '#check-small' })])
           : undefined
     },
     {
@@ -262,14 +262,14 @@ const getNotificationOptions = (session: SessionItem) => {
       key: 'mute',
       icon:
         !session.shield && session.muteNotification === NotificationTypeEnum.NOT_DISTURB
-          ? () => h('svg', { class: 'size-14px text-#13987f' }, [h('use', { href: '#check-small' })])
+          ? () => h('svg', { class: 'size-14px text-#034fbc' }, [h('use', { href: '#check-small' })])
           : undefined
     },
     {
       label: t('setting.notice.group_notic_type.block'),
       key: 'shield',
       icon: session.shield
-        ? () => h('svg', { class: 'size-14px text-#13987f' }, [h('use', { href: '#check-small' })])
+        ? () => h('svg', { class: 'size-14px text-#034fbc' }, [h('use', { href: '#check-small' })])
         : undefined
     }
   ]

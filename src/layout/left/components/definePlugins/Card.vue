@@ -305,7 +305,7 @@ onUnmounted(() => {
 }
 
 .colorful {
-  background-image: linear-gradient(45deg, #a8edea 0%, #fed6e3 100%);
+  background-image: linear-gradient(45deg, #d2dff6 0%, #fed6e3 100%);
 }
 
 .built {

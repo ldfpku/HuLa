@@ -17,7 +17,7 @@
           </n-flex>
           <p class="text-(12px #909090)">建立一个属于自己AI</p>
         </n-flex>
-        <svg class="size-44px color-#13987f opacity-20"><use href="#GPT"></use></svg>
+        <svg class="size-44px color-#034fbc opacity-20"><use href="#GPT"></use></svg>
       </n-flex>
 
       <!-- 头像和插件 -->
@@ -684,7 +684,7 @@ onMounted(async () => {
 
 <style scoped lang="scss">
 .gpt-subtitle {
-  @apply bg-clip-text text-transparent bg-gradient-to-r from-#38BDF8 to-#13987F text-20px font-800;
+  @apply bg-clip-text text-transparent bg-gradient-to-r from-#38BDF8 to-#034FBC text-20px font-800;
 }
 
 .plugins {
@@ -706,8 +706,8 @@ onMounted(async () => {
 }
 
 .chat-item-active {
-  border: 1px dashed #13987f;
-  box-shadow: 0 0 0 1px rgba(19, 152, 127, 0.1) inset;
+  border: 1px dashed #034fbc;
+  box-shadow: 0 0 0 1px rgba(3, 79, 188, 0.1) inset;
 }
 
 .list-move, /* 对移动中的元素应用的过渡 */

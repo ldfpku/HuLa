@@ -31,7 +31,7 @@
               <div
                 style="border-radius: 24px 42px 4px 24px"
                 :class="[
-                  'z-10 absolute bottom--4px h-6px w-34px bg-#13987f transition-all duration-300 ease-out',
+                  'z-10 absolute bottom--4px h-6px w-34px bg-#034fbc transition-all duration-300 ease-out',
                   activeTab === 'login' ? 'left-[33px]' : 'left-[133px]'
                 ]"></div>
             </div>
@@ -104,7 +104,7 @@
               clearable />
 
             <n-flex justify="flex-end" :size="6">
-              <n-button text color="#13987f" @click="handleForgetPassword">
+              <n-button text color="#034fbc" @click="handleForgetPassword">
                 {{ t('login.mobile.forget_code') }}
               </n-button>
             </n-flex>
@@ -124,11 +124,11 @@
               <n-checkbox v-model:checked="protocol" />
               <div class="text-12px color-#909090 cursor-default lh-14px">
                 <span>{{ t('login.term.checkout.text1') }}</span>
-                <span @click.stop="toServiceAgreement" class="color-#13987f cursor-pointer">
+                <span @click.stop="toServiceAgreement" class="color-#034fbc cursor-pointer">
                   {{ t('login.term.checkout.text2') }}
                 </span>
                 <span>{{ t('login.term.checkout.text3') }}</span>
-                <span @click.stop="toPrivacyAgreement" class="color-#13987f cursor-pointer">
+                <span @click.stop="toPrivacyAgreement" class="color-#034fbc cursor-pointer">
                   {{ t('login.term.checkout.text4') }}
                 </span>
               </div>
@@ -208,11 +208,11 @@
               <n-checkbox v-model:checked="registerProtocol" />
               <div class="text-12px color-#909090 cursor-default lh-14px">
                 <span>{{ t('login.term.checkout.text1') }}</span>
-                <span @click.stop="toServiceAgreement" class="color-#13987f cursor-pointer">
+                <span @click.stop="toServiceAgreement" class="color-#034fbc cursor-pointer">
                   {{ t('login.term.checkout.text2') }}
                 </span>
                 <span>{{ t('login.term.checkout.text3') }}</span>
-                <span @click.stop="toPrivacyAgreement" class="color-#13987f cursor-pointer">
+                <span @click.stop="toPrivacyAgreement" class="color-#034fbc cursor-pointer">
                   {{ t('login.term.checkout.text4') }}
                 </span>
               </div>

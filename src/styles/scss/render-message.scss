@@ -20,9 +20,9 @@
 }
 @mixin float($position: top) {
   @if $position == bottom {
-    @apply fixed z-10 w-fit select-none text-#13987f cursor-pointer;
+    @apply fixed z-10 w-fit select-none text-#034fbc cursor-pointer;
   } @else {
-    @apply fixed z-10 top-80px w-fit select-none text-#13987f cursor-pointer;
+    @apply fixed z-10 top-80px w-fit select-none text-#034fbc cursor-pointer;
   }
 }
 .bubble {
@@ -37,7 +37,7 @@
 /* 选中文本时的高亮颜色（包含根节点与后代，避免被全局 ::selection 覆盖） */
 .bubble::selection,
 .bubble *::selection {
-  background: var(--select-bg-color, rgba(19, 152, 127, 0.3));
+  background: var(--select-bg-color, rgba(3, 79, 188, 0.3));
 }
 .bubble-oneself::selection,
 .bubble-oneself *::selection {
@@ -88,7 +88,7 @@
       filter: grayscale(0);
     }
     svg {
-      color: #13987f;
+      color: #034fbc;
     }
     span {
       color: var(--reply-hover);
@@ -99,12 +99,12 @@
   }
   /** 回复图片的计数器样式 */
   .reply-img-sub {
-    @apply absolute bottom-8px right-6px color-#13987f bg-[--bg-reply-img-count] p-[2px_4px] rounded-6px text-10px;
+    @apply absolute bottom-8px right-6px color-#034fbc bg-[--bg-reply-img-count] p-[2px_4px] rounded-6px text-10px;
   }
 }
 /** emoji回复气泡的样式 */
 .emoji-reply-bubble {
-  @apply relative flex-y-center gap-4px rounded-50px p-[4px_8px] cursor-pointer select-none bg-#13987F66 text-14px w-fit border-(1px solid #13987F) custom-shadow;
+  @apply relative flex-y-center gap-4px rounded-50px p-[4px_8px] cursor-pointer select-none bg-#034FBC66 text-14px w-fit border-(1px solid #034FBC) custom-shadow;
 }
 
 /** 当前用户标记消息的样式 */
@@ -201,9 +201,9 @@
   justify-content: space-between;
   align-items: center;
   cursor: pointer;
-  background-color: var(--bg-notice, rgba(19, 152, 127, 0.08));
+  background-color: var(--bg-notice, rgba(3, 79, 188, 0.08));
   border-radius: 8px;
-  border: 1px solid var(--bg-notice, rgba(19, 152, 127, 0.2));
+  border: 1px solid var(--bg-notice, rgba(3, 79, 188, 0.2));
   margin: 0;
   height: 34px;
   line-height: 36px;
@@ -212,7 +212,7 @@
 }
 
 .announcement-hover {
-  background-color: var(--bg-notice-hover, rgba(19, 152, 127, 0.14));
+  background-color: var(--bg-notice-hover, rgba(3, 79, 188, 0.14));
 }
 
 /**! 替换ait的字体颜色 */

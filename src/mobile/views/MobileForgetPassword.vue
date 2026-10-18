@@ -45,7 +45,7 @@
                 autoCapitalize="off"
                 maxlength="6" />
               <n-button
-                color="#13987f"
+                color="#034fbc"
                 ghost
                 :disabled="sendBtnDisabled"
                 :loading="sendingEmailCode"
@@ -145,7 +145,7 @@
 
       <!-- 第三步：完成 -->
       <div v-if="currentStep === 3" class="w-full max-w-300px mx-auto mt-100px text-center">
-        <!-- <n-icon size="64" class="text-#13987f">
+        <!-- <n-icon size="64" class="text-#034fbc">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
           <path fill="currentColor" d="M9,20.42L2.79,14.21L5.62,11.38L9,14.77L18.88,4.88L21.71,7.71L9,20.42Z" />
         </svg>

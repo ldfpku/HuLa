@@ -76,7 +76,7 @@
             {{ t('fileManager.search.clear') }}
           </n-button>
 
-          <n-button v-if="selectedUser" @click="clearUserFilter" ghost color="#13987f" size="small">
+          <n-button v-if="selectedUser" @click="clearUserFilter" ghost color="#034fbc" size="small">
             {{ t('fileManager.search.showAllUsers') }}
           </n-button>
         </template>
@@ -360,7 +360,7 @@ const convertToFileBody = (file: any): FileBody => {
 }
 
 .file-sender {
-  color: #13987f;
+  color: #034fbc;
   cursor: pointer;
 
   &:hover {

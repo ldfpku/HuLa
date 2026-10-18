@@ -7,7 +7,7 @@
           <img class="w-100px h-100px" :src="qrCodeIcon" alt="" />
           <div class="text-20px font-bold text-#343434">
             登录
-            <span class="text-#6B9C89">{{ props.deviceType }}</span>
+            <span class="text-#034fbc">{{ props.deviceType }}</span>
             &nbsp;的HULA
           </div>
         </div>
@@ -35,7 +35,7 @@
         <n-button
           :disabled="countdown <= 0"
           @click="handleConfirmLogin"
-          class="px-50px bg-#6B9C89 text-white absolute bottom-20%">
+          class="px-50px bg-#034fbc text-white absolute bottom-20%">
           {{ countdown > 0 ? `登录 (${countdown}s)` : '二维码已过期' }}
         </n-button>
       </div>

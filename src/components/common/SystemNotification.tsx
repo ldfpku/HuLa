@@ -19,7 +19,7 @@ if (!systemNotice.value) {
           systemNotice.value = true
           SysNTF.destroy()
         }}>
-        <p class="text-(12px #13987f)">已读</p>
+        <p class="text-(12px #034fbc)">已读</p>
       </NButton>
     )
   })

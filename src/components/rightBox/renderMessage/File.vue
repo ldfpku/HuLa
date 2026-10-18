@@ -14,7 +14,7 @@
             padding: '0 4px',
             borderRadius: '6px',
             color: '#000',
-            background: '#13987f'
+            background: '#034fbc'
           }" />
         <template v-else>
           {{ truncateFileName(body?.fileName || fallbackFileName) }}
@@ -46,7 +46,7 @@
             <svg class="progress-ring" width="24" height="24">
               <circle
                 class="progress-ring-circle"
-                stroke="rgba(19, 152, 127, 0.4)"
+                stroke="rgba(3, 79, 188, 0.4)"
                 stroke-width="2"
                 fill="transparent"
                 r="10"
@@ -54,7 +54,7 @@
                 cy="12" />
               <circle
                 class="progress-ring-circle progress-ring-fill"
-                stroke="#13987f"
+                stroke="#034fbc"
                 stroke-width="2"
                 fill="transparent"
                 r="10"
@@ -487,8 +487,8 @@ onMounted(async () => {
   color: #909090;
 
   &.downloaded {
-    background: rgba(19, 152, 127, 0.3);
-    color: #13987f;
+    background: rgba(3, 79, 188, 0.3);
+    color: #034fbc;
   }
 }
 
