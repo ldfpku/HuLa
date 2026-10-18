@@ -549,7 +549,7 @@ const handleMagnifierMouseMove = (event: MouseEvent) => {
   )
 
   // 在放大镜中心绘制十字线
-  magnifierCtx.value.strokeStyle = '#13987f'
+  magnifierCtx.value.strokeStyle = '#034fbc'
   magnifierCtx.value.lineWidth = 1
   magnifierCtx.value.beginPath()
   magnifierCtx.value.moveTo(magnifierWidth / 2, 0)
@@ -749,7 +749,7 @@ const updateSelectionAreaPosition = () => {
     width: `${maxX - minX}px`,
     height: `${maxY - minY}px`,
     borderRadius: `${borderRadius.value}px`,
-    border: '2px solid #13987f'
+    border: '2px solid #034fbc'
   }
 
   // 更新圆角控制器位置，确保不超出屏幕边界
@@ -833,7 +833,7 @@ const handleSelectionDragMove = (event: MouseEvent) => {
   selectionAreaStyle.value.left = `${constrainedLeft}px`
   selectionAreaStyle.value.top = `${constrainedTop}px`
   selectionAreaStyle.value.borderRadius = `${borderRadius.value}px`
-  selectionAreaStyle.value.border = '2px solid #13987f'
+  selectionAreaStyle.value.border = '2px solid #034fbc'
 
   // 更新screenConfig
   const { scaleX, scaleY } = screenConfig.value
@@ -980,7 +980,7 @@ const handleResizeMove = (event: MouseEvent) => {
     width: `${newWidth}px`,
     height: `${newHeight}px`,
     borderRadius: `${borderRadius.value}px`,
-    border: '2px solid #13987f'
+    border: '2px solid #034fbc'
   }
 
   // 更新screenConfig
@@ -1039,7 +1039,7 @@ const drawRectangle = (
   height: number,
   lineWidth: number = 2
 ) => {
-  context.strokeStyle = '#13987f'
+  context.strokeStyle = '#034fbc'
   context.lineWidth = lineWidth
 
   // 如果有圆角，绘制圆角矩形
@@ -1596,11 +1596,11 @@ canvas {
     }
 
     &:hover svg {
-      color: #13987f;
+      color: #034fbc;
     }
 
     &.active svg {
-      color: #13987f;
+      color: #034fbc;
     }
 
     &.disabled {

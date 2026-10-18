@@ -121,7 +121,7 @@
           </label>
 
           <n-flex justify="end">
-            <n-button @click="handleConfirm" class="w-78px" color="#13987f">
+            <n-button @click="handleConfirm" class="w-78px" color="#034fbc">
               {{ t('components.common.confirm') }}
             </n-button>
             <n-button @click="tipsRef.show = false" class="w-78px" secondary>

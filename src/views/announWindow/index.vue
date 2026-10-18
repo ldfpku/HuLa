@@ -96,7 +96,7 @@
                   </n-flex>
                   <div
                     v-if="announcement?.top"
-                    class="p-[3px_4px] bg-[#237265] c-#fff rounded-3px text-[10px] flex-center">
+                    class="p-[3px_4px] bg-[#03419b] c-#fff rounded-3px text-[10px] flex-center">
                     <span>{{ t('announcement.form.pinned') }}</span>
                   </div>
                 </n-flex>
@@ -559,7 +559,7 @@ onMounted(async () => {
   align-items: center;
   justify-content: flex-end;
   margin-top: 4px;
-  color: #13987f;
+  color: #034fbc;
   cursor: pointer;
   font-size: 12px;
 
@@ -569,7 +569,7 @@ onMounted(async () => {
 }
 
 .announcement-link {
-  color: #13987f;
+  color: #034fbc;
   cursor: pointer;
   word-break: break-all;
   line-height: 2.1rem;

@@ -46,7 +46,7 @@
                 <n-popover trigger="hover" v-if="item.hotFlag === IsAllUserEnum.Yes">
                   <template #trigger>
                     <svg
-                      :class="[globalStore.currentSessionRoomId === item.roomId ? 'color-#33ceab' : 'color-#13987f']"
+                      :class="[globalStore.currentSessionRoomId === item.roomId ? 'color-#7a9fe2' : 'color-#034fbc']"
                       class="size-20px select-none outline-none cursor-pointer">
                       <use href="#auth"></use>
                     </svg>
@@ -56,7 +56,7 @@
 
                 <n-popover trigger="hover" v-if="item.account === UserType.BOT">
                   <template #trigger>
-                    <svg class="size-20px select-none outline-none cursor-pointer color-#13987f">
+                    <svg class="size-20px select-none outline-none cursor-pointer color-#034fbc">
                       <use href="#authenticationUser"></use>
                     </svg>
                   </template>

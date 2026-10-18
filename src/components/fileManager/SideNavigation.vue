@@ -82,20 +82,20 @@ const getNavigationLabel = (item: NavigationItem) => {
   user-select: none;
 
   &:hover:not(&--active) {
-    background-color: rgba(19, 152, 127, 0.1);
-    color: #13987f;
+    background-color: rgba(3, 79, 188, 0.1);
+    color: #034fbc;
 
     .navigation-item__icon svg {
-      color: #13987f;
+      color: #034fbc;
     }
   }
 
   &--active {
-    background-color: rgba(19, 152, 127, 0.2);
-    color: #13987f;
+    background-color: rgba(3, 79, 188, 0.2);
+    color: #034fbc;
 
     .navigation-item__icon svg {
-      color: #13987f;
+      color: #034fbc;
     }
   }
 }

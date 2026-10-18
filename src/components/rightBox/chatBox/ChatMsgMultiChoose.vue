@@ -135,7 +135,7 @@
           <n-button class="w-78px" secondary @click="showDeleteConfirm = false">
             {{ t('message.multi_choose.cancel_button') }}
           </n-button>
-          <n-button class="w-78px" color="#13987f" :loading="isDeleting" @click="handleBatchDelete">
+          <n-button class="w-78px" color="#034fbc" :loading="isDeleting" @click="handleBatchDelete">
             {{ t('message.multi_choose.delete_action') }}
           </n-button>
         </n-flex>

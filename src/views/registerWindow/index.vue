@@ -11,7 +11,7 @@
       <!-- 注册菜单 -->
       <n-flex class="ma text-center w-260px pointer-events-auto" vertical :size="16">
         <n-flex justify="center" align="center">
-          <span class="text-(24px #70938c) textFont">{{ t('auth.register.title') }}</span>
+          <span class="text-(24px #636c7e) textFont">{{ t('auth.register.title') }}</span>
           <img class="w-100px h-40px" src="/hula.png" alt="" />
         </n-flex>
         <n-form :model="info" :rules="rules" ref="registerForm">
@@ -133,11 +133,11 @@
               <n-checkbox v-model:checked="protocol" />
               <div class="text-12px color-#909090 cursor-default lh-14px">
                 <span>{{ t('login.term.checkout.text1') }}</span>
-                <span class="color-#13987f cursor-pointer" @click.stop="openServiceAgreement">
+                <span class="color-#034fbc cursor-pointer" @click.stop="openServiceAgreement">
                   {{ t('login.term.checkout.text2') }}
                 </span>
                 <span>{{ t('login.term.checkout.text3') }}</span>
-                <span class="color-#13987f cursor-pointer" @click.stop="openPrivacyAgreement">
+                <span class="color-#034fbc cursor-pointer" @click.stop="openPrivacyAgreement">
                   {{ t('login.term.checkout.text4') }}
                 </span>
               </div>
@@ -154,7 +154,7 @@
           @click="handleStepAction">
           {{ btnText }}
         </n-button>
-        <p v-if="sendCodeCooldown > 0" class="text-(12px #13987f) ml--8px mt-6px whitespace-nowrap">
+        <p v-if="sendCodeCooldown > 0" class="text-(12px #034fbc) ml--8px mt-6px whitespace-nowrap">
           {{ t('auth.register.tips.reopen_code') }}
         </p>
       </n-flex>

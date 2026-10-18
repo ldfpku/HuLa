@@ -103,11 +103,11 @@
           <n-checkbox v-model:checked="protocol" />
           <div class="text-12px color-#909090 cursor-default lh-14px agreement">
             <span>{{ t('login.term.checkout.text1') }}</span>
-            <span class="color-#13987f cursor-pointer" @click.stop="openServiceAgreement">
+            <span class="color-#034fbc cursor-pointer" @click.stop="openServiceAgreement">
               {{ t('login.term.checkout.text2') }}
             </span>
             <span>{{ t('login.term.checkout.text3') }}</span>
-            <span class="color-#13987f cursor-pointer" @click.stop="openPrivacyAgreement">
+            <span class="color-#034fbc cursor-pointer" @click.stop="openPrivacyAgreement">
               {{ t('login.term.checkout.text4') }}
             </span>
           </div>
@@ -172,14 +172,14 @@
       class="text-14px grid grid-cols-[1fr_auto_1fr] items-center gap-x-12px w-full"
       id="bottomBar">
       <div
-        class="color-#13987f cursor-pointer justify-self-end text-right"
+        class="color-#034fbc cursor-pointer justify-self-end text-right"
         :title="cancelLoginTitle"
         @click="cancelAutoLoginAndShowManual">
         {{ cancelLoginLabel }}
       </div>
       <div class="w-1px h-14px bg-#ccc dark:bg-#707070 justify-self-center"></div>
       <div
-        class="color-#13987f cursor-pointer justify-self-start text-left"
+        class="color-#034fbc cursor-pointer justify-self-start text-left"
         :title="removeAccountTitle"
         @click="removeStoredAccount">
         {{ removeAccountLabel }}
@@ -188,7 +188,7 @@
     <div v-else class="text-14px grid grid-cols-[1fr_auto_1fr] items-center gap-x-12px w-full" id="bottomBar">
       <div
         v-if="ACCOUNT_FEATURES.qrCodeLogin"
-        class="color-#13987f cursor-pointer justify-self-end text-right"
+        class="color-#034fbc cursor-pointer justify-self-end text-right"
         :title="qrCodeTitle"
         @click="router.push('/qrCode')">
         {{ qrCodeLabel }}
@@ -206,7 +206,7 @@
           :show-checkmark="false"
           :show-arrow="false">
           <template #trigger>
-            <div class="color-#13987f cursor-pointer" :title="moreTitle">{{ moreLabel }}</div>
+            <div class="color-#034fbc cursor-pointer" :title="moreTitle">{{ moreLabel }}</div>
           </template>
           <n-flex vertical :size="2">
             <div

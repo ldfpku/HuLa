@@ -29,7 +29,7 @@
         :disabled-options="disabledOptions" />
 
       <n-flex align="center" justify="end" class="p-16px">
-        <n-button color="#13987f" @click="handleInvite">{{ t('home.chat_header.modal.confirm') }}</n-button>
+        <n-button color="#034fbc" @click="handleInvite">{{ t('home.chat_header.modal.confirm') }}</n-button>
         <n-button secondary @click="handleClose">{{ t('home.chat_header.modal.cancel') }}</n-button>
       </n-flex>
     </div>

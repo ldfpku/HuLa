@@ -7,9 +7,9 @@
         <n-progress
           type="multiple-circle"
           :circle-gap="-16"
-          :color="showDiskUsage ? ['var(--warning-text)', '#13987f'] : ['#13987f']"
+          :color="showDiskUsage ? ['var(--warning-text)', '#034fbc'] : ['#034fbc']"
           :rail-style="[
-            { stroke: '#7db1ac', opacity: 0.2 },
+            { stroke: '#4170cb', opacity: 0.2 },
             { stroke: '#fff', opacity: 0 }
           ]"
           :percentage="
@@ -35,7 +35,7 @@
       <!-- 颜色说明 -->
       <n-flex justify="center" :size="8">
         <n-flex align="center" :size="8">
-          <div class="w-12px h-12px rounded-2px bg-#13987f"></div>
+          <div class="w-12px h-12px rounded-2px bg-#034fbc"></div>
           <span class="text-(11px #666)">{{ t('setting.storage.app_used_space') }}</span>
         </n-flex>
         <n-flex align="center" :size="8">
@@ -43,7 +43,7 @@
           <span class="text-(11px #666)">{{ t('setting.storage.used_space') }}</span>
         </n-flex>
         <n-flex align="center" :size="8">
-          <div class="w-12px h-12px rounded-2px bg-#7db1ac50"></div>
+          <div class="w-12px h-12px rounded-2px bg-#4170cb50"></div>
           <span class="text-(11px #666)">{{ t('setting.storage.free_space') }}</span>
         </n-flex>
       </n-flex>
@@ -138,7 +138,7 @@
                 :disabled="scanning">
                 {{ scanning ? t('setting.storage.scanning') : t('setting.storage.select_directory') }}
               </n-button>
-              <n-button size="small" color="#13987f" @click="startScan" :disabled="scanning || !currentDirectory">
+              <n-button size="small" color="#034fbc" @click="startScan" :disabled="scanning || !currentDirectory">
                 {{ scanning ? t('setting.storage.scanning') : t('setting.storage.start_scan') }}
               </n-button>
             </n-flex>
@@ -171,9 +171,9 @@ const {
 
 // 获取占比严重程度颜色
 const getUsageColor = (usage: number) => {
-  if (!diskInfo.value) return '#13987f'
+  if (!diskInfo.value) return '#034fbc'
   if (usage < 50) {
-    return '#13987f'
+    return '#034fbc'
   } else if (usage < 80) {
     return '#f0a020'
   } else {

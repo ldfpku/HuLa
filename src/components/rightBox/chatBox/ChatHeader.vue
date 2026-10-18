@@ -25,11 +25,11 @@
           <!-- bot用户标签 -->
           <div
             v-if="isBotUser"
-            class="dark:bg-[#13987f40] bg-[#e8f4f1] dark:border-(1px solid #13987f) border-(1px solid #13987f) flex-center px-8px py-4px rounded-6px">
-            <p class="text-(11px #13987f)">{{ t('home.chat_header.bot_tag') }}</p>
+            class="dark:bg-[#034fbc40] bg-[#edf2fb] dark:border-(1px solid #034fbc) border-(1px solid #034fbc) flex-center px-8px py-4px rounded-6px">
+            <p class="text-(11px #034fbc)">{{ t('home.chat_header.bot_tag') }}</p>
           </div>
         </label>
-        <svg v-if="activeItem?.hotFlag === IsAllUserEnum.Yes" class="size-20px color-#13987f select-none outline-none">
+        <svg v-if="activeItem?.hotFlag === IsAllUserEnum.Yes" class="size-20px color-#034fbc select-none outline-none">
           <use href="#auth"></use>
         </svg>
         <n-flex v-else-if="activeItem?.type === RoomTypeEnum.SINGLE && !isBotUser" align="center">
@@ -183,7 +183,7 @@
         <span class="text-14px">{{ tips }}</span>
 
         <n-flex justify="end">
-          <n-button @click="handleConfirm" class="w-78px" color="#13987f">
+          <n-button @click="handleConfirm" class="w-78px" color="#034fbc">
             {{ t('home.chat_header.modal.confirm') }}
           </n-button>
           <n-button @click="handleCancel" class="w-78px" secondary>{{ t('home.chat_header.modal.cancel') }}</n-button>

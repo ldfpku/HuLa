@@ -26,7 +26,7 @@
           padding: '2px 4px',
           borderRadius: '6px',
           color: '#000',
-          background: '#13987f'
+          background: '#034fbc'
         }" />
       <template v-else>{{ body.content }}</template>
     </p>

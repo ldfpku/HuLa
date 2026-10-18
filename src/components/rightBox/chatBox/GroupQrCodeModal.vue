@@ -478,7 +478,7 @@ const handleSaveGroupQrImage = async () => {
                   <n-tooltip v-if="account" trigger="hover">
                     <template #trigger>
                       <svg
-                        class="size-14px cursor-pointer color-[--icon-color] hover:color-#13987f transition-colors inline-block ml-6px"
+                        class="size-14px cursor-pointer color-[--icon-color] hover:color-#034fbc transition-colors inline-block ml-6px"
                         @click="onCopyAccount">
                         <use href="#copy"></use>
                       </svg>

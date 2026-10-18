@@ -537,6 +537,6 @@ onMounted(async () => {
 
 :deep(.n-input.n-input--focus) {
   border-width: 2px;
-  border-color: #13987f !important;
+  border-color: #034fbc !important;
 }
 </style>

@@ -23,7 +23,7 @@
       :show-indicator="false"
       :height="6"
       :border-radius="3"
-      :color="'#13987f'"
+      :color="'#034fbc'"
       :rail-color="themes.content === ThemeEnum.DARK ? '#404040' : '#90909040'" />
   </div>
 </template>

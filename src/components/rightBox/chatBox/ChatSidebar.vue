@@ -64,7 +64,7 @@
               <template v-for="(segment, index) in announcementSegments" :key="index">
                 <span
                   v-if="segment.isLink"
-                  class="cursor-pointer hover:underline hover:opacity-80 text-#13987f"
+                  class="cursor-pointer hover:underline hover:opacity-80 text-#034fbc"
                   @click.stop="openAnnouncementLink(segment.text)">
                   {{ segment.text }}
                 </span>
@@ -175,7 +175,7 @@
                   <div
                     v-if="item.roleId === RoleEnum.ADMIN"
                     class="flex px-4px bg-#1a7d6b30 py-3px rounded-4px size-fit select-none">
-                    <p class="text-(10px #008080)">{{ t('home.chat_sidebar.roles.admin') }}</p>
+                    <p class="text-(10px #1d5fc9)">{{ t('home.chat_sidebar.roles.admin') }}</p>
                   </div>
                 </n-flex>
               </ContextMenu>

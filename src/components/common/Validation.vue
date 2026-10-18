@@ -46,9 +46,9 @@ const isDarkMode = computed(() => {
   return theme === ThemeEnum.DARK
 })
 
-const successStrokeColor = computed(() => (isDarkMode.value ? '#4bd9bd' : '#13987f'))
+const successStrokeColor = computed(() => (isDarkMode.value ? '#7a9fe2' : '#034fbc'))
 const neutralStrokeColor = computed(() => (isDarkMode.value ? '#bdbdbd' : '#909090'))
-const successFillColor = computed(() => (isDarkMode.value ? '#143a32' : '#AFDBD2'))
+const successFillColor = computed(() => (isDarkMode.value ? '#0a1f54' : '#A9C2EE'))
 const neutralFillColor = computed(() => (isDarkMode.value ? '#303030' : '#fefefe'))
 
 const isValid = computed(() => (props.validator ? props.validator(props.value) : true))

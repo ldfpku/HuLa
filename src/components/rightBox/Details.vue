@@ -47,7 +47,7 @@
           class="cursor-pointer"
           :size="28"
           :border-radius="10"
-          :color="'#13987f'">
+          :color="'#034fbc'">
           <n-popover trigger="hover">
             <template #trigger>
               <n-icon :size="20">
@@ -85,7 +85,7 @@
             <span class="text-(20px [--text-color])">{{ item.groupName }}</span>
             <n-popover trigger="hover" v-if="item.roomId === '1'">
               <template #trigger>
-                <svg class="size-20px color-#13987f select-none outline-none cursor-pointer">
+                <svg class="size-20px color-#034fbc select-none outline-none cursor-pointer">
                   <use href="#auth"></use>
                 </svg>
               </template>
@@ -111,7 +111,7 @@
         class="cursor-pointer"
         :size="40"
         :border-radius="10"
-        :color="'#13987f'">
+        :color="'#034fbc'">
         <n-icon :size="22">
           <svg class="color-#fff"><use href="#message"></use></svg>
         </n-icon>

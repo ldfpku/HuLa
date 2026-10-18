@@ -6,10 +6,10 @@
     --left-active-bg-color: rgba(193, 193, 193, 0.6);
     --left-text-color: #333;
     --left-icon-color: #333;
-    --left-active-hover: #13987f;
+    --left-active-hover: #034fbc;
     --left-bg-hover: rgba(193, 193, 193, 0.4);
-    --left-active-icon-color: #13987f;
-    --left-win-icon-color: rgba(19, 152, 127, 0.6);
+    --left-active-icon-color: #034fbc;
+    --left-win-icon-color: rgba(3, 79, 188, 0.6);
 
     // 通用背景色
     --background: oklch(1 0 0);
@@ -20,7 +20,7 @@
     --input: oklch(0.92 0.004 286.32);
 
     // 包含边框的选中样式
-    --border-active-color: #13987f;
+    --border-active-color: #034fbc;
 
     // 右边布局内容背景
     --right-theme-bg-color: #f1f1f1;
@@ -31,7 +31,7 @@
     --right-chat-footer-line-color: #e3e3e3;
 
     // 消息列表样式
-    --msg-active-color: #13987f;
+    --msg-active-color: #034fbc;
     // 群公告消息背景色
     --group-notice-bg: #fff;
 
@@ -42,7 +42,7 @@
     --icon-hover-color: #e7e7e7;
 
     // 移动端样式
-    --tab-bar-icon-color: rgba(19, 152, 127, 1);
+    --tab-bar-icon-color: rgba(3, 79, 188, 1);
   }
 }
 
@@ -53,10 +53,10 @@ html[data-theme='dark'] {
     --left-active-bg-color: rgba(193, 193, 193, 0.1);
     --left-text-color: #e3e3e3;
     --left-icon-color: #e3e3e3;
-    --left-active-hover: #13987f;
+    --left-active-hover: #034fbc;
     --left-bg-hover: rgba(255, 255, 255, 0.2);
-    --left-active-icon-color: #13987f;
-    --left-win-icon-color: rgba(19, 152, 127, 0.6);
+    --left-active-icon-color: #034fbc;
+    --left-win-icon-color: rgba(3, 79, 188, 0.6);
 
     --background: oklch(27, 27, 27);
     --foreground: oklch(0.985 0 0);
@@ -66,7 +66,7 @@ html[data-theme='dark'] {
     --input: oklch(1 0 0 / 15%);
 
     // 包含边框的选中样式
-    --border-active-color: #13987f;
+    --border-active-color: #034fbc;
 
     // 右边布局内容背景
     --right-theme-bg-color: #161616;
@@ -77,7 +77,7 @@ html[data-theme='dark'] {
     --right-chat-footer-line-color: #202020;
 
     // 消息列表样式
-    --msg-active-color: rgba(19, 152, 127, 0.4);
+    --msg-active-color: rgba(3, 79, 188, 0.4);
     // 群公告消息背景色
     --group-notice-bg: rgba(133, 133, 133, 0.2);
 
@@ -88,7 +88,7 @@ html[data-theme='dark'] {
     --icon-hover-color: #242424;
 
     // 移动端样式
-    --tab-bar-icon-color: rgba(19, 152, 127, 0.4);
+    --tab-bar-icon-color: rgba(3, 79, 188, 0.4);
   }
 }
 /**! end */

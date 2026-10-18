@@ -6,9 +6,9 @@
     <div v-if="loading" class="flex items-center justify-center h-full py-80px">
       <div class="flex flex-col items-center gap-16px">
         <div class="relative">
-          <div class="loading-spinner w-48px h-48px border-4px border-#13987F/30 border-t-#13987F rounded-full"></div>
+          <div class="loading-spinner w-48px h-48px border-4px border-#034FBC/30 border-t-#034FBC rounded-full"></div>
           <div class="absolute inset-0 flex items-center justify-center">
-            <div class="w-24px h-24px bg-#13987F/20 rounded-full animate-pulse"></div>
+            <div class="w-24px h-24px bg-#034FBC/20 rounded-full animate-pulse"></div>
           </div>
         </div>
         <div class="flex flex-col items-center gap-8px">
@@ -28,7 +28,7 @@
             :size="mode === 'mobile' ? 52 : 60"
             round
             :src="getUserAvatar(feedDetail)"
-            class="ring-2 ring-#13987F/20" />
+            class="ring-2 ring-#034FBC/20" />
         </div>
         <div class="flex-1 min-w-0">
           <div class="text-17px font-700 text-[--text-color] truncate mb-6px">
@@ -47,7 +47,7 @@
       <!-- 动态内容 -->
       <div class="relative">
         <div
-          class="pl-20px pr-8px py-12px text-16px text-[--text-color] leading-loose mb-20px whitespace-pre-wrap break-words bg-#e3e3e340 dark:bg-#303030 border border-[--line-color] border-l-4 border-l-#13987F/30 rounded-8px">
+          class="pl-20px pr-8px py-12px text-16px text-[--text-color] leading-loose mb-20px whitespace-pre-wrap break-words bg-#e3e3e340 dark:bg-#303030 border border-[--line-color] border-l-4 border-l-#034FBC/30 rounded-8px">
           {{ feedDetail.content }}
         </div>
       </div>
@@ -118,7 +118,7 @@
         <!-- 播放图标 -->
         <div class="absolute inset-0 flex items-center justify-center">
           <div
-            class="w-72px h-72px rounded-full bg-#13987F/90 flex items-center justify-center backdrop-blur-md shadow-2xl transform group-hover:scale-110 transition-all duration-300 ring-4 ring-white/30">
+            class="w-72px h-72px rounded-full bg-#034FBC/90 flex items-center justify-center backdrop-blur-md shadow-2xl transform group-hover:scale-110 transition-all duration-300 ring-4 ring-white/30">
             <svg class="w-32px h-32px text-white ml-2px" viewBox="0 0 24 24" fill="currentColor">
               <path d="M8 5v14l11-7z" />
             </svg>
@@ -239,7 +239,7 @@
                   {{ comment.content }}
                 </div>
                 <div class="flex items-center gap-12px mt-8px text-12px text-[--reply-color]">
-                  <span class="cursor-pointer hover:text-#13987F" @click="handleReplyComment(comment)">
+                  <span class="cursor-pointer hover:text-#034FBC" @click="handleReplyComment(comment)">
                     {{ t('dynamic.detail.actions.reply') }}
                   </span>
                   <span
@@ -283,7 +283,7 @@
     <div class="space-y-12px">
       <div
         v-if="replyingComment"
-        class="p-12px rounded-8px bg-#e3e3e340 dark:bg-#303030 border border-[--line-color] border-l-4 border-l-#13987F/30">
+        class="p-12px rounded-8px bg-#e3e3e340 dark:bg-#303030 border border-[--line-color] border-l-4 border-l-#034FBC/30">
         <div class="text-12px text-[--reply-color] mb-4px">
           {{ t('dynamic.detail.modal.replying', { name: getCommentUserName(replyingComment) }) }}
         </div>

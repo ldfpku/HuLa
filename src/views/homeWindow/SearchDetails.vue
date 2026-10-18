@@ -13,7 +13,7 @@
       <!-- 历史记录 -->
       <n-flex v-if="historyList.length > 0" align="center" justify="space-between">
         <p class="text-(12px #909090)">{{ t('home.search_history') }}</p>
-        <p class="cursor-pointer text-(12px #13987f)" @click="clearHistory">{{ t('home.clear_search_history') }}</p>
+        <p class="cursor-pointer text-(12px #034fbc)" @click="clearHistory">{{ t('home.clear_search_history') }}</p>
       </n-flex>
 
       <n-flex

@@ -36,7 +36,7 @@
                     @click="
                       isCurrentUser(item.senderId) ? (currentUserId = item.operateId) : (currentUserId = item.senderId)
                     "
-                    class="text-(14px #13987f) cursor-pointer shrink-0 max-w-150px truncate">
+                    class="text-(14px #034fbc) cursor-pointer shrink-0 max-w-150px truncate">
                     {{
                       item.eventType === NoticeType.GROUP_MEMBER_DELETE && item.operateId == item.receiverId
                         ? t('home.apply_list.you')
@@ -88,7 +88,7 @@
                   </n-icon>
                 </n-dropdown>
               </n-flex>
-              <span class="text-(12px #64a29c)" v-else-if="item.status === RequestNoticeAgreeStatus.ACCEPTED">
+              <span class="text-(12px #034fbc)" v-else-if="item.status === RequestNoticeAgreeStatus.ACCEPTED">
                 {{ t('home.apply_list.status.accepted') }}
               </span>
               <span class="text-(12px #c14053)" v-else-if="item.status === RequestNoticeAgreeStatus.REJECTED">
@@ -98,7 +98,7 @@
                 {{ t('home.apply_list.status.ignored') }}
               </span>
               <span
-                class="text-(12px #64a29c)"
+                class="text-(12px #034fbc)"
                 :class="{ 'text-(12px #c14053)': item.status === RequestNoticeAgreeStatus.REJECTED }"
                 v-else-if="isCurrentUser(item.senderId)">
                 {{

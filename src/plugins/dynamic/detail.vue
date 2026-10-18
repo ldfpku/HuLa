@@ -7,14 +7,14 @@
       class="detail-header flex items-center justify-between px-24px py-16px backdrop-blur-md shadow-sm">
       <div class="flex items-center gap-16px">
         <div
-          class="cursor-pointer hover:bg-#13987F/10 dark:hover:bg-#13987f/20 p-8px rounded-8px transition-all duration-200 active:scale-95"
+          class="cursor-pointer hover:bg-#034FBC/10 dark:hover:bg-#034fbc/20 p-8px rounded-8px transition-all duration-200 active:scale-95"
           @click="goBack">
           <svg class="size-20px text-[--text-color] rotate-180">
             <use href="#right"></use>
           </svg>
         </div>
         <div class="flex items-center gap-10px">
-          <div class="w-4px h-20px bg-#13987F rounded-full"></div>
+          <div class="w-4px h-20px bg-#034FBC rounded-full"></div>
           <span class="text-18px font-700 text-[--text-color]">{{ t('dynamic.page.detail.title') }}</span>
         </div>
       </div>
@@ -30,7 +30,7 @@
       <div class="text-center">
         <div class="relative inline-block mb-16px">
           <div
-            class="w-80px h-80px rounded-full bg-gradient-to-br from-#13987F/20 to-#13987F/5 flex items-center justify-center animate-pulse">
+            class="w-80px h-80px rounded-full bg-gradient-to-br from-#034FBC/20 to-#034FBC/5 flex items-center justify-center animate-pulse">
             <div class="text-40px">...</div>
           </div>
         </div>

@@ -246,8 +246,8 @@ const handleAssistantImport = async () => {
   border: 1px solid #e3e3e3;
 
   &.active {
-    color: #13987f;
-    background: rgba(19, 152, 127, 0.15);
+    color: #034fbc;
+    background: rgba(3, 79, 188, 0.15);
   }
 }
 

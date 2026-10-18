@@ -4,7 +4,7 @@
     <template v-if="isGroup">
       <n-flex align="center" :size="6" v-if="fromUserUid === userUid">
         <p class="text-(12px #909090) select-none cursor-default">{{ message.body.content }}</p>
-        <p v-if="canReEdit" class="text-(12px #13987f) select-none cursor-pointer" @click="handleReEdit(message.id)">
+        <p v-if="canReEdit" class="text-(12px #034fbc) select-none cursor-pointer" @click="handleReEdit(message.id)">
           重新编辑
         </p>
       </n-flex>
@@ -15,7 +15,7 @@
         <p class="text-(12px #909090) select-none cursor-default">
           {{ message.body.content }}
         </p>
-        <p v-if="canReEdit" class="text-(12px #13987f) select-none cursor-pointer" @click="handleReEdit(message.id)">
+        <p v-if="canReEdit" class="text-(12px #034fbc) select-none cursor-pointer" @click="handleReEdit(message.id)">
           重新编辑
         </p>
       </n-flex>

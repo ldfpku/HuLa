@@ -227,7 +227,7 @@ export const useCommon = () => {
       const spanNode = document.createElement('span')
       spanNode.id = 'aitSpan' // 设置id为aitSpan
       spanNode.contentEditable = 'false' // 设置为不可编辑
-      spanNode.classList.add('text-#13987f')
+      spanNode.classList.add('text-#034fbc')
       spanNode.classList.add('select-none')
       spanNode.classList.add('cursor-default')
       spanNode.style.userSelect = 'text' // 允许全选选中
@@ -396,7 +396,7 @@ export const useCommon = () => {
       line-height: 1.5;
       font-size: 12px;
       padding: 0 4px;
-      color: rgba(19, 152, 127);
+      color: rgba(3, 79, 188);
       cursor: default;
       user-select: none;
       pointer-events: none;
@@ -540,7 +540,7 @@ export const useCommon = () => {
       line-height: 1.5;
       font-size: 12px;
       padding: 0 4px;
-      color: rgba(19, 152, 127);
+      color: rgba(3, 79, 188);
       cursor: default;
       user-select: none;
       pointer-events: none;

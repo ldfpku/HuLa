@@ -9,7 +9,7 @@
         :key="index"
         class="text-(12px #fbb990) leading-tight select-none cursor-default">
         <p v-if="part.type === 'text'">{{ part.text }}</p>
-        <p v-else-if="part.type === 'bracket'" class="text-#13987f truncate max-w-20">
+        <p v-else-if="part.type === 'bracket'" class="text-#034fbc truncate max-w-20">
           {{ part.text }}
         </p>
         <p v-else-if="part.type === 'number'" class="text-#fbb160">{{ part.text }}</p>

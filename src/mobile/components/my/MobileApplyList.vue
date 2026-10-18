@@ -41,7 +41,7 @@
           <div class="flex-1 flex flex-col gap-10px min-w-0">
             <div
               @click="isCurrentUser(item.senderId) ? (currentUserId = item.operateId) : (currentUserId = item.senderId)"
-              class="flex justify-between text-14px text-#2DA38D">
+              class="flex justify-between text-14px text-#1D5FC9">
               {{ getUserInfo(item)?.name || t('mobile_mymessage.unknown_user') }}
             </div>
             <div class="flex text-gray-500 text-12px min-w-0">
@@ -94,7 +94,7 @@
                 </svg>
               </n-icon>
             </n-dropdown>
-            <span class="text-(12px #64a29c)" v-else-if="item.status === RequestNoticeAgreeStatus.ACCEPTED">
+            <span class="text-(12px #034fbc)" v-else-if="item.status === RequestNoticeAgreeStatus.ACCEPTED">
               {{ t('mobile_mymessage.approved') }}
             </span>
             <span class="text-(12px #c14053)" v-else-if="item.status === RequestNoticeAgreeStatus.REJECTED">
@@ -104,7 +104,7 @@
               {{ t('mobile_mymessage.ignored') }}
             </span>
             <span
-              class="text-(12px #64a29c)"
+              class="text-(12px #034fbc)"
               :class="{ 'text-(12px #c14053)': item.status === RequestNoticeAgreeStatus.REJECTED }"
               v-else-if="isCurrentUser(item.senderId)">
               {{

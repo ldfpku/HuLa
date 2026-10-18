@@ -16,7 +16,7 @@
         <div v-if="isMobile()" class="flex items-center justify-center w-6 ms-5px h-2.5rem">
           <svg
             @click="handleVoiceClick"
-            :class="mobilePanelState === MobilePanelStateEnum.VOICE ? 'text-#169781' : ''"
+            :class="mobilePanelState === MobilePanelStateEnum.VOICE ? 'text-#034fbc' : ''"
             class="w-25px h-25px mt-2px outline-none">
             <use href="#voice"></use>
           </svg>
@@ -60,13 +60,13 @@
           class="flex-shrink-0 max-h-52px p-4px pr-12px border-t border-gray-200/50 flex justify-end mb-4px">
           <n-button-group size="small">
             <n-button
-              color="#13987f"
+              color="#034fbc"
               :disabled="props.isAIMode && props.isAIStreaming ? false : disabledSend"
               class="w-65px"
               @click="handleDesktopSend">
               {{ props.isAIMode && props.isAIStreaming ? '停止思考' : t('editor.send') }}
             </n-button>
-            <n-button color="#13987f" class="p-[0_6px]">
+            <n-button color="#034fbc" class="p-[0_6px]">
               <template #icon>
                 <n-popselect
                   v-model:show="arrow"
@@ -196,7 +196,7 @@
             class="flex-shrink-0 max-h-62px h-full border-t border-gray-200/50 flex items-center justify-end">
             <n-button-group size="small" :class="isMobile() ? 'h-full' : 'pr-20px'">
               <n-button
-                color="#13987f"
+                color="#034fbc"
                 :disabled="props.isAIMode && props.isAIStreaming ? false : disabledSend"
                 class="w-3rem h-full"
                 @click="handleMobileSend">
