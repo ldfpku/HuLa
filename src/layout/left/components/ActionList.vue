@@ -124,6 +124,7 @@
 
       <!-- (独立)菜单选项 -->
       <div
+        v-if="APP_FEATURES.plugins"
         :class="showMode === ShowModeEnum.ICON ? 'top-action p-[6px_8px]' : 'top-action w-46px py-4px flex-col-center'">
         <n-popover
           style="padding: 8px; margin-left: 4px; background: var(--bg-setting-item)"
@@ -262,6 +263,7 @@ import { PluginEnum, ShowModeEnum } from '@/enums'
 import { useTauriListener } from '@/hooks/useTauriListener.ts'
 import { useGlobalStore } from '@/stores/global.ts'
 import { useMenuTopStore } from '@/stores/menuTop.ts'
+import { APP_FEATURES } from '@/common/backend'
 import { usePluginsStore } from '@/stores/plugins.ts'
 import { useSettingStore } from '@/stores/setting.ts'
 import { useFeedStore } from '@/stores/feed.ts'
@@ -291,6 +293,7 @@ const menuShow = ref(false)
 const moreList = useMoreList()
 // 显示在菜单的插件
 const activePlugins = computed(() => {
+  if (!APP_FEATURES.plugins) return []
   return plugins.value.filter((i) => i.isAdd)
 })
 // 显示在菜单外的插件

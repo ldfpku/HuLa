@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "HuLa",
+  "productName": "SMJ",
   "version": "3.0.9",
   "identifier": "com.hula.app",
   "build": {
