@@ -356,6 +356,9 @@
           </div>
         </div>
 
+        <!-- 视频背景板 -->
+        <VideoBackgroundPicker :loading="isBackgroundLoading" />
+
         <!-- 共享屏幕按钮 -->
         <div v-if="!isMobileDevice" class="flex-col-x-center gap-8px w-80px">
           <div
@@ -514,6 +517,8 @@ import { useRemoteControl } from '@/hooks/useRemoteControl'
 import { useWebRtc } from '@/hooks/useWebRtc'
 import type { RemoteInput } from '@/utils/RemoteControlUtils'
 import RemoteControlSurface from './components/RemoteControlSurface.vue'
+import VideoBackgroundPicker from './components/VideoBackgroundPicker.vue'
+import { useVideoBackgroundStore } from '@/stores/videoBackground'
 import { useSettingStore } from '@/stores/setting'
 import { AvatarUtils } from '@/utils/AvatarUtils'
 import { isDesktop, isMac, isMobile, isWindows } from '@/utils/PlatformConstants'
@@ -568,7 +573,9 @@ const {
   isControlChannelOpen,
   sendControlMessage,
   sendInputMessage,
-  onControlMessage
+  onControlMessage,
+  applyVideoBackground,
+  isBackgroundLoading
 } = useWebRtc(roomId, remoteUserId, callType, isReceiver)
 const remoteAudioRef = ref<HTMLAudioElement>()
 const isMuted = ref(false)
@@ -907,6 +914,28 @@ const acceptCall = async () => {
     console.error('Failed to resize window after accepting call:', error)
   }
 }
+
+// 视频背景板：选择变了就应用；拿到摄像头后应用上次记住的选择
+const videoBackgroundStore = useVideoBackgroundStore()
+const applyBackground = async () => {
+  if (callType !== CallTypeEnum.VIDEO || !localStream.value) return
+  try {
+    await applyVideoBackground(videoBackgroundStore.currentEffect, {
+      onDegrade: () => window.$message.info(t('message.call_window.bg_degraded')),
+      onOverload: () => {
+        window.$message.warning(t('message.call_window.bg_overloaded'))
+        videoBackgroundStore.select('none')
+      }
+    })
+  } catch {
+    window.$message.error(t('message.call_window.bg_failed'))
+    videoBackgroundStore.select('none')
+  }
+}
+watch(() => videoBackgroundStore.currentEffect, applyBackground)
+watch(localStream, (stream, previous) => {
+  if (stream && !previous && videoBackgroundStore.selected !== 'none') void applyBackground()
+})
 
 // 监听视频状态变化，自动更新视频显示
 watch([hasLocalVideo, hasRemoteVideo, localStream, remoteStream], assignVideoStreams, { deep: true })

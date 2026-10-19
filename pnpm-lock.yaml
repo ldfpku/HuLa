@@ -24,6 +24,9 @@ importers:
       '@fingerprintjs/fingerprintjs':
         specifier: ^5.2.0
         version: 5.2.0
+      '@mediapipe/tasks-vision':
+        specifier: 0.10.21
+        version: 0.10.21
       '@tauri-apps/api':
         specifier: 2.11.0
         version: 2.11.0
@@ -955,6 +958,9 @@ packages:
 
   '@juggle/resize-observer@3.4.0':
     resolution: {integrity: sha512-dfLbk+PwWvFzSxwk3n5ySL0hfBog779o8h68wK/7/APo/7cgyWp5jcXockbxdk5kFRkbeXWm4Fbi9FrdN381sA==}
+
+  '@mediapipe/tasks-vision@0.10.21':
+    resolution: {integrity: sha512-TuhKH+credq4zLksGbYrnvJ1aLIWMc5r0UHwzxzql4BHECJwIAoBR61ZrqwGOW6ZmSBIzU1t4VtKj8hbxFaKeA==}
 
   '@mermaid-js/parser@1.1.0':
     resolution: {integrity: sha512-gxK9ZX2+Fex5zu8LhRQoMeMPEHbc73UKZ0FQ54YrQtUxE1VVhMwzeNtKRPAu5aXks4FasbMe4xB4bWrmq6Jlxw==}
@@ -5295,6 +5301,8 @@ snapshots:
       '@jridgewell/sourcemap-codec': 1.5.5
 
   '@juggle/resize-observer@3.4.0': {}
+
+  '@mediapipe/tasks-vision@0.10.21': {}
 
   '@mermaid-js/parser@1.1.0':
     dependencies:

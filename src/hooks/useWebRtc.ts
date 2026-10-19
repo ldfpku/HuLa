@@ -8,6 +8,7 @@ import rustWebSocketClient from '@/services/webSocketRust'
 import { useUserStore } from '@/stores/user'
 import { WsRequestMsgType, WsResponseMessageType } from '../services/wsType'
 import { isMobile } from '../utils/PlatformConstants'
+import { type BackgroundEffect, VideoBackgroundProcessor } from '../utils/videoBackground/VideoBackgroundProcessor'
 import { type DeviceKind, useDevicePermission } from './useDevicePermission'
 import { useMitt } from './useMitt'
 import { useTauriListener } from './useTauriListener'
@@ -170,6 +171,11 @@ export const useWebRtc = (roomId: string, remoteUserId: string, callType: CallTy
   let screenSenders: { video?: RTCRtpSender; audio?: RTCRtpSender } = {}
   // 对方是旧版客户端时退回到替换摄像头画面，停止共享时要换回来
   let replacedCameraTrack: MediaStreamTrack | null = null
+  // 视频背景板：启用时 localStream 里是处理后的轨道，原始摄像头轨道留在 rawCameraTrack
+  let backgroundProcessor: VideoBackgroundProcessor | null = null
+  let rawCameraTrack: MediaStreamTrack | null = null
+  let backgroundRequest = 0
+  const isBackgroundLoading = ref(false)
   const controlChannel = ref<RTCDataChannel | null>(null)
   const isControlChannelOpen = ref(false)
   const inputChannel = ref<RTCDataChannel | null>(null)
@@ -818,6 +824,11 @@ export const useWebRtc = (roomId: string, remoteUserId: string, callType: CallTy
       remoteStream.value?.getTracks().forEach((track) => track.stop())
       localScreenStream.value?.getTracks().forEach((track) => track.stop())
       replacedCameraTrack?.stop()
+      backgroundRequest++
+      backgroundProcessor?.stop()
+      backgroundProcessor = null
+      rawCameraTrack?.stop()
+      rawCameraTrack = null
       controlChannel.value?.close?.()
       inputChannel.value?.close?.()
     } catch (error) {
@@ -1176,6 +1187,14 @@ export const useWebRtc = (roomId: string, remoteUserId: string, callType: CallTy
         const oldVideoTrack = localStream.value.getVideoTracks()[0]
         // console.log(oldVideoTrack, newVideoTrack);
 
+        // 背景板开着：只换处理器的输入，发出去的轨道不变
+        if (newVideoTrack && backgroundProcessor && rawCameraTrack) {
+          await backgroundProcessor.setSource(newVideoTrack)
+          rawCameraTrack.stop()
+          rawCameraTrack = newVideoTrack
+          return
+        }
+
         if (newVideoTrack) {
           if (!oldVideoTrack) {
             localStream.value.addTrack(newVideoTrack)
@@ -1196,6 +1215,75 @@ export const useWebRtc = (roomId: string, remoteUserId: string, callType: CallTy
     } catch (error) {
       window.$message.error('切换视频设备失败！')
       console.error('切换视频设备失败:', error)
+    }
+  }
+
+  // 把本地视频轨道换成 next：对方那边用 replaceTrack，不用重新协商；本地预览换一个新的 MediaStream 触发刷新
+  const swapLocalVideoTrack = async (next: MediaStreamTrack) => {
+    const stream = localStream.value
+    const current = stream?.getVideoTracks()[0]
+    if (!stream || !current || current === next) return
+    next.enabled = current.enabled
+    if (replacedCameraTrack === current) {
+      // 正在给旧版对方共享屏幕，摄像头发送通道被占用，停止共享时会换回这里
+      replacedCameraTrack = next
+    } else {
+      const sender = peerConnection.value?.getSenders().find((s) => s.track === current)
+      await sender?.replaceTrack(next)
+    }
+    localStream.value = new MediaStream([...stream.getAudioTracks(), next])
+  }
+
+  /**
+   * 设置视频背景板。效果为 none 时换回原始摄像头画面并停掉处理器；
+   * 第一次启用时要加载人像分割模型，期间 isBackgroundLoading 为 true。
+   * 返回 false 表示没有视频轨道或请求已被后来的设置取代。
+   */
+  const applyVideoBackground = async (
+    effect: BackgroundEffect,
+    handlers?: { onDegrade?: () => void; onOverload?: () => void }
+  ) => {
+    const request = ++backgroundRequest
+    if (effect.type === 'none') {
+      isBackgroundLoading.value = false
+      const processor = backgroundProcessor
+      if (!processor) return true
+      backgroundProcessor = null
+      if (rawCameraTrack) await swapLocalVideoTrack(rawCameraTrack)
+      rawCameraTrack = null
+      processor.stop()
+      return true
+    }
+    if (backgroundProcessor) {
+      await backgroundProcessor.setEffect(effect)
+      return true
+    }
+    const camera = localStream.value?.getVideoTracks()[0]
+    if (!camera) return false
+    const processor = new VideoBackgroundProcessor({
+      assetsBase: `${import.meta.env.BASE_URL}video-bg/`,
+      onDegrade: handlers?.onDegrade,
+      onOverload: handlers?.onOverload
+    })
+    isBackgroundLoading.value = true
+    try {
+      await processor.setEffect(effect)
+      const output = await processor.start(camera)
+      if (request !== backgroundRequest || localStream.value?.getVideoTracks()[0] !== camera) {
+        processor.stop()
+        return false
+      }
+      backgroundProcessor = processor
+      rawCameraTrack = camera
+      await swapLocalVideoTrack(output)
+      info(`视频背景板已启用: ${effect.type}`)
+      return true
+    } catch (e) {
+      processor.stop()
+      error(`启用视频背景板失败: ${String(e)}`)
+      throw e
+    } finally {
+      if (request === backgroundRequest) isBackgroundLoading.value = false
     }
   }
 
@@ -1446,6 +1534,8 @@ export const useWebRtc = (roomId: string, remoteUserId: string, callType: CallTy
     sendInputMessage,
     onControlMessage,
     isControlChannelOpen,
+    applyVideoBackground,
+    isBackgroundLoading,
     toggleVideo,
     switchVideoDevice,
     switchCameraFacing,
