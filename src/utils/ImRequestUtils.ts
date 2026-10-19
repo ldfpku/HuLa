@@ -1,9 +1,11 @@
 import { ImUrlEnum, TauriCommand, type NotificationTypeEnum } from '@/enums'
 import type {
   CacheBadgeReq,
+  DrivePickerListing,
   LoginUserReq,
   ModifyUserInfoType,
   RegisterUserReq,
+  RoomFilePage,
   RoomMailboxState,
   UnifiedSearchResult,
   UnifiedSearchScope,
@@ -1388,4 +1390,29 @@ export async function unifiedSearch(params: {
   size?: number
 }) {
   return await imRequest<UnifiedSearchResult>({ url: ImUrlEnum.UNIFIED_SEARCH, params })
+}
+
+/** 群文件：分页列出群里发过的文件（cursor 为上一页最后一项的 id） */
+export async function getRoomFiles(params: { roomId: string; cursor?: string; pageSize?: number; keyword?: string }) {
+  return await imRequest<RoomFilePage>({ url: ImUrlEnum.ROOM_FILES, params })
+}
+
+/** 群文件：从群文件列表移除（聊天里的消息保留） */
+export async function removeRoomFile(body: { roomId: string; id: string }) {
+  return await imRequest<boolean>({ url: ImUrlEnum.ROOM_FILE_REMOVE, body })
+}
+
+/** 群文件：复制到我的网盘根目录 */
+export async function saveRoomFileToDrive(body: { roomId: string; id: string }) {
+  return await imRequest<{ id: string; name: string; size: number }>({ url: ImUrlEnum.ROOM_FILE_SAVE_TO_DRIVE, body })
+}
+
+/** 从网盘选一个文件发到会话，服务端复制成聊天文件后推送给所有成员（包括自己） */
+export async function sendDriveFileToRoom(body: { roomId: string; driveItemId: string }) {
+  return await imRequest<unknown>({ url: ImUrlEnum.ROOM_FILE_FROM_DRIVE, body })
+}
+
+/** 网盘：列出根目录或某个文件夹 */
+export async function getDriveItems(parentId?: string) {
+  return await imRequest<DrivePickerListing>({ url: ImUrlEnum.DRIVE_ITEMS, params: parentId ? { parentId } : {} })
 }

@@ -571,6 +571,60 @@ export type UnifiedSearchResult = {
   mail: UnifiedSearchSection<MailSearchHit> | null
 }
 
+/** 群文件（群里发过的图片、文件、视频，即群在网盘里的文件夹） */
+export type RoomFile = {
+  id: string
+  roomId: string
+  fileName: string
+  size: number
+  contentType: string
+  /** 消息类型：3 图片、4 文件、6 视频 */
+  msgType: number
+  msgId: string | null
+  uploaderUid: string
+  uploaderName: string
+  /** 发送时间（毫秒） */
+  createdAt: number
+  /** 预览地址 */
+  url: string
+  /** 下载地址 */
+  downloadUrl: string
+  /** 当前用户能否从列表移除（发送者、群主、管理员） */
+  canRemove: boolean
+}
+
+/** 群文件分页 */
+export type RoomFilePage = {
+  list: RoomFile[]
+  cursor: string
+  isLast: boolean
+  /** 文件总数 */
+  total: number
+  /** 文件总大小（字节） */
+  totalSize: number
+}
+
+/** 网盘里的一项（选择发送的文件时用） */
+export type DrivePickerItem = {
+  id: string
+  kind: 'file' | 'folder'
+  name: string
+  size: number
+  contentType: string
+  updatedAt: number
+  /** 是否可以发到聊天（不超过聊天文件大小上限） */
+  sendable: boolean
+}
+
+/** 网盘文件夹内容 */
+export type DrivePickerListing = {
+  items: DrivePickerItem[]
+  /** 从根到当前文件夹的路径，根目录时为空 */
+  path: { id: string; name: string }[]
+  /** 能发到聊天的单个文件大小上限（字节） */
+  limitBytes: number
+}
+
 /**
  * 消息内容
  */

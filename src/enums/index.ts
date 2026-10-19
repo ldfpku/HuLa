@@ -633,6 +633,16 @@ export enum ImUrlEnum {
   ROOM_MAILBOX_DISABLE = 'roomMailboxDisable',
   /** 聊天与邮件统一搜索 */
   UNIFIED_SEARCH = 'unifiedSearch',
+  /** 群文件：列表 */
+  ROOM_FILES = 'roomFiles',
+  /** 群文件：从列表移除 */
+  ROOM_FILE_REMOVE = 'roomFileRemove',
+  /** 群文件：存到我的网盘 */
+  ROOM_FILE_SAVE_TO_DRIVE = 'roomFileSaveToDrive',
+  /** 群文件：从网盘选文件发到会话 */
+  ROOM_FILE_FROM_DRIVE = 'roomFileFromDrive',
+  /** 网盘：列出文件夹内容（发送文件时选择） */
+  DRIVE_ITEMS = 'driveItems',
   /** 获取模型列表 */
   GET_ASSISTANT_MODEL_LIST = 'getAssistantModelList',
   /** 坐标转换 */
