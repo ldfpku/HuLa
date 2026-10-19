@@ -239,7 +239,13 @@ fn show_indicator(app: &AppHandle, peer: &str) -> tauri::Result<()> {
         let scale = monitor.scale_factor();
         let size = monitor.size().to_logical::<f64>(scale);
         let pos = monitor.position().to_logical::<f64>(scale);
-        builder = builder.position(pos.x + (size.width - width) / 2.0, pos.y + 8.0);
+        // 共享屏幕的提示条也在顶部居中，有它时往下让开
+        let offset = if super::share_indicator::bar_visible(app) {
+            super::share_indicator::BAR_OFFSET
+        } else {
+            0.0
+        };
+        builder = builder.position(pos.x + (size.width - width) / 2.0, pos.y + 8.0 + offset);
     } else {
         builder = builder.center();
     }

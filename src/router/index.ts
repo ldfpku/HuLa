@@ -507,6 +507,17 @@ const getDesktopRoutes = (): Array<RouteRecordRaw> => [
     name: 'rcIndicator',
     component: () => import('@/views/rcIndicator/index.vue')
   },
+  // 共享屏幕时的显示器边框和顶部提示条（Rust 创建）
+  {
+    path: '/shareBorder',
+    name: 'shareBorder',
+    component: () => import('@/views/shareIndicator/Border.vue')
+  },
+  {
+    path: '/shareIndicator',
+    name: 'shareIndicator',
+    component: () => import('@/views/shareIndicator/index.vue')
+  },
   // 添加聊天记录窗口路由
   {
     path: '/multiMsg',
