@@ -5,6 +5,7 @@ import { openPath, openUrl } from '@tauri-apps/plugin-opener'
 import { error, info } from '@tauri-apps/plugin-log'
 import { isDesktop } from '@/utils/PlatformConstants'
 import {
+  cancelMeeting,
   createMeeting,
   getMeetingIcs,
   joinMeeting,
@@ -94,5 +95,30 @@ export const useMeeting = () => {
     }
   }
 
-  return { openMeeting, startMeeting, addToCalendar }
+  /** 发起人确认后取消会议；受邀人会收到取消邮件，日历里的日程随之删除 */
+  const confirmCancelMeeting = (
+    id: string,
+    hooks: { onStart?: () => void; onDone?: (cancelled: boolean) => void } = {}
+  ) => {
+    window.$dialog.warning({
+      title: '取消会议',
+      content: '取消后其他人将无法进入该会议，已邀请的人会收到取消通知。确定取消吗？',
+      positiveText: '取消会议',
+      negativeText: '再想想',
+      onPositiveClick: async () => {
+        hooks.onStart?.()
+        try {
+          const result = await cancelMeeting(id)
+          if (result.mailError) window.$message?.warning?.(`会议已取消，但取消通知邮件未发出：${result.mailError}`)
+          else window.$message?.success?.('会议已取消')
+          hooks.onDone?.(true)
+        } catch (e) {
+          error(`[会议] 取消会议失败: ${String(e)}`)
+          hooks.onDone?.(false)
+        }
+      }
+    })
+  }
+
+  return { openMeeting, startMeeting, addToCalendar, confirmCancelMeeting }
 }
