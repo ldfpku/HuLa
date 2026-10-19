@@ -1312,6 +1312,7 @@ export const useWebRtc = (roomId: string, remoteUserId: string, callType: CallTy
     try {
       await processor.setEffect(effect)
       const output = await processor.start(camera)
+      if (!output) throw new Error('背景处理没有输出视频轨道')
       if (request !== backgroundRequest || localStream.value?.getVideoTracks()[0] !== camera) {
         processor.stop()
         return false
