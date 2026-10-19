@@ -96,7 +96,23 @@
           playsinline
           :class="isScreenOnMain ? 'object-contain' : 'object-cover scale-x-[-1]'"
           class="w-full h-full bg-black"></video>
-        <div class="absolute left-12px top-12px rounded-full bg-black/60 px-12px py-4px text-12px text-#fff">
+        <RemoteControlSurface
+          v-if="controlRole === 'controlling' && isScreenOnMain"
+          :video="screenMainVideoRef"
+          @input="sendRemoteInput" />
+        <div
+          v-if="controlRole === 'controlling'"
+          data-testid="rc-controlling"
+          class="absolute left-12px top-12px flex items-center gap-8px rounded-full bg-#034fbc px-12px py-4px text-12px text-#fff">
+          <span>{{ t('message.call_window.rc_controlling', { name: remoteUserInfo?.name || '' }) }}</span>
+          <span v-if="!isScreenOnMain">{{ t('message.call_window.rc_swap_hint') }}</span>
+          <span
+            class="cursor-pointer rounded-full bg-white/20 hover:bg-white/30 px-10px py-2px"
+            @click="stopControlling()">
+            {{ t('message.call_window.rc_stop_control') }}
+          </span>
+        </div>
+        <div v-else class="absolute left-12px top-12px rounded-full bg-black/60 px-12px py-4px text-12px text-#fff">
           {{ t('message.call_window.remote_sharing', { name: remoteUserInfo?.name || '' }) }}
           <span v-if="connectionStatus === RTCCallStatus.ACCEPT" class="ml-6px">{{ formattedCallDuration }}</span>
         </div>
@@ -118,16 +134,31 @@
         </div>
       </div>
 
+      <!-- 正在被对方远程控制：醒目的红色提示条，随时可以停止 -->
+      <div
+        v-if="isBeingControlled"
+        data-testid="rc-controlled"
+        class="absolute top-12px left-1/2 -translate-x-1/2 z-50 flex items-center gap-10px rounded-full bg-#d5304f px-14px py-6px text-13px text-#fff shadow-lg">
+        <div class="w-8px h-8px rounded-full bg-#fff animate-pulse"></div>
+        <span>{{ t('message.call_window.rc_being_controlled', { name: remoteUserInfo?.name || '' }) }}</span>
+        <span
+          class="cursor-pointer rounded-full bg-white/20 hover:bg-white/30 px-10px py-2px"
+          @click="stopBeingControlled()">
+          {{ t('message.call_window.rc_stop_control') }}
+        </span>
+      </div>
       <!-- 自己正在共享时的提示条 -->
       <div
-        v-if="isScreenSharing"
+        v-else-if="isScreenSharing"
         data-testid="local-sharing"
         class="absolute top-12px left-1/2 -translate-x-1/2 z-50 flex items-center gap-10px rounded-full bg-#034fbc px-14px py-6px text-13px text-#fff shadow-lg">
         <svg class="size-14px color-#fff">
           <use href="#screen-sharing"></use>
         </svg>
         <span>{{ t('message.call_window.sharing_self') }}</span>
-        <span class="cursor-pointer rounded-full bg-white/20 hover:bg-white/30 px-10px py-2px" @click="stopScreenShare()">
+        <span
+          class="cursor-pointer rounded-full bg-white/20 hover:bg-white/30 px-10px py-2px"
+          @click="stopScreenShare()">
           {{ t('message.call_window.stop_share') }}
         </span>
       </div>
@@ -344,6 +375,26 @@
           </div>
         </div>
 
+        <!-- 远程控制按钮：请求控制对方电脑 / 等待对方同意 / 结束控制 -->
+        <div v-if="!isMobileDevice" class="flex-col-x-center gap-8px w-80px">
+          <div
+            data-testid="rc-toggle"
+            @click="toggleRemoteControl"
+            class="size-44px rounded-full flex-center"
+            :class="[
+              controlRole !== 'idle' ? 'bg-#034fbc hover:bg-#02409a' : 'bg-gray-600 hover:bg-gray-500',
+              connectionStatus === RTCCallStatus.ACCEPT ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'
+            ]"
+            :title="remoteControlTitle">
+            <svg class="size-16px color-#fff">
+              <use href="#remote-control"></use>
+            </svg>
+          </div>
+          <div class="text-12px text-gray-400 text-center">
+            {{ remoteControlLabel }}
+          </div>
+        </div>
+
         <!-- 挂断按钮 -->
         <div class="flex-col-x-center gap-8px w-80px">
           <div
@@ -411,6 +462,26 @@
               {{ isScreenSharing ? t('message.call_window.stop_share') : t('message.call_window.share_screen') }}
             </div>
           </div>
+
+          <!-- 远程控制按钮：请求控制对方电脑 / 等待对方同意 / 结束控制 -->
+          <div v-if="!isMobileDevice" class="flex-col-x-center gap-8px w-80px">
+            <div
+              data-testid="rc-toggle"
+              @click="toggleRemoteControl"
+              class="size-44px rounded-full flex-center"
+              :class="[
+                controlRole !== 'idle' ? 'bg-#034fbc hover:bg-#02409a' : 'bg-gray-600 hover:bg-gray-500',
+                connectionStatus === RTCCallStatus.ACCEPT ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'
+              ]"
+              :title="remoteControlTitle">
+              <svg class="size-16px color-#fff">
+                <use href="#remote-control"></use>
+              </svg>
+            </div>
+            <div class="text-12px text-gray-400 text-center">
+              {{ remoteControlLabel }}
+            </div>
+          </div>
         </div>
 
         <!-- 下排按钮：挂断 -->
@@ -439,7 +510,10 @@ import { info } from '@tauri-apps/plugin-log'
 import { useRoute } from 'vue-router'
 import type ActionBar from '@/components/windows/ActionBar.vue'
 import { CallTypeEnum, RTCCallStatus, ThemeEnum } from '@/enums'
+import { useRemoteControl } from '@/hooks/useRemoteControl'
 import { useWebRtc } from '@/hooks/useWebRtc'
+import type { RemoteInput } from '@/utils/RemoteControlUtils'
+import RemoteControlSurface from './components/RemoteControlSurface.vue'
 import { useSettingStore } from '@/stores/setting'
 import { AvatarUtils } from '@/utils/AvatarUtils'
 import { isDesktop, isMac, isMobile, isWindows } from '@/utils/PlatformConstants'
@@ -489,7 +563,12 @@ const {
   stopScreenShare,
   isScreenSharing,
   remoteScreenStream,
-  isRemoteScreenSharing
+  isRemoteScreenSharing,
+  localScreenStream,
+  isControlChannelOpen,
+  sendControlMessage,
+  sendInputMessage,
+  onControlMessage
 } = useWebRtc(roomId, remoteUserId, callType, isReceiver)
 const remoteAudioRef = ref<HTMLAudioElement>()
 const isMuted = ref(false)
@@ -513,6 +592,42 @@ const screenMainVideoRef = ref<HTMLVideoElement>()
 const screenPipVideoRef = ref<HTMLVideoElement>()
 // true=屏幕在大画面，false=对方摄像头在大画面
 const isScreenOnMain = ref(true)
+
+const { controlRole, isBeingControlled, requestControl, stopControlling, stopBeingControlled, sendInput } =
+  useRemoteControl(
+    {
+      connectionStatus,
+      isControlChannelOpen,
+      isScreenSharing,
+      isRemoteScreenSharing,
+      localScreenStream,
+      startScreenShare,
+      stopScreenShare,
+      sendControlMessage,
+      sendInputMessage,
+      onControlMessage
+    },
+    () => remoteUserInfo?.name || ''
+  )
+
+const toggleRemoteControl = () => {
+  if (controlRole.value === 'idle') requestControl()
+  else stopControlling()
+}
+
+const remoteControlLabel = computed(() => {
+  if (controlRole.value === 'requesting') return t('message.call_window.rc_requesting')
+  if (controlRole.value === 'controlling') return t('message.call_window.rc_stop_control')
+  return t('message.call_window.rc_request')
+})
+
+const remoteControlTitle = computed(() =>
+  controlRole.value === 'idle' ? t('message.call_window.rc_request_tip') : remoteControlLabel.value
+)
+
+const sendRemoteInput = (input: RemoteInput) => {
+  sendInput(input)
+}
 
 const createSize = (width: number, height: number) => {
   const size = isWindows() ? new LogicalSize(width, height) : new PhysicalSize(width, height)

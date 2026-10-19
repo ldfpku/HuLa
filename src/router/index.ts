@@ -501,6 +501,12 @@ const getDesktopRoutes = (): Array<RouteRecordRaw> => [
     name: 'rtcCall',
     component: () => import('@/views/callWindow/index.vue')
   },
+  // 远程控制被控端的屏幕顶部提示条（Rust 创建）
+  {
+    path: '/rcIndicator',
+    name: 'rcIndicator',
+    component: () => import('@/views/rcIndicator/index.vue')
+  },
   // 添加聊天记录窗口路由
   {
     path: '/multiMsg',
