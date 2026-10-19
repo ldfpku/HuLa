@@ -62,7 +62,7 @@
 
 <script setup lang="ts">
 import { useMeeting } from '@/hooks/useMeeting'
-import { cancelMeeting, type MeetingCreateResult } from '@/utils/MeetingRequestUtils'
+import type { MeetingCreateResult } from '@/utils/MeetingRequestUtils'
 
 const props = defineProps<{
   /** 从哪个会话预约；群聊默认邀请全体成员，单聊邀请对方 */
@@ -73,7 +73,7 @@ const props = defineProps<{
 
 const visible = defineModel<boolean>('show', { default: false })
 
-const { startMeeting, openMeeting, addToCalendar } = useMeeting()
+const { startMeeting, openMeeting, addToCalendar, confirmCancelMeeting } = useMeeting()
 
 const nextHalfHour = () => {
   const date = new Date()
@@ -145,18 +145,15 @@ const copyLink = async () => {
   window.$message.success('会议链接已复制')
 }
 
-const cancel = async () => {
+const cancel = () => {
   if (!created.value) return
-  cancelling.value = true
-  try {
-    const result = await cancelMeeting(created.value.id)
-    window.$message.success(result.mailError ? `会议已取消，但取消邮件未发出：${result.mailError}` : '会议已取消')
-    visible.value = false
-  } catch (e) {
-    console.error('取消会议失败:', e)
-  } finally {
-    cancelling.value = false
-  }
+  confirmCancelMeeting(created.value.id, {
+    onStart: () => (cancelling.value = true),
+    onDone: (cancelled) => {
+      cancelling.value = false
+      if (cancelled) visible.value = false
+    }
+  })
 }
 
 const joinNow = async () => {

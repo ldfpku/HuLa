@@ -76,16 +76,29 @@
         </div>
         <div class="text-card-link-content">
           <span class="text-14px line-clamp-1">{{ urlMap[item].title }}</span>
-          <span class="text-(12px [--chat-text-color]) mt-4px line-clamp-2">{{ urlMap[item].description }}</span>
+          <span class="text-(12px [--chat-text-color]) mt-4px line-clamp-2">
+            {{ cancelledMeetings.has(item) ? '会议已取消' : urlMap[item].description }}
+          </span>
         </div>
+        <n-button
+          v-if="canCancelMeeting(item)"
+          size="tiny"
+          secondary
+          type="error"
+          class="self-center ml-8px flex-shrink-0"
+          :loading="cancellingMeeting === item"
+          @click.stop="handleCancelMeeting(item)">
+          取消会议
+        </n-button>
       </div>
     </template>
   </div>
 </template>
 <script setup lang="ts">
 import { openExternalUrl } from '@/hooks/useLinkSegments'
-import { parseMeetingLink } from '@/hooks/useMeeting'
+import { parseMeetingLink, useMeeting } from '@/hooks/useMeeting'
 import { useGroupStore } from '@/stores/group'
+import { useUserStore } from '@/stores/user'
 import type { TextBody } from '@/services/types'
 import { isMobile } from '@/utils/PlatformConstants'
 
@@ -101,7 +114,31 @@ const props = defineProps<{
   body: TextBody
   searchKeyword?: string
   historyMode?: boolean
+  fromUserUid?: string
 }>()
+
+const userStore = useUserStore()
+const { confirmCancelMeeting } = useMeeting()
+const cancelledMeetings = reactive(new Set<string>())
+const cancellingMeeting = ref<string | null>(null)
+/** 会议链接由发起人发到聊天里，所以发起人在自己发出的会议卡片上随时可以取消 */
+const canCancelMeeting = (url: string) =>
+  !props.historyMode &&
+  !!props.fromUserUid &&
+  userStore.isMe(props.fromUserUid) &&
+  !!parseMeetingLink(url) &&
+  !cancelledMeetings.has(url)
+const handleCancelMeeting = (url: string) => {
+  const id = parseMeetingLink(url)
+  if (!id) return
+  confirmCancelMeeting(id, {
+    onStart: () => (cancellingMeeting.value = url),
+    onDone: (cancelled) => {
+      cancellingMeeting.value = null
+      if (cancelled) cancelledMeetings.add(url)
+    }
+  })
+}
 // 获取所有匹配的字符串
 const urlMap = props.body.urlContentMap || {}
 const keys = Object.keys(urlMap)
