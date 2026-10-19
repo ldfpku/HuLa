@@ -1,4 +1,4 @@
-import { readdirSync, statSync } from 'node:fs'
+import { createReadStream, readdirSync, readFileSync, statSync } from 'node:fs'
 import { fileURLToPath, URL } from 'node:url'
 import UnoCSS from '@unocss/vite'
 import vue from '@vitejs/plugin-vue'
@@ -63,6 +63,32 @@ const createPublicPathRebase = (base: string) => {
           return `${quote}${prefix}/${dir ? `${dir}/` : file}`
         }),
         map: null
+      }
+    }
+  }
+}
+
+/**
+ * 视频背景板的人像分割 wasm（src/utils/videoBackground）。只带 SIMD 版（主流浏览器都支持），
+ * 从 node_modules 拷到产物的 video-bg/wasm/，开发时直接从 node_modules 读，不进 git 也不走 CDN。
+ */
+const createVideoBackgroundWasm = () => {
+  const wasmDir = fileURLToPath(new URL('./node_modules/@mediapipe/tasks-vision/wasm/', import.meta.url))
+  const files = ['vision_wasm_internal.js', 'vision_wasm_internal.wasm']
+  const contentType = (file: string) => (file.endsWith('.wasm') ? 'application/wasm' : 'text/javascript')
+  return {
+    name: 'smj-video-bg-wasm',
+    configureServer(server: { middlewares: { use: (fn: (req: any, res: any, next: () => void) => void) => void } }) {
+      server.middlewares.use((req, res, next) => {
+        const file = /\/video-bg\/wasm\/([\w.]+)(?:\?.*)?$/.exec(req.url || '')?.[1]
+        if (!file || !files.includes(file)) return next()
+        res.setHeader('Content-Type', contentType(file))
+        createReadStream(`${wasmDir}${file}`).pipe(res)
+      })
+    },
+    generateBundle(this: { emitFile: (file: { type: 'asset'; fileName: string; source: Uint8Array }) => void }) {
+      for (const file of files) {
+        this.emitFile({ type: 'asset', fileName: `video-bg/wasm/${file}`, source: readFileSync(`${wasmDir}${file}`) })
       }
     }
   }
@@ -154,6 +180,7 @@ export default defineConfig(({ mode }: ConfigEnv) => {
           }
         }
       },
+      createVideoBackgroundWasm(),
       isWeb && createPublicPathRebase('/im/'),
       isWeb && {
         name: 'smj-web-entry',

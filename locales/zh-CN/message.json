@@ -97,7 +97,24 @@
     "rc_share_prompt": "已同意 {name} 远程控制，请共享整个屏幕",
     "rc_share_start": "开始共享",
     "rc_share_cancel": "取消",
-    "rc_auto_hint": "已接通，正在请求控制对方电脑"
+    "rc_auto_hint": "已接通，正在请求控制对方电脑",
+    "bg_button": "背景",
+    "bg_title": "视频背景",
+    "bg_none": "无",
+    "bg_blur": "模糊",
+    "bg_smj_hook": "钩纹",
+    "bg_smj_split": "错位",
+    "bg_smj_wall": "品牌墙",
+    "bg_custom": "自定义",
+    "bg_upload": "上传图片",
+    "bg_change": "更换自定义图片",
+    "bg_loading": "正在准备背景…",
+    "bg_hint": "背景在本机处理，对方看到的是处理后的画面",
+    "bg_unsupported": "当前浏览器不支持视频背景，请使用最新版 Chrome 或 Edge",
+    "bg_degraded": "电脑性能有限，已自动降低背景处理帧率",
+    "bg_overloaded": "电脑性能不足，已关闭视频背景",
+    "bg_failed": "视频背景启用失败，已恢复原始画面",
+    "bg_image_invalid": "图片无法读取，请换一张 JPG 或 PNG 图片"
   },
   "permission": {
     "mic": {
