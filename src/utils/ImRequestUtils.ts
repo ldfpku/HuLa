@@ -5,6 +5,8 @@ import type {
   ModifyUserInfoType,
   RegisterUserReq,
   RoomMailboxState,
+  UnifiedSearchResult,
+  UnifiedSearchScope,
   UserItem
 } from '@/services/types'
 import { ErrorType, invokeSilently, invokeWithErrorHandler, invokeWithRetry } from '@/utils/TauriInvokeHandler'
@@ -1374,4 +1376,16 @@ export async function enableRoomMailbox(body: { roomId: string; localPart?: stri
 /** 群邮箱：关闭（地址和已收邮件保留） */
 export async function disableRoomMailbox(roomId: string) {
   return await imRequest<RoomMailboxState>({ url: ImUrlEnum.ROOM_MAILBOX_DISABLE, body: { roomId } })
+}
+
+/** 聊天与邮件统一搜索：聊天只搜自己所在的会话，邮件只搜自己的和共享给自己的邮箱 */
+export async function unifiedSearch(params: {
+  keyword: string
+  scope?: UnifiedSearchScope
+  roomId?: string
+  mailboxId?: string
+  page?: number
+  size?: number
+}) {
+  return await imRequest<UnifiedSearchResult>({ url: ImUrlEnum.UNIFIED_SEARCH, params })
 }

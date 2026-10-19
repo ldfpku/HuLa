@@ -1,9 +1,17 @@
 {
   "search_suggestions": "Suggestions",
-  "search_guide": "Search in the search box",
+  "search_guide": "Search chats, messages and mail",
   "no_search_results": "No results found",
   "search_result": "Results",
   "search_history": "History",
+  "search_sessions": "Chats",
+  "search_chat_records": "Messages",
+  "search_mail": "Mail",
+  "search_load_more": "Show more",
+  "search_searching": "Searching...",
+  "search_failed": "Search failed, please try again later",
+  "search_mail_to": "To {to}",
+  "search_no_subject": "(No subject)",
   "search_input_placeholder": "Search",
   "clear_search_history": "Clear",
   "loading": {

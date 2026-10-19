@@ -14,6 +14,7 @@ export const IM_URLS: Record<string, [string, string]> = {
   roomMailbox: ['GET', 'im/room/mailbox'],
   roomMailboxEnable: ['POST', 'im/room/mailbox'],
   roomMailboxDisable: ['POST', 'im/room/mailbox/disable'],
+  unifiedSearch: ['GET', 'im/search'],
   mapCoordTranslate: ['GET', 'system/anyTenant/map/coord/translate'],
   mapReverseGeocode: ['GET', 'system/anyTenant/map/geocoder/reverse'],
   mapStatic: ['GET', 'system/anyTenant/map/static'],
