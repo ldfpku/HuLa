@@ -41,6 +41,9 @@ export default defineConfig(({ mode }: ConfigEnv) => {
   const config = loadEnv(mode, process.cwd(), '')
   const currentPlatform = config.TAURI_ENV_PLATFORM
   const isPC = currentPlatform === 'windows' || currentPlatform === 'darwin' || currentPlatform === 'linux'
+  // 网页版（vite --mode web）：入口换成 src/web/entry.ts，开发时把 /api 代理到 IM 服务端
+  const isWeb = mode === 'web'
+  const webProxyTarget = config.VITE_WEB_PROXY_TARGET || 'https://mail.smjtools.com'
 
   const serverPort = isPC ? 6130 : 5210
   const componentsDirs = getComponentsDirs(currentPlatform)
@@ -101,6 +104,10 @@ export default defineConfig(({ mode }: ConfigEnv) => {
       }
     },
     plugins: [
+      isWeb && {
+        name: 'smj-web-entry',
+        transformIndexHtml: (html: string) => html.replace('/src/main.ts', '/src/web/entry.ts')
+      },
       /**
        * vue3.5.0已支持解构并具有响应式
        * */
@@ -155,12 +162,15 @@ export default defineConfig(({ mode }: ConfigEnv) => {
     clearScreen: false,
     // 2. tauri expects a fixed port, fail if that port is not available
     server: {
-      hmr: {
-        protocol: 'ws',
-        host: host,
-        port: serverPort
-      },
+      hmr: isWeb
+        ? undefined
+        : {
+            protocol: 'ws',
+            host: host,
+            port: serverPort
+          },
       cors: true, // 配置 CORS
+      proxy: isWeb ? { '/api': { target: webProxyTarget, changeOrigin: true, secure: true, ws: true } } : undefined,
       host: '0.0.0.0',
       port: serverPort,
       strictPort: true,
