@@ -524,6 +524,11 @@ impl WebSocketClient {
         let heartbeat_active = self.heartbeat_active.clone();
         let message_sender_ref = self.message_sender.clone();
 
+        // 一个任务结束时要终止另一个：否则重连后旧连接的接收任务还活着，
+        // 旧连接会继续收到推送（重复消息），它断开时还会把新连接的状态改成断开
+        let sender_abort = message_sender_task.abort_handle();
+        let receiver_abort = message_receiver_task.abort_handle();
+
         let monitor_task = tokio::spawn(async move {
             // 等待任务完成或停止信号
             tokio::select! {
@@ -543,6 +548,8 @@ impl WebSocketClient {
             }
 
             // 清理
+            sender_abort.abort();
+            receiver_abort.abort();
             heartbeat_active.store(false, Ordering::SeqCst);
             *message_sender_ref.write().await = None;
         });
