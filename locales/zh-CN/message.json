@@ -90,7 +90,12 @@
     "rc_swap_hint": "（切回屏幕画面才能操作）",
     "rc_being_controlled": "{name} 正在远程控制你的电脑",
     "share_prompt": "已接通，开始共享你的屏幕？",
-    "share_later": "暂不"
+    "share_later": "暂不",
+    "rc_pending": "对方已同意，正在选择要共享的屏幕",
+    "rc_share_prompt": "已同意 {name} 远程控制，请共享整个屏幕",
+    "rc_share_start": "开始共享",
+    "rc_share_cancel": "取消",
+    "rc_auto_hint": "已接通，正在请求控制对方电脑"
   },
   "permission": {
     "mic": {

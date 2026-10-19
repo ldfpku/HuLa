@@ -168,7 +168,9 @@
       "screen_share": "화면 공유",
       "remote_assist": "원격 지원",
       "invite_to_group": "그룹에 초대",
-      "start_group_chat": "그룹 채팅 시작"
+      "start_group_chat": "그룹 채팅 시작",
+      "remote_assist_tip": "Remote assist: call and ask to control their computer (they need the desktop app and must agree)",
+      "remote_assist_group": "Remote assist is not available in group chats; use it in a one-to-one chat"
     },
     "sidebar": {
       "single": {

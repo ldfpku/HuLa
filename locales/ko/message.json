@@ -90,7 +90,12 @@
     "rc_swap_hint": "(switch back to the screen view to control)",
     "rc_being_controlled": "{name} is controlling your computer",
     "share_prompt": "연결되었습니다. 지금 화면을 공유할까요?",
-    "share_later": "나중에"
+    "share_later": "나중에",
+    "rc_pending": "Approved, they are choosing the screen to share",
+    "rc_share_prompt": "You allowed {name} to control your computer. Share your entire screen",
+    "rc_share_start": "Share",
+    "rc_share_cancel": "Cancel",
+    "rc_auto_hint": "Connected, asking to control their computer"
   },
   "permission": {
     "mic": {

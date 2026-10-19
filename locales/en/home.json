@@ -168,7 +168,9 @@
       "screen_share": "Screen share",
       "remote_assist": "Remote assist",
       "invite_to_group": "Invite to group",
-      "start_group_chat": "Start group chat"
+      "start_group_chat": "Start group chat",
+      "remote_assist_tip": "Remote assist: call and ask to control their computer (they need the desktop app and must agree)",
+      "remote_assist_group": "Remote assist is not available in group chats; use it in a one-to-one chat"
     },
     "sidebar": {
       "single": {

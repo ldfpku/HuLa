@@ -58,6 +58,9 @@ export const useRemoteControl = (rtc: RemoteControlRtc, peerName: () => string) 
   const peerCaps = ref<PeerCaps>()
   let requestTimer: ReturnType<typeof setTimeout> | null = null
   let handlingRequest = false
+  /** 被控方：已在确认框同意，等本人点“开始共享” */
+  const awaitingShare = ref(false)
+  let pendingGrant: { granted: boolean; width: number; height: number } | null = null
   const cleanups: Array<() => void> = []
 
   const send = (message: SmjControlMessage) => rtc.sendControlMessage(message)
@@ -142,7 +145,7 @@ export const useRemoteControl = (rtc: RemoteControlRtc, peerName: () => string) 
       deny('web')
       return
     }
-    if (isBeingControlled.value || handlingRequest || controlRole.value !== 'idle') {
+    if (isBeingControlled.value || awaitingShare.value || handlingRequest || controlRole.value !== 'idle') {
       deny('busy')
       return
     }
@@ -175,27 +178,52 @@ export const useRemoteControl = (rtc: RemoteControlRtc, peerName: () => string) 
       if (rtc.isScreenSharing.value && currentSurface && currentSurface !== 'monitor') {
         await rtc.stopScreenShare()
       }
-      const shared = rtc.isScreenSharing.value || (await rtc.startScreenShare({ monitorOnly: true }))
-      if (!shared) {
-        await invoke('remote_control_stop').catch(() => {})
-        deny('monitor')
-        return
+      pendingGrant = grant
+      if (rtc.isScreenSharing.value || navigator.userActivation?.isActive) {
+        await shareAndGrant()
+      } else {
+        // 浏览器内核要求共享屏幕由本人点击触发：确认框之后再请本人点一下“开始共享”
+        awaitingShare.value = true
+        send({ type: 'rc-pending' })
       }
-      const settings = rtc.localScreenStream.value?.getVideoTracks()[0]?.getSettings()
-      const sharedSize = { width: settings?.width ?? 0, height: settings?.height ?? 0 }
-      if (!sameAspect(sharedSize, grant)) {
-        // 宽高比和主屏不同，说明共享的是另一块屏幕，点击位置会错，只支持主屏
-        await invoke('remote_control_stop').catch(() => {})
-        window.$message.warning(t('message.call_window.rc_need_primary'))
-        deny('not-primary', `${sharedSize.width}x${sharedSize.height} / ${grant.width}x${grant.height}`)
-        return
-      }
-      isBeingControlled.value = true
-      send({ type: 'rc-grant', width: sharedSize.width, height: sharedSize.height })
-      info(`远程控制开始：共享画面 ${sharedSize.width}x${sharedSize.height}，主屏 ${grant.width}x${grant.height}`)
     } finally {
       handlingRequest = false
     }
+  }
+
+  /** 已经同意：共享整个屏幕（需要时由本人点击触发），核对是主屏后开始接受控制 */
+  const shareAndGrant = async () => {
+    const grant = pendingGrant
+    awaitingShare.value = false
+    pendingGrant = null
+    if (!grant) return
+    const shared = rtc.isScreenSharing.value || (await rtc.startScreenShare({ monitorOnly: true }))
+    if (!shared) {
+      await invoke('remote_control_stop').catch(() => {})
+      deny('monitor')
+      return
+    }
+    const settings = rtc.localScreenStream.value?.getVideoTracks()[0]?.getSettings()
+    const sharedSize = { width: settings?.width ?? 0, height: settings?.height ?? 0 }
+    if (!sameAspect(sharedSize, grant)) {
+      // 宽高比和主屏不同，说明共享的是另一块屏幕，点击位置会错，只支持主屏
+      await invoke('remote_control_stop').catch(() => {})
+      window.$message.warning(t('message.call_window.rc_need_primary'))
+      deny('not-primary', `${sharedSize.width}x${sharedSize.height} / ${grant.width}x${grant.height}`)
+      return
+    }
+    isBeingControlled.value = true
+    send({ type: 'rc-grant', width: sharedSize.width, height: sharedSize.height })
+    info(`远程控制开始：共享画面 ${sharedSize.width}x${sharedSize.height}，主屏 ${grant.width}x${grant.height}`)
+  }
+
+  /** 被控方在“开始共享”提示上点了取消 */
+  const cancelPendingShare = async (notifyPeer = true) => {
+    if (!awaitingShare.value) return
+    awaitingShare.value = false
+    pendingGrant = null
+    await invoke('remote_control_stop').catch(() => {})
+    if (notifyPeer) deny('rejected')
   }
 
   /** 被控方结束：本机停止注入、通知对方 */
@@ -234,6 +262,18 @@ export const useRemoteControl = (rtc: RemoteControlRtc, peerName: () => string) 
       controlRole.value = 'controlling'
       window.$message.success(t('message.call_window.rc_granted'))
     }),
+    rtc.onControlMessage('rc-pending', () => {
+      if (controlRole.value !== 'requesting') return
+      // 对方已同意、正在选择共享的屏幕，重新计时
+      clearRequestTimer()
+      requestTimer = setTimeout(() => {
+        if (controlRole.value !== 'requesting') return
+        controlRole.value = 'idle'
+        send({ type: 'rc-stop' })
+        window.$message.warning(t('message.call_window.rc_timeout'))
+      }, REQUEST_TIMEOUT)
+      window.$message.info(t('message.call_window.rc_pending'))
+    }),
     rtc.onControlMessage('rc-deny', (message) => {
       if (controlRole.value !== 'requesting') return
       clearRequestTimer()
@@ -246,6 +286,7 @@ export const useRemoteControl = (rtc: RemoteControlRtc, peerName: () => string) 
         stopControlling(false)
         if (wasControlling) window.$message.info(t('message.call_window.rc_ended'))
       }
+      void cancelPendingShare(false)
       void stopBeingControlled(false)
     }),
     rtc.onControlMessage('rc-input', handleInput)
@@ -273,6 +314,7 @@ export const useRemoteControl = (rtc: RemoteControlRtc, peerName: () => string) 
   watch(rtc.connectionStatus, (status) => {
     if (status === RTCCallStatus.ACCEPT) return
     stopControlling(false)
+    void cancelPendingShare(false)
     void stopBeingControlled(false)
   })
 
@@ -280,6 +322,7 @@ export const useRemoteControl = (rtc: RemoteControlRtc, peerName: () => string) 
   if (canBeControlled) {
     listen('remote-control-stopped', () => {
       if (isBeingControlled.value) void stopBeingControlled()
+      else void cancelPendingShare()
     })
       .then((unlisten) => cleanups.push(unlisten))
       .catch(() => {})
@@ -287,8 +330,9 @@ export const useRemoteControl = (rtc: RemoteControlRtc, peerName: () => string) 
 
   onUnmounted(() => {
     clearRequestTimer()
-    if (isBeingControlled.value) {
+    if (isBeingControlled.value || awaitingShare.value) {
       isBeingControlled.value = false
+      awaitingShare.value = false
       void invoke('remote_control_stop').catch(() => {})
     }
     cleanups.splice(0).forEach((fn) => fn())
@@ -298,6 +342,9 @@ export const useRemoteControl = (rtc: RemoteControlRtc, peerName: () => string) 
     canBeControlled,
     controlRole,
     isBeingControlled,
+    awaitingShare,
+    shareAndGrant,
+    cancelPendingShare,
     peerCaps,
     requestControl,
     stopControlling,

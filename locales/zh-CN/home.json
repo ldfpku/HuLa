@@ -165,7 +165,9 @@
       "screen_share": "屏幕共享",
       "remote_assist": "远程协助",
       "invite_to_group": "邀请进群",
-      "start_group_chat": "发起群聊"
+      "start_group_chat": "发起群聊",
+      "remote_assist_tip": "远程协助：发起通话并请求控制对方电脑（对方需使用桌面版并同意）",
+      "remote_assist_group": "群聊不支持远程协助，请在私聊中使用"
     },
     "sidebar": {
       "single": {

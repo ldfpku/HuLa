@@ -108,11 +108,17 @@
       <div v-if="!isChannel && !isBotUser" class="options-box">
         <n-popover trigger="hover" :show-arrow="false" placement="bottom">
           <template #trigger>
-            <svg @click="handleAssist">
+            <svg :class="{ 'opacity-40 cursor-not-allowed': chatStore.isGroup }" @click="handleAssist">
               <use href="#remote-control"></use>
             </svg>
           </template>
-          <span>{{ t('home.chat_header.toolbar.remote_assist') }}</span>
+          <span>
+            {{
+              chatStore.isGroup
+                ? t('home.chat_header.toolbar.remote_assist_group')
+                : t('home.chat_header.toolbar.remote_assist_tip')
+            }}
+          </span>
         </n-popover>
       </div>
 
@@ -546,8 +552,13 @@ const saveGroupInfo = async () => {
   }
 }
 
+// 私聊：发起语音通话，接通后自动请求控制对方电脑（对方桌面版确认）；群聊不支持
 const handleAssist = () => {
-  window.$message.warning(t('home.chat_header.toast.todo'))
+  if (chatStore.isGroup) {
+    window.$message.info(t('home.chat_header.toolbar.remote_assist_group'))
+    return
+  }
+  void startRtcCall(CallTypeEnum.AUDIO, { remoteControl: true })
 }
 
 // 私聊：发起语音通话，接通后提示开始共享；群聊：发起会议，在会议里共享

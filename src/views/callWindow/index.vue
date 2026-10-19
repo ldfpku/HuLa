@@ -147,6 +147,19 @@
           {{ t('message.call_window.rc_stop_control') }}
         </span>
       </div>
+      <!-- 已在确认框同意远程控制：浏览器内核要求由本人点击开始共享整个屏幕 -->
+      <div
+        v-else-if="awaitingShare"
+        data-testid="rc-share-prompt"
+        class="absolute top-12px left-1/2 -translate-x-1/2 z-50 flex items-center gap-10px rounded-full bg-#d5304f px-14px py-6px text-13px text-#fff shadow-lg">
+        <span>{{ t('message.call_window.rc_share_prompt', { name: remoteUserInfo?.name || '' }) }}</span>
+        <span class="cursor-pointer rounded-full bg-white px-10px py-2px text-#d5304f" @click="shareAndGrant()">
+          {{ t('message.call_window.rc_share_start') }}
+        </span>
+        <span class="cursor-pointer opacity-80 hover:opacity-100" @click="cancelPendingShare()">
+          {{ t('message.call_window.rc_share_cancel') }}
+        </span>
+      </div>
       <!-- 自己正在共享时的提示条 -->
       <div
         v-else-if="isScreenSharing"
@@ -170,7 +183,7 @@
         <span>{{ t('message.call_window.share_prompt') }}</span>
         <span
           class="cursor-pointer rounded-full bg-white px-10px py-2px text-#034fbc"
-          @click="(sharePromptDismissed = true), startScreenShare()">
+          @click="((sharePromptDismissed = true), startScreenShare())">
           {{ t('message.call_window.share_screen') }}
         </span>
         <span class="cursor-pointer opacity-80 hover:opacity-100" @click="sharePromptDismissed = true">
@@ -610,22 +623,62 @@ const screenPipVideoRef = ref<HTMLVideoElement>()
 // true=屏幕在大画面，false=对方摄像头在大画面
 const isScreenOnMain = ref(true)
 
-const { controlRole, isBeingControlled, requestControl, stopControlling, stopBeingControlled, sendInput } =
-  useRemoteControl(
-    {
-      connectionStatus,
-      isControlChannelOpen,
-      isScreenSharing,
-      isRemoteScreenSharing,
-      localScreenStream,
-      startScreenShare,
-      stopScreenShare,
-      sendControlMessage,
-      sendInputMessage,
-      onControlMessage
-    },
-    () => remoteUserInfo?.name || ''
-  )
+const {
+  controlRole,
+  isBeingControlled,
+  awaitingShare,
+  shareAndGrant,
+  cancelPendingShare,
+  peerCaps,
+  requestControl,
+  stopControlling,
+  stopBeingControlled,
+  sendInput
+} = useRemoteControl(
+  {
+    connectionStatus,
+    isControlChannelOpen,
+    isScreenSharing,
+    isRemoteScreenSharing,
+    localScreenStream,
+    startScreenShare,
+    stopScreenShare,
+    sendControlMessage,
+    sendInputMessage,
+    onControlMessage
+  },
+  () => remoteUserInfo?.name || ''
+)
+
+// 从聊天顶部“远程协助”发起的通话：接通、通道打开后自动请求控制；对方能力消息迟迟不来（旧版）也照常请求，由请求给出提示
+const wantsRemoteControl = !isReceiver && route.query.remoteControl === '1'
+let autoControlDone = false
+let autoControlTimer: ReturnType<typeof setTimeout> | null = null
+const autoRequestControl = () => {
+  if (autoControlDone) return
+  autoControlDone = true
+  if (autoControlTimer) clearTimeout(autoControlTimer)
+  requestControl()
+}
+watch([connectionStatus, isControlChannelOpen, peerCaps], ([status, open, caps]) => {
+  if (!wantsRemoteControl || autoControlDone || isMobileDevice) return
+  if (status !== RTCCallStatus.ACCEPT || !open) return
+  if (caps) autoRequestControl()
+  else if (!autoControlTimer) autoControlTimer = setTimeout(autoRequestControl, 4000)
+})
+onUnmounted(() => {
+  if (autoControlTimer) clearTimeout(autoControlTimer)
+})
+
+// 等本人点“开始共享”时把通话窗口提到前面，免得提示被挡住
+watch(awaitingShare, (waiting) => {
+  if (!waiting || isMobileDevice) return
+  const win = WebviewWindow.getCurrent()
+  void win
+    .show()
+    .then(() => win.setFocus())
+    .catch(() => {})
+})
 
 const toggleRemoteControl = () => {
   if (controlRole.value === 'idle') requestControl()
