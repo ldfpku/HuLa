@@ -1,9 +1,17 @@
 {
   "search_suggestions": "추천 검색어",
-  "search_guide": "검색창에서 검색하세요",
+  "search_guide": "대화, 메시지, 메일 검색",
   "no_search_results": "검색 결과가 없습니다",
   "search_result": "검색 결과",
   "search_history": "검색 기록",
+  "search_sessions": "대화",
+  "search_chat_records": "메시지",
+  "search_mail": "메일",
+  "search_load_more": "더 보기",
+  "search_searching": "검색 중...",
+  "search_failed": "검색에 실패했습니다. 잠시 후 다시 시도하세요",
+  "search_mail_to": "받는 사람 {to}",
+  "search_no_subject": "(제목 없음)",
   "search_input_placeholder": "검색",
   "clear_search_history": "전체 삭제",
   "loading": {

@@ -631,6 +631,8 @@ export enum ImUrlEnum {
   ROOM_MAILBOX_ENABLE = 'roomMailboxEnable',
   /** 群邮箱：关闭 */
   ROOM_MAILBOX_DISABLE = 'roomMailboxDisable',
+  /** 聊天与邮件统一搜索 */
+  UNIFIED_SEARCH = 'unifiedSearch',
   /** 获取模型列表 */
   GET_ASSISTANT_MODEL_LIST = 'getAssistantModelList',
   /** 坐标转换 */

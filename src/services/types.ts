@@ -515,6 +515,62 @@ export type RoomMailboxState = {
   domain: string | null
 }
 
+/** 统一搜索的范围 */
+export type UnifiedSearchScope = 'all' | 'chat' | 'mail'
+
+/** 统一搜索：一条命中的聊天消息 */
+export type ChatSearchHit = {
+  msgId: string
+  roomId: string
+  /** 1 群聊，2 单聊 */
+  roomType: number
+  /** 打开会话用的 id：群聊是群 id，单聊是对方 uid */
+  detailId: string
+  roomName: string
+  roomAvatar: string
+  fromUid: string
+  fromName: string
+  fromAvatar: string
+  type: number
+  /** 命中处前后的一行纯文本 */
+  text: string
+  sendTime: number
+}
+
+/** 统一搜索：一封命中的邮件 */
+export type MailSearchHit = {
+  id: string
+  mailboxId: string | null
+  mailboxAddress: string
+  threadId: string | null
+  status: string
+  outbound: boolean
+  subject: string
+  from: string
+  fromName: string
+  to: string
+  text: string
+  read: boolean
+  date: number
+  /** 邮件网页里打开这封邮件的路径 */
+  path: string
+}
+
+export type UnifiedSearchSection<T> = {
+  list: T[]
+  total: number
+  isLast: boolean
+}
+
+/** 统一搜索结果；不在范围内的一侧为 null */
+export type UnifiedSearchResult = {
+  keyword: string
+  page: number
+  size: number
+  chat: UnifiedSearchSection<ChatSearchHit> | null
+  mail: UnifiedSearchSection<MailSearchHit> | null
+}
+
 /**
  * 消息内容
  */

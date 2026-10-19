@@ -335,6 +335,7 @@ pub enum ImUrl {
     RoomMailbox,
     RoomMailboxEnable,
     RoomMailboxDisable,
+    UnifiedSearch,
     MapCoordTranslate,
     MapReverseGeocode,
     MapStatic,
@@ -583,6 +584,7 @@ impl ImUrl {
             ImUrl::RoomMailbox => (http::Method::GET, "im/room/mailbox"),
             ImUrl::RoomMailboxEnable => (http::Method::POST, "im/room/mailbox"),
             ImUrl::RoomMailboxDisable => (http::Method::POST, "im/room/mailbox/disable"),
+            ImUrl::UnifiedSearch => (http::Method::GET, "im/search"),
             ImUrl::MapCoordTranslate => (http::Method::GET, "system/anyTenant/map/coord/translate"),
             ImUrl::MapReverseGeocode => {
                 (http::Method::GET, "system/anyTenant/map/geocoder/reverse")
@@ -907,6 +909,7 @@ impl ImUrl {
             "roomMailbox" => Ok(ImUrl::RoomMailbox),
             "roomMailboxEnable" => Ok(ImUrl::RoomMailboxEnable),
             "roomMailboxDisable" => Ok(ImUrl::RoomMailboxDisable),
+            "unifiedSearch" => Ok(ImUrl::UnifiedSearch),
             "mapCoordTranslate" => Ok(ImUrl::MapCoordTranslate),
             "mapReverseGeocode" => Ok(ImUrl::MapReverseGeocode),
             "mapStatic" => Ok(ImUrl::MapStatic),

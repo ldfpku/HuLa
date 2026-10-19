@@ -198,6 +198,7 @@ import { useI18n } from 'vue-i18n'
 import { MittEnum, MsgEnum, ScrollIntentEnum } from '@/enums'
 import { chatMainInjectionKey, useChatMain } from '@/hooks/useChatMain.ts'
 import { useAutoScrollGuard } from '@/hooks/useAutoScrollGuard'
+import { useMessageJump } from '@/hooks/useMessageJump'
 import { useMitt } from '@/hooks/useMitt.ts'
 import { useNetworkStatus } from '@/hooks/useNetworkStatus'
 import { usePopover } from '@/hooks/usePopover.ts'
@@ -486,8 +487,8 @@ watchPostEffect(() => {
   scrollIntent.value = ScrollIntentEnum.NONE
 })
 
-// 跳转到回复消息
-const jumpToReplyMsg = async (key: string): Promise<void> => {
+// 跳转到回复消息；搜索结果可能更久远，允许多翻几页
+const jumpToReplyMsg = async (key: string, maxAttempts = 5): Promise<void> => {
   // 先在当前列表中尝试查找
   let messageIndex = chatStore.chatMessageList.findIndex((msg: any) => msg.message.id === String(key))
 
@@ -507,9 +508,7 @@ const jumpToReplyMsg = async (key: string): Promise<void> => {
   // 尝试加载历史消息直到找到目标消息或无法再加载
   let foundMessage = false
   let attemptCount = 0
-  const MAX_ATTEMPTS = 5 // 设置最大尝试次数，避免无限循环
-
-  while (!foundMessage && attemptCount < MAX_ATTEMPTS) {
+  while (!foundMessage && attemptCount < maxAttempts && !chatStore.currentMessageOptions?.isLast) {
     attemptCount++
 
     // 加载更多历史消息
@@ -541,6 +540,43 @@ const jumpToReplyMsg = async (key: string): Promise<void> => {
     window.$message.warning('无法找到原始消息，可能已被删除或太久远')
   }
 }
+
+// 搜索结果打开会话后定位到命中的消息。切换会话时有一段自动滚到底部的保护期，
+// 等它结束再跳；往上加载历史后列表可能又被拉回底部，所以跳完再按消息 id 校正一次
+const { pendingMessageJump, takeMessageJump } = useMessageJump()
+const MESSAGE_JUMP_DELAY = 1300
+const MESSAGE_JUMP_SETTLE = 600
+const MESSAGE_JUMP_MAX_PAGES = 30
+let messageJumpTimer: ReturnType<typeof setTimeout> | null = null
+
+const scrollMessageIntoView = (msgId: string) => {
+  const target = scrollContainerRef.value?.querySelector(
+    `[data-message-id="${CSS.escape(msgId)}"]`
+  ) as HTMLElement | null
+  if (!target) return
+  isAtBottom.value = false
+  target.scrollIntoView({ behavior: 'instant', block: 'center', inline: 'nearest' })
+}
+
+watch(
+  () => [pendingMessageJump.value, currentRoomId.value, chatStore.chatMessageList.length] as const,
+  ([target, roomId, count]) => {
+    if (!target || target.roomId !== roomId || count === 0) return
+    const jump = takeMessageJump(roomId)
+    if (!jump) return
+    if (messageJumpTimer) clearTimeout(messageJumpTimer)
+    messageJumpTimer = setTimeout(async () => {
+      messageJumpTimer = null
+      if (currentRoomId.value !== jump.roomId) return
+      await jumpToReplyMsg(jump.msgId, MESSAGE_JUMP_MAX_PAGES)
+      messageJumpTimer = setTimeout(() => {
+        messageJumpTimer = null
+        if (currentRoomId.value === jump.roomId) scrollMessageIntoView(jump.msgId)
+      }, MESSAGE_JUMP_SETTLE)
+    }, MESSAGE_JUMP_DELAY)
+  },
+  { immediate: true }
+)
 
 // 滚动到指定索引位置
 const scrollToIndex = (index: number, behavior: ScrollBehavior = 'auto'): void => {
@@ -851,6 +887,7 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
+  if (messageJumpTimer) clearTimeout(messageJumpTimer)
   // 清理监听器
   if (announcementUpdatedListener) {
     announcementUpdatedListener()
