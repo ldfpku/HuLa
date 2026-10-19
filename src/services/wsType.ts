@@ -18,6 +18,8 @@ export enum WsResponseMessageType {
   MSG_MARK_ITEM = 'msgMarkItem',
   /** 消息撤回 */
   MSG_RECALL = 'msgRecall',
+  /** 聊天文件被删除 */
+  MSG_FILE_DELETED = 'msgFileDeleted',
   /** 新邮件 */
   MAIL_NEW = 'mailNew',
   /** 新好友申请 */

@@ -68,6 +68,7 @@ import { useGroupStore } from '@/stores/group'
 import { RoomTypeEnum } from '@/enums'
 import { getFilesMeta } from '@/utils/PathUtil'
 import FileUtil from '@/utils/FileUtil'
+import { isOwnPendingEcho } from '@/utils/MessageSync'
 import type { FilesMeta } from '@/services/types'
 
 const { t } = useI18n()
@@ -351,6 +352,10 @@ useMitt.on(WsResponseMessageType.MAIL_NEW, (data: MailNewEvent) => {
 
 useMitt.on(WsResponseMessageType.RECEIVE_MESSAGE, async (data: MessageType) => {
   if (chatStore.checkMsgExist(data.message.roomId, data.message.id)) {
+    return
+  }
+  // 自己刚在这台设备上发的消息，服务端推给自己其他设备时也会推回来，这里已经显示着了
+  if (isOwnPendingEcho(data, userUid.value, chatStore.checkMsgExist)) {
     return
   }
 

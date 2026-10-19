@@ -8,6 +8,7 @@ import { computed, onUnmounted, type InjectionKey } from 'vue'
 import { ErrorType } from '@/common/exception'
 import {
   MergeMessageType,
+  MessageStatusEnum,
   MittEnum,
   MsgEnum,
   PowerEnum,
@@ -33,7 +34,7 @@ import { saveFileAttachmentAs, saveVideoAttachmentAs } from '@/utils/AttachmentS
 import { isDiffNow } from '@/utils/ComputedTime.ts'
 import { extractFileName, removeTag } from '@/utils/Formatting'
 import { detectImageFormat, imageUrlToUint8Array, isImageUrl } from '@/utils/ImageUtils'
-import { recallMsg, removeGroupMember, updateMyRoomInfo } from '@/utils/ImRequestUtils'
+import { deleteMsgFile, recallMsg, removeGroupMember, updateMyRoomInfo } from '@/utils/ImRequestUtils'
 import { detectRemoteFileType, getFilesMeta } from '@/utils/PathUtil'
 import { isMac, isMobile } from '@/utils/PlatformConstants'
 import { invokeWithErrorHandler } from '@/utils/TauriInvokeHandler'
@@ -181,6 +182,20 @@ export const useChatMain = (isHistoryMode = false, options: UseChatMainOptions =
     }
   }
 
+  /** 当前会话是群聊，且自己是群主或管理员 */
+  const isCurrentGroupManager = () => {
+    if (globalStore.currentSession?.type !== RoomTypeEnum.GROUP) return false
+    const currentMember = groupStore.userList.find((member) => member.uid === userUid.value)
+    return (
+      currentMember?.roleId === RoleEnum.LORD ||
+      currentMember?.roleId === RoleEnum.ADMIN ||
+      groupStore.currentLordId === userUid.value ||
+      groupStore.adminUidList.includes(userUid.value)
+    )
+  }
+  /** 可以删除文件的消息类型 */
+  const DELETABLE_FILE_TYPES: MsgEnum[] = [MsgEnum.IMAGE, MsgEnum.FILE, MsgEnum.VIDEO, MsgEnum.VOICE]
+
   const commonMenuList = ref<OPT.RightMenu[]>([
     {
       label: () => t('menu.select'),
@@ -262,17 +277,7 @@ export const useChatMain = (isHistoryMode = false, options: UseChatMainOptions =
           return true
         }
 
-        const isGroupSession = globalStore.currentSession?.type === RoomTypeEnum.GROUP
-        const groupMembers = groupStore.userList
-        const currentMember = isGroupSession ? groupMembers.find((member) => member.uid === userUid.value) : undefined
-        const isGroupManager =
-          isGroupSession &&
-          (currentMember?.roleId === RoleEnum.LORD ||
-            currentMember?.roleId === RoleEnum.ADMIN ||
-            groupStore.currentLordId === userUid.value ||
-            groupStore.adminUidList.includes(userUid.value))
-
-        if (isGroupManager) {
+        if (isCurrentGroupManager()) {
           return true
         }
 
@@ -283,6 +288,35 @@ export const useChatMain = (isHistoryMode = false, options: UseChatMainOptions =
 
         return !isDiffNow({ time: item.message.sendTime, unit: 'minute', diff: 2 })
       }
+    },
+    {
+      label: () => t('menu.delete_file'),
+      icon: 'delete',
+      click: (item: MessageType) => {
+        window.$dialog.warning({
+          title: t('menu.delete_file'),
+          content: t('home.chat_main.file.confirm_delete'),
+          positiveText: t('menu.delete_file'),
+          negativeText: t('home.chat_header.modal.cancel'),
+          onPositiveClick: async () => {
+            try {
+              const updated = await deleteMsgFile({ roomId: item.message.roomId, msgId: item.message.id })
+              await chatStore.applyMsgFileDeleted({
+                msgId: item.message.id,
+                roomId: item.message.roomId,
+                message: updated
+              })
+            } catch (error) {
+              console.error('[删除文件] 失败:', error)
+            }
+          }
+        })
+      },
+      // 服务端规则相同：发送者本人随时可删，群里群主和管理员也可以
+      visible: (item: MessageType) =>
+        DELETABLE_FILE_TYPES.includes(item.message.type) &&
+        item.message.status !== MessageStatusEnum.SENDING &&
+        (item.fromUser.uid === userUid.value || isCurrentGroupManager())
     }
   ])
   const videoMenuList = ref<OPT.RightMenu[]>([

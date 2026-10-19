@@ -803,6 +803,7 @@ export enum ImUrlEnum {
   // 消息相关
   /** 撤回消息 */
   RECALL_MSG = 'recallMsg',
+  DELETE_MSG_FILE = 'deleteMsgFile',
   /** 标记消息 */
   MARK_MSG = 'markMsg',
   /** 获取消息列表 */

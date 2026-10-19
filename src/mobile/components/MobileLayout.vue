@@ -19,6 +19,7 @@ import { useUserStore } from '@/stores/user'
 import { audioManager } from '@/utils/AudioManager'
 import { isMobile, isWindows } from '@/utils/PlatformConstants'
 import { invokeSilently } from '@/utils/TauriInvokeHandler'
+import { isOwnPendingEcho } from '@/utils/MessageSync'
 import { useRoute } from 'vue-router'
 
 const route = useRoute()
@@ -103,6 +104,10 @@ const addFileToStore = (data: MessageType) => {
 /** 处理收到的消息 */
 useMitt.on(WsResponseMessageType.RECEIVE_MESSAGE, async (data: MessageType) => {
   if (chatStore.checkMsgExist(data.message.roomId, data.message.id)) {
+    return
+  }
+  // 自己刚在这台设备上发的消息，服务端推给自己其他设备时也会推回来，这里已经显示着了
+  if (isOwnPendingEcho(data, userUid.value, chatStore.checkMsgExist)) {
     return
   }
   console.log('[mobile/layout] 收到的消息：', data)

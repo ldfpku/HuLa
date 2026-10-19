@@ -7,7 +7,7 @@ import { defineStore } from 'pinia'
 import { useRoute } from 'vue-router'
 import { ErrorType } from '@/common/exception'
 import { MittEnum, MessageStatusEnum, MsgEnum, RoomTypeEnum, StoresEnum, TauriCommand } from '@/enums'
-import type { MarkItemType, MessageType, RevokedMsgType, SessionItem } from '@/services/types'
+import type { MarkItemType, MessageType, MsgFileDeletedType, RevokedMsgType, SessionItem } from '@/services/types'
 import { useGlobalStore } from '@/stores/global.ts'
 import { useFeedStore } from '@/stores/feed.ts'
 import { useGroupStore } from '@/stores/group.ts'
@@ -1055,6 +1055,25 @@ export const useChatStore = defineStore(
       newMsgCount[roomId] = { count: 0, isStart: false }
     }
 
+    /** 聊天文件被删除：消息换成服务端给的系统提示，并同步到本地数据库 */
+    const applyMsgFileDeleted = async (data: MsgFileDeletedType) => {
+      const next = data.message?.message
+      const roomId = data.roomId || findRoomIdByMsgId(data.msgId)
+      const target = roomId ? messageMap[roomId]?.[data.msgId] : undefined
+      if (!next || !target) return
+      target.message.type = next.type
+      target.message.body = next.body
+      try {
+        await invokeWithErrorHandler(
+          TauriCommand.UPDATE_MESSAGE_RECALL_STATUS,
+          { messageId: data.msgId, messageType: next.type, messageBody: JSON.stringify(next.body) },
+          { customErrorMessage: '更新已删除文件的消息失败', errorType: ErrorType.Client }
+        )
+      } catch (error) {
+        console.error('[删除文件] 更新本地消息失败:', error)
+      }
+    }
+
     // 更新消息
     const updateMsg = ({
       msgId,
@@ -1411,6 +1430,7 @@ export const useChatStore = defineStore(
       clearNewMsgCount,
       updateMarkCount,
       updateRecallMsg,
+      applyMsgFileDeleted,
       recordRecallMsg,
       updateMsg,
       newMsgCount,
