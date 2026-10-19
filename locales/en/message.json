@@ -111,8 +111,8 @@
     "bg_loading": "Preparing background…",
     "bg_hint": "The background is processed on this device; the other side sees the result",
     "bg_unsupported": "This browser does not support video backgrounds; use the latest Chrome or Edge",
-    "bg_degraded": "This computer is slow, so the background now updates less often",
-    "bg_overloaded": "This computer is too slow for video backgrounds, so the background was turned off",
+    "bg_degraded": "This device is slow, so the background now updates less often",
+    "bg_overloaded": "This device is too slow for video backgrounds, so the background was turned off",
     "bg_failed": "Could not turn on the video background; the original camera image is back",
     "bg_image_invalid": "The image could not be read; try a JPG or PNG"
   },

@@ -110,9 +110,9 @@
     "bg_change": "更换自定义图片",
     "bg_loading": "正在准备背景…",
     "bg_hint": "背景在本机处理，对方看到的是处理后的画面",
-    "bg_unsupported": "当前浏览器不支持视频背景，请使用最新版 Chrome 或 Edge",
-    "bg_degraded": "电脑性能有限，已自动降低背景处理帧率",
-    "bg_overloaded": "电脑性能不足，已关闭视频背景",
+    "bg_unsupported": "当前浏览器不支持视频背景，请使用最新版 Chrome、Edge 或 Safari",
+    "bg_degraded": "设备性能有限，已自动降低背景处理帧率",
+    "bg_overloaded": "设备性能不足，已关闭视频背景",
     "bg_failed": "视频背景启用失败，已恢复原始画面",
     "bg_image_invalid": "图片无法读取，请换一张 JPG 或 PNG 图片"
   },

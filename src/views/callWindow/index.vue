@@ -70,7 +70,7 @@
 
     <!-- 窗口控制栏 -->
     <ActionBar
-      v-if="!isMobileDevice"
+      v-if="!compactCall"
       ref="actionBarRef"
       class="relative z-10"
       :top-win-label="WebviewWindow.getCurrent().label"
@@ -80,16 +80,16 @@
     <div
       :class="[
         'relative z-10 flex flex-col min-h-0 flex-1',
-        isMobileDevice ? 'p-0' : 'px-8px pt-6px',
-        !isMobileDevice || callType !== CallTypeEnum.VIDEO ? 'items-center justify-center' : ''
+        compactCall ? 'p-0' : 'px-8px pt-6px',
+        !compactCall || callType !== CallTypeEnum.VIDEO ? 'items-center justify-center' : ''
       ]">
       <!-- 对方共享的屏幕：铺满内容区，视频通话时对方摄像头缩成小窗，点小窗互换 -->
       <div
         v-if="showRemoteScreen"
         data-testid="remote-screen"
-        :class="isMobileDevice ? 'rounded-none' : 'rounded-8px'"
+        :class="compactCall ? 'rounded-none' : 'rounded-8px'"
         class="absolute inset-0 z-40 bg-black overflow-hidden"
-        :style="isMobileDevice ? {} : { left: '8px', right: '8px', top: '6px' }">
+        :style="compactCall ? {} : { left: '8px', right: '8px', top: '6px' }">
         <video
           ref="screenMainVideoRef"
           autoplay
@@ -143,7 +143,12 @@
         v-if="isScreenSharing && localScreenStream"
         data-testid="local-share-preview"
         class="absolute left-12px bottom-12px z-45 w-200px rounded-6px overflow-hidden border-3px border-solid border-#12a150 bg-black shadow-lg">
-        <video ref="localSharePreviewRef" autoplay playsinline muted class="block w-full aspect-video object-contain"></video>
+        <video
+          ref="localSharePreviewRef"
+          autoplay
+          playsinline
+          muted
+          class="block w-full aspect-video object-contain"></video>
         <div class="px-8px py-3px text-11px text-#fff bg-#12a150 truncate">
           {{ t('message.call_window.share_preview') }}
         </div>
@@ -208,9 +213,7 @@
       <div
         v-if="callType === CallTypeEnum.VIDEO && localStream && (isVideoEnabled || hasRemoteVideo)"
         class="w-full flex-1 relative min-h-0 overflow-hidden">
-        <div
-          v-if="!isMobileDevice && connectionStatus !== RTCCallStatus.ACCEPT"
-          class="absolute inset-0 flex-center z-20">
+        <div v-if="!compactCall && connectionStatus !== RTCCallStatus.ACCEPT" class="absolute inset-0 flex-center z-20">
           <div class="rounded-full bg-black/60 px-20px py-8px text-16px text-white">
             {{ callStatusText }}
           </div>
@@ -222,11 +225,11 @@
           playsinline
           :class="[
             'w-full h-full scale-x-[-1] bg-black object-cover',
-            isMobileDevice ? 'rounded-none' : 'rounded-8px'
+            compactCall ? 'rounded-none' : 'rounded-8px'
           ]"></video>
 
         <!-- 画中画视频 -->
-        <div :class="isMobileDevice ? 'top-100px' : 'top-12px'" class="absolute right-8px group z-30">
+        <div :class="compactCall ? 'top-100px' : 'top-12px'" class="absolute right-8px group z-30">
           <video
             ref="pipVideoRef"
             autoplay
@@ -245,7 +248,7 @@
 
         <!-- 底部控制按钮悬浮层（仅移动端） -->
         <div
-          v-if="isMobileDevice"
+          v-if="compactCall"
           class="absolute inset-x-0 bottom-0 z-30 px-24px pb-24px pointer-events-none"
           :style="{
             background: 'linear-gradient(180deg, rgba(15, 15, 15, 0) 0%, rgba(15, 15, 15, 0.88) 100%)',
@@ -258,7 +261,7 @@
             </div>
           </div>
 
-          <div class="flex-center gap-24px pointer-events-auto">
+          <div class="flex-center gap-14px pointer-events-auto">
             <!-- 静音按钮 -->
             <div class="flex-center">
               <div
@@ -293,6 +296,9 @@
                 </svg>
               </div>
             </div>
+
+            <!-- 视频背景板（模型和 wasm 点开才下载） -->
+            <VideoBackgroundPicker compact :loading="isBackgroundLoading" />
 
             <!-- 摄像头按钮 -->
             <div class="flex-center">
@@ -344,14 +350,14 @@
 
       <!-- 通话时长 -->
       <div
-        v-if="connectionStatus === RTCCallStatus.ACCEPT && (!isMobileDevice || callType !== CallTypeEnum.VIDEO)"
+        v-if="connectionStatus === RTCCallStatus.ACCEPT && (!compactCall || callType !== CallTypeEnum.VIDEO)"
         class="inline-block rounded-full bg-black/50 px-16px py-6px text-16px text-gray-300 my-12px text-center">
         {{ formattedCallDuration }}
       </div>
     </div>
 
     <!-- 底部控制按钮（视频通话-桌面端） -->
-    <div v-if="callType === CallTypeEnum.VIDEO && !isMobileDevice" class="relative z-10">
+    <div v-if="callType === CallTypeEnum.VIDEO && !compactCall" class="relative z-10">
       <div class="py-14px flex-center gap-32px">
         <!-- 静音按钮 -->
         <div class="flex-col-x-center gap-8px w-80px">
@@ -402,7 +408,7 @@
         <VideoBackgroundPicker :loading="isBackgroundLoading" />
 
         <!-- 共享屏幕按钮 -->
-        <div v-if="!isMobileDevice" class="flex-col-x-center gap-8px w-80px">
+        <div v-if="!compactCall" class="flex-col-x-center gap-8px w-80px">
           <div
             data-testid="screen-share-toggle"
             @click="toggleScreenShare"
@@ -421,7 +427,7 @@
         </div>
 
         <!-- 远程控制按钮：请求控制对方电脑 / 等待对方同意 / 结束控制 -->
-        <div v-if="!isMobileDevice" class="flex-col-x-center gap-8px w-80px">
+        <div v-if="!compactCall" class="flex-col-x-center gap-8px w-80px">
           <div
             data-testid="rc-toggle"
             @click="toggleRemoteControl"
@@ -456,7 +462,7 @@
 
     <!-- 底部控制按钮（语音通话） -->
     <div v-if="callType !== CallTypeEnum.VIDEO" class="relative z-10">
-      <div :class="isMobileDevice ? 'pb-120px' : 'pb-30px'" class="flex-col-x-center">
+      <div :class="compactCall ? 'pb-120px' : 'pb-30px'" class="flex-col-x-center">
         <!-- 上排按钮：静音、扬声器、摄像头 -->
         <div class="flex-center gap-40px mb-32px">
           <!-- 静音按钮 -->
@@ -469,7 +475,7 @@
                 <use :href="!isMuted ? '#voice' : '#voice-off'"></use>
               </svg>
             </div>
-            <div v-if="!isMobileDevice" class="text-12px text-gray-400 text-center">
+            <div v-if="!compactCall" class="text-12px text-gray-400 text-center">
               {{ !isMuted ? t('message.call_window.mic_on') : t('message.call_window.mic_off') }}
             </div>
           </div>
@@ -484,13 +490,13 @@
                 <use :href="isSpeakerOn ? '#volume-notice' : '#volume-mute'"></use>
               </svg>
             </div>
-            <div v-if="!isMobileDevice" class="text-12px text-gray-400 text-center">
+            <div v-if="!compactCall" class="text-12px text-gray-400 text-center">
               {{ isSpeakerOn ? t('message.call_window.speaker_on') : t('message.call_window.speaker_off') }}
             </div>
           </div>
 
           <!-- 共享屏幕按钮 -->
-          <div v-if="!isMobileDevice" class="flex-col-x-center gap-8px w-80px">
+          <div v-if="!compactCall" class="flex-col-x-center gap-8px w-80px">
             <div
               data-testid="screen-share-toggle"
               @click="toggleScreenShare"
@@ -509,7 +515,7 @@
           </div>
 
           <!-- 远程控制按钮：请求控制对方电脑 / 等待对方同意 / 结束控制 -->
-          <div v-if="!isMobileDevice" class="flex-col-x-center gap-8px w-80px">
+          <div v-if="!compactCall" class="flex-col-x-center gap-8px w-80px">
             <div
               data-testid="rc-toggle"
               @click="toggleRemoteControl"
@@ -558,6 +564,7 @@ import { CallTypeEnum, RTCCallStatus, ThemeEnum } from '@/enums'
 import { useRemoteControl } from '@/hooks/useRemoteControl'
 import { useShareIndicator } from '@/hooks/useShareIndicator'
 import { useWebRtc } from '@/hooks/useWebRtc'
+import { isPhoneLayout } from '@/hooks/usePhoneLayout'
 import type { RemoteInput } from '@/utils/RemoteControlUtils'
 import RemoteControlSurface from './components/RemoteControlSurface.vue'
 import VideoBackgroundPicker from './components/VideoBackgroundPicker.vue'
@@ -590,6 +597,8 @@ const shouldAutoAccept = isReceiver && route.query.autoAccept === '1'
 // 从聊天顶部“屏幕共享”发起的通话
 const wantsScreenShare = !isReceiver && route.query.shareScreen === '1'
 const isMobileDevice = isMobile()
+/** 手机布局（原生移动版，或网页版在手机上）：画面铺满、按钮浮在底部 */
+const compactCall = isMobileDevice || isPhoneLayout.value
 
 if ((!roomId || !remoteUserId) && isMobileDevice) {
   router.replace('/mobile/message')
@@ -848,7 +857,7 @@ const isWindowMaximized = computed(() => {
 })
 
 const pipVideoSizeClass = computed(() => {
-  if (!isMobileDevice) {
+  if (!compactCall) {
     return isWindowMaximized.value ? 'w-320px h-190px' : 'w-120px h-90px'
   }
   return 'w-140px h-160px'
@@ -856,7 +865,7 @@ const pipVideoSizeClass = computed(() => {
 
 // 是否显示准备中的头像
 const shouldCenterPreparingAvatar = computed(() => {
-  if (!isMobileDevice) {
+  if (!compactCall) {
     return false
   }
 

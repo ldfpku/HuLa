@@ -1,18 +1,20 @@
 <template>
   <div
     id="layout"
-    class="relative flex min-w-310px bg-[--right-bg-color] h-full"
-    :class="{ 'is-dragging-files': isDraggingFiles }">
-    <div class="flex flex-1 min-h-0">
+    class="relative flex bg-[--right-bg-color] h-full"
+    :class="{ 'is-dragging-files': isDraggingFiles, 'min-w-310px': !isPhoneLayout, 'smj-phone': isPhoneLayout }">
+    <!-- 手机单栏：列表页是“中栏 + 底部导航（左栏）”，进入聊天或联系人详情后右栏占满一屏 -->
+    <div class="flex flex-1 min-h-0" :class="{ 'flex-col-reverse': isPhoneLayout }">
       <!-- 使用keep-alive包裹异步组件 -->
       <keep-alive>
-        <AsyncLeft />
+        <AsyncLeft v-show="!currentPhonePane" />
       </keep-alive>
       <keep-alive>
-        <AsyncCenter />
+        <AsyncCenter v-show="!currentPhonePane" />
       </keep-alive>
       <keep-alive>
-        <AsyncRight v-if="!shrinkStatus" />
+        <!-- 手机上也要挂载（首屏加载遮罩要等三栏都加载完），没进入聊天/详情时隐藏 -->
+        <AsyncRight v-if="isPhoneLayout || !shrinkStatus" v-show="!isPhoneLayout || !!currentPhonePane" />
       </keep-alive>
     </div>
     <div v-if="overlayVisible" class="absolute inset-0 z-10 flex items-center justify-center bg-[--right-bg-color]">
@@ -61,6 +63,7 @@ import { invokeSilently } from '@/utils/TauriInvokeHandler'
 import { useRoute } from 'vue-router'
 import { audioManager } from '@/utils/AudioManager'
 import { useOverlayController } from '@/hooks/useOverlayController'
+import { clearPhonePane, currentPhonePane, isPhoneLayout } from '@/hooks/usePhoneLayout'
 import { useGroupStore } from '@/stores/group'
 import { RoomTypeEnum } from '@/enums'
 import { getFilesMeta } from '@/utils/PathUtil'
@@ -510,6 +513,7 @@ onBeforeMount(async () => {
 })
 
 onMounted(async () => {
+  clearPhonePane()
   useMailStore().refreshUnread()
   timerWorker.postMessage({
     type: 'startTimer',

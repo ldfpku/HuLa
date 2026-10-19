@@ -24,7 +24,8 @@
         v-if="!isMobile()"
         align="center"
         justify="space-between"
-        class="p-[10px_22px_5px] select-none flex-shrink-0">
+        class="select-none flex-shrink-0"
+        :class="isPhoneLayout ? 'p-[8px_12px_4px]' : 'p-[10px_22px_5px]'">
         <n-flex align="center" :size="0" class="input-options">
           <!-- emoji表情 -->
           <n-popover
@@ -79,7 +80,8 @@
             <Emoticon @emojiHandle="emojiHandle" :all="false" />
           </n-popover>
 
-          <div class="flex-center gap-2px mr-12px">
+          <!-- 手机浏览器不能截屏 -->
+          <div v-if="!isPhoneLayout" class="flex-center gap-2px mr-12px">
             <svg @click="handleScreenshot()">
               <use href="#screenshot"></use>
             </svg>
@@ -157,7 +159,7 @@
             </template>
             <span>{{ t('editor.voice') }}</span>
           </n-popover>
-          <n-popover v-if="!isMac()" trigger="hover" :show-arrow="false" placement="bottom">
+          <n-popover v-if="!isMac() && !isPhoneLayout" trigger="hover" :show-arrow="false" placement="bottom">
             <template #trigger>
               <svg @click="showLocationModal = true" class="mr-18px">
                 <use href="#local"></use>
@@ -178,7 +180,7 @@
       </n-flex>
 
       <!-- 输入框区域 -->
-      <div :class="[isMobile() ? '' : 'pl-20px ']" class="flex flex-1 min-h-0">
+      <div :class="[isMobile() ? '' : isPhoneLayout ? 'pl-12px' : 'pl-20px ']" class="flex flex-1 min-h-0">
         <MsgInput
           ref="MsgInputRef"
           @clickMore="handleMoreClick"
@@ -216,6 +218,7 @@
 
 <script setup lang="ts">
 import { open } from '@tauri-apps/plugin-dialog'
+import { isPhoneLayout } from '@/hooks/usePhoneLayout'
 import { readFile } from '@tauri-apps/plugin-fs'
 import { FOOTER_HEIGHT, MAX_FOOTER_HEIGHT, MIN_FOOTER_HEIGHT } from '@/common/constants'
 import LocationModal from '@/components/rightBox/location/LocationModal.vue'

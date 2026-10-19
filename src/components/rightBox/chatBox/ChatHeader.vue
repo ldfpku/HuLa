@@ -3,9 +3,12 @@
   <main
     v-if="activeItem"
     data-tauri-drag-region
-    class="z-999 flex-y-center flex-shrink-0 border-b-(1px solid [--right-chat-footer-line-color]) select-none cursor-default justify-between p-[6px_22px_10px]">
+    class="z-999 flex-y-center flex-shrink-0 border-b-(1px solid [--right-chat-footer-line-color]) select-none cursor-default justify-between"
+    :class="isPhoneLayout ? 'p-[8px_10px_8px_4px] gap-8px' : 'p-[6px_22px_10px]'">
     <Transition name="loading" mode="out-in">
-      <n-flex align="center">
+      <n-flex align="center" :wrap="false" class="min-w-0">
+        <!-- 手机单栏：回到会话列表 -->
+        <PhoneBackButton v-if="isPhoneLayout" class="-mr-6px" />
         <n-avatar
           :class="[
             'rounded-8px select-none',
@@ -15,8 +18,8 @@
           :color="themes.content === ThemeEnum.DARK ? '' : '#fff'"
           :fallback-src="themes.content === ThemeEnum.DARK ? '/avatar-dark.svg' : '/avatar-light.svg'"
           :src="currentUserAvatar" />
-        <label class="flex-y-center gap-6px">
-          <p class="text-(16px [--text-color])">{{ groupStore.countInfo?.remark || activeItem?.name }}</p>
+        <label class="flex-y-center gap-6px min-w-0">
+          <p class="text-(16px [--text-color]) truncate">{{ groupStore.countInfo?.remark || activeItem?.name }}</p>
           <p
             v-if="activeItem?.type === RoomTypeEnum.GROUP && groupStore.countInfo?.memberNum"
             class="text-(11px #808080)">
@@ -40,7 +43,7 @@
               <n-badge v-else :color="isOnline ? '#1ab292' : '#909090'" dot />
 
               <!-- 状态文本 -->
-              <p class="text-(12px [--text-color])">
+              <p v-if="!isPhoneLayout" class="text-(12px [--text-color])">
                 {{ statusTitle }}
               </p>
             </n-flex>
@@ -58,7 +61,10 @@
       </n-flex>
     </Transition>
     <!-- 顶部右边选项栏 -->
-    <nav v-if="shouldShowDeleteFriend || chatStore.isGroup" class="options flex-y-center gap-20px color-[--icon-color]">
+    <nav
+      v-if="shouldShowDeleteFriend || chatStore.isGroup"
+      class="options flex-y-center flex-shrink-0 color-[--icon-color]"
+      :class="isPhoneLayout ? 'gap-16px' : 'gap-20px'">
       <div v-if="!isChannel && !isBotUser" class="options-box">
         <n-popover trigger="hover" :show-arrow="false" placement="bottom">
           <template #trigger>
@@ -94,7 +100,7 @@
         </n-popover>
       </div>
 
-      <div v-if="!isChannel && !isBotUser" class="options-box">
+      <div v-if="!isChannel && !isBotUser && !isPhoneLayout" class="options-box">
         <n-popover trigger="hover" :show-arrow="false" placement="bottom">
           <template #trigger>
             <svg @click="handleMedia">
@@ -105,7 +111,7 @@
         </n-popover>
       </div>
 
-      <div v-if="!isChannel && !isBotUser" class="options-box">
+      <div v-if="!isChannel && !isBotUser && !isPhoneLayout" class="options-box">
         <n-popover trigger="hover" :show-arrow="false" placement="bottom">
           <template #trigger>
             <svg :class="{ 'opacity-40 cursor-not-allowed': chatStore.isGroup }" @click="handleAssist">
@@ -267,6 +273,7 @@ import { useI18n } from 'vue-i18n'
 import { ErrorType } from '@/common/exception'
 import { useDisplayMedia } from '@vueuse/core'
 import AvatarCropper from '@/components/common/AvatarCropper.vue'
+import PhoneBackButton from '@/components/common/PhoneBackButton.vue'
 import ManageGroupMember from '@/views/ManageGroupMember.vue'
 import {
   CallTypeEnum,
@@ -283,6 +290,7 @@ import { useAvatarUpload } from '@/hooks/useAvatarUpload'
 import { useMyRoomInfoUpdater } from '@/hooks/useMyRoomInfoUpdater'
 import { useMitt } from '@/hooks/useMitt.ts'
 import { useOnlineStatus } from '@/hooks/useOnlineStatus'
+import { isPhoneLayout } from '@/hooks/usePhoneLayout'
 import { useWindow } from '@/hooks/useWindow'
 import { IsAllUserEnum, type UserItem } from '@/services/types.ts'
 import { WsResponseMessageType } from '@/services/wsType'

@@ -1,7 +1,8 @@
 <template>
-  <main class="size-full flex select-none">
+  <!-- smj-settings*：网页版手机上由 src/web/phone.scss 改成顶部横向标签 -->
+  <main class="smj-settings size-full flex select-none">
     <!-- 侧边栏选项 -->
-    <section class="left-bar" data-tauri-drag-region>
+    <section class="smj-settings-nav left-bar" data-tauri-drag-region>
       <div class="menu-list relative">
         <div v-for="(item, index) in sideOptions" :key="index">
           <div class="menu-item" :class="{ active: activeItem === item.url }" @click="pageJumps(item.url)">
@@ -19,11 +20,11 @@
           </div>
         </div>
       </div>
-
     </section>
 
     <!-- 右边内容 -->
-    <section class="bg-[--right-bg-color] relative rounded-r-8px flex-1 border-l-(1px solid [--line-color])">
+    <section
+      class="smj-settings-body bg-[--right-bg-color] relative rounded-r-8px flex-1 border-l-(1px solid [--line-color])">
       <ActionBar :shrink="false" :max-w="true" />
 
       <header class="header" data-tauri-drag-region>
@@ -41,7 +42,6 @@
         </n-flex>
         <template v-else>
           <div class="flex-1 p-24px"><router-view /></div>
-
         </template>
       </n-scrollbar>
     </section>

@@ -12,6 +12,7 @@ import { createCommands } from './commands'
 import { closeIncomingCall, showIncomingCall } from './incomingCall'
 import { downloadFile, downloadIfSaved, messageDialog, openFileDialog, saveFileDialog } from './dialog'
 import { startRecording, stopRecording } from './micRecorder'
+import { closeSelfInParent, openPhoneWindow, isPhoneScreen } from './phoneWindows'
 import { uploadFilePut, virtualFs } from './virtualFs'
 import { WebSocketClient } from './wsClient'
 
@@ -49,6 +50,12 @@ const commands = createCommands(ws, emit)
 
 const size = () => ({ width: window.innerWidth, height: window.innerHeight })
 
+/** 其余窗口：电脑上开新标签页，手机上在页内全屏打开（见 ./phoneWindows） */
+const openTab = (url: string, label: string, title?: string) => {
+  if (isPhoneScreen()) openPhoneWindow(label, url, title)
+  else window.open(url, `smj-${label}`)
+}
+
 const openWindow = (args: any) => {
   const options = args?.options ?? {}
   const label: string = options.label ?? ''
@@ -60,7 +67,7 @@ const openWindow = (args: any) => {
   } else if (label === 'rtcCall' && url.includes('isIncoming=true')) {
     showIncomingCallFor(url)
   } else {
-    window.open(url, `smj-${label}`)
+    openTab(url, label, options.title)
   }
   return null
 }
@@ -70,7 +77,7 @@ const showIncomingCallFor = (url: string) => {
   const query = new URL(url, location.origin).searchParams
   showIncomingCall({
     isVideo: query.get('callType') === '2',
-    onAccept: () => window.open(`${url}&autoAccept=1`, 'smj-rtcCall'),
+    onAccept: () => openTab(`${url}&autoAccept=1`, 'rtcCall'),
     onReject: () =>
       ws.send({
         // 6 = VIDEO_CALL_RESPONSE，accepted 0 = 拒绝（见 useWebRtc 的 sendRtcCall2VideoCallResponse）
@@ -120,7 +127,9 @@ const pluginCommand = (cmd: string, args: any, options?: any): unknown => {
           return null
         case 'close':
         case 'destroy':
-          if ((args?.label ?? currentLabel) === currentLabel && !MAIN_WINDOWS.has(currentLabel)) window.close()
+          if ((args?.label ?? currentLabel) === currentLabel && !MAIN_WINDOWS.has(currentLabel)) {
+            if (!closeSelfInParent(currentLabel)) window.close()
+          }
           return null
         default:
           return null
