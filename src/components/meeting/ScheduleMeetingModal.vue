@@ -50,6 +50,7 @@
           <p class="m-0 text-12px break-all text-#034fbc select-text">{{ created.url }}</p>
         </div>
         <n-flex justify="end">
+          <n-button secondary type="error" :loading="cancelling" @click="cancel">取消会议</n-button>
           <n-button secondary @click="copyLink">复制链接</n-button>
           <n-button secondary @click="addToCalendar(created.id)">加入日历</n-button>
           <n-button color="#034fbc" @click="joinNow">进入会议</n-button>
@@ -61,7 +62,7 @@
 
 <script setup lang="ts">
 import { useMeeting } from '@/hooks/useMeeting'
-import type { MeetingCreateResult } from '@/utils/MeetingRequestUtils'
+import { cancelMeeting, type MeetingCreateResult } from '@/utils/MeetingRequestUtils'
 
 const props = defineProps<{
   /** 从哪个会话预约；群聊默认邀请全体成员，单聊邀请对方 */
@@ -86,6 +87,7 @@ const startAt = ref<number | null>(nextHalfHour())
 const duration = ref(60)
 const sendMail = ref(true)
 const submitting = ref(false)
+const cancelling = ref(false)
 const created = ref<MeetingCreateResult | null>(null)
 
 const durationOptions = [15, 30, 45, 60, 90, 120, 180].map((minutes) => ({
@@ -141,6 +143,20 @@ const copyLink = async () => {
   if (!created.value) return
   await navigator.clipboard.writeText(created.value.url)
   window.$message.success('会议链接已复制')
+}
+
+const cancel = async () => {
+  if (!created.value) return
+  cancelling.value = true
+  try {
+    const result = await cancelMeeting(created.value.id)
+    window.$message.success(result.mailError ? `会议已取消，但取消邮件未发出：${result.mailError}` : '会议已取消')
+    visible.value = false
+  } catch (e) {
+    console.error('取消会议失败:', e)
+  } finally {
+    cancelling.value = false
+  }
 }
 
 const joinNow = async () => {

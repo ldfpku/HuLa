@@ -60,6 +60,11 @@ export async function listMeetings(): Promise<MeetingInfo[]> {
 }
 
 /** 会议的 .ics 日历文件内容，交给系统日历打开 */
+/** 发起人取消会议；已发邀请的人会收到取消邮件，日历里的日程随之删除 */
+export async function cancelMeeting(id: string): Promise<{ id: string; mailError: string | null }> {
+  return await imRequest({ url: ImUrlEnum.MEETING_CANCEL, body: { id } })
+}
+
 export async function getMeetingIcs(id: string): Promise<{ filename: string; body: string }> {
   return await imRequest({ url: ImUrlEnum.MEETING_ICS, params: { id } })
 }

@@ -827,6 +827,7 @@ export enum ImUrlEnum {
   MEETING_DETAIL = 'meetingDetail',
   MEETING_JOIN = 'meetingJoin',
   MEETING_ICS = 'meetingIcs',
+  MEETING_CANCEL = 'meetingCancel',
 
   /** 发送 AI 消息 */
   MESSAGE_SEND_STREAM = 'messageSendStream',
