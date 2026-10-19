@@ -53,6 +53,7 @@ import type { MessageType } from '@/services/types.ts'
 import { WsResponseMessageType } from '@/services/wsType.ts'
 import { useChatStore } from '@/stores/chat'
 import { useFileStore } from '@/stores/file'
+import { type MailNewEvent, useMailStore } from '@/stores/mail'
 import { useUserStore } from '@/stores/user'
 import { useSettingStore } from '@/stores/setting.ts'
 import { useInitialSyncStore } from '@/stores/initialSync.ts'
@@ -340,6 +341,11 @@ const addFileToStore = (data: MessageType) => {
   })
 }
 
+// 新邮件：更新未读数并弹出系统通知
+useMitt.on(WsResponseMessageType.MAIL_NEW, (data: MailNewEvent) => {
+  useMailStore().handleMailNew(data)
+})
+
 useMitt.on(WsResponseMessageType.RECEIVE_MESSAGE, async (data: MessageType) => {
   if (chatStore.checkMsgExist(data.message.roomId, data.message.id)) {
     return
@@ -504,6 +510,7 @@ onBeforeMount(async () => {
 })
 
 onMounted(async () => {
+  useMailStore().refreshUnread()
   timerWorker.postMessage({
     type: 'startTimer',
     msgId: 'checkUpdate',

@@ -1340,3 +1340,16 @@ export async function messageSaveGeneratedContent(params: {
     params
   })
 }
+
+/** 邮件：获取一次性网页登录链接，next 为登录后跳转的站内路径 */
+export async function getMailSsoUrl(next?: string) {
+  return await imRequest<{ url: string }>({
+    url: ImUrlEnum.MAIL_SSO,
+    params: next ? { next } : undefined
+  })
+}
+
+/** 邮件：获取收件箱未读数 */
+export async function getMailUnread() {
+  return await imRequestSilent<{ count: number }>({ url: ImUrlEnum.MAIL_UNREAD })
+}

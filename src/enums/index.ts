@@ -150,6 +150,8 @@ export enum StoresEnum {
   PLUGINS = 'plugins',
   /** 侧边栏头部菜单栏 */
   MENUTOP = 'menuTop',
+  /** 邮件 */
+  MAIL = 'mail',
   /** 账号账号历史记录列表 */
   LOGIN_HISTORY = 'loginHistory',
   /** 好友列表 */
@@ -617,6 +619,10 @@ export enum ImUrlEnum {
   INIT_CONFIG = 'initConfig',
   /** 获取默认存储提供者 */
   STORAGE_PROVIDER = 'storageProvider',
+  /** 邮件：一次性网页登录链接 */
+  MAIL_SSO = 'mailSso',
+  /** 邮件：收件箱未读数 */
+  MAIL_UNREAD = 'mailUnread',
   /** 获取模型列表 */
   GET_ASSISTANT_MODEL_LIST = 'getAssistantModelList',
   /** 坐标转换 */

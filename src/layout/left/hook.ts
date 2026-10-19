@@ -7,6 +7,7 @@ import router from '@/router'
 import type { BadgeType, UserInfoType } from '@/services/types.ts'
 import { useGroupStore } from '@/stores/group'
 import { useLoginHistoriesStore } from '@/stores/loginHistory.ts'
+import { useMailStore } from '@/stores/mail'
 import { useMenuTopStore } from '@/stores/menuTop.ts'
 import { useSettingStore } from '@/stores/setting.ts'
 import { useUserStore } from '@/stores/user.ts'
@@ -143,6 +144,17 @@ export const leftHook = () => {
     size?: { width: number; height: number; minWidth?: number; minHeight?: number },
     window?: { resizable: boolean }
   ) => {
+    // 邮件在独立窗口中打开斯米伽邮箱网页
+    if (url === 'mail') {
+      useMailStore()
+        .openMail()
+        .catch((error) => {
+          info(`打开邮件失败: ${error}`)
+          // 参数 window 遮蔽了全局对象，这里通过 self 访问
+          self.$message.error('打开邮件失败，请稍后重试')
+        })
+      return
+    }
     if (window) {
       useTimeoutFn(async () => {
         info(`打开窗口: ${title}`)

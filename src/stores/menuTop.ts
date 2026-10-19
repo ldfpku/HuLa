@@ -1,11 +1,13 @@
 import { defineStore } from 'pinia'
 import { PluginEnum, StoresEnum } from '@/enums'
 import { useI18n } from 'vue-i18n'
+import { useMailStore } from '@/stores/mail'
 
 export const useMenuTopStore = defineStore(
   StoresEnum.MENUTOP,
   () => {
     const { t } = useI18n()
+    const mailStore = useMailStore()
     // 初始配置，文案由 i18n 动态注入，确保语言切换实时更新
     const baseMenuTop: Array<Omit<STO.Plugins<PluginEnum>, 'title' | 'shortTitle'>> = [
       {
@@ -27,6 +29,16 @@ export const useMenuTopStore = defineStore(
         dot: false,
         progress: 0,
         miniShow: false
+      },
+      {
+        url: 'mail',
+        icon: 'mail',
+        iconAction: 'mail-action',
+        state: PluginEnum.BUILTIN,
+        isAdd: true,
+        dot: false,
+        progress: 0,
+        miniShow: false
       }
     ]
 
@@ -40,6 +52,12 @@ export const useMenuTopStore = defineStore(
         ...baseMenuTop[1],
         title: t('home.action.contact'),
         shortTitle: t('home.action.contact_short_title')
+      },
+      {
+        ...baseMenuTop[2],
+        title: t('home.action.mail'),
+        shortTitle: t('home.action.mail_short_title'),
+        badge: mailStore.unreadCount || undefined
       }
     ])
 

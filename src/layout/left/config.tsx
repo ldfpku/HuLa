@@ -23,18 +23,6 @@ const baseItemsBottom: Array<Omit<OPT.L.Common, 'title' | 'shortTitle'>> = [
     window: {
       resizable: false
     }
-  },
-  {
-    url: 'mail',
-    icon: 'collect',
-    iconAction: 'collect-action',
-    size: {
-      width: 840,
-      height: 600
-    },
-    window: {
-      resizable: true
-    }
   }
 ]
 
@@ -46,11 +34,6 @@ const useItemsBottom = () =>
         ...baseItemsBottom[0],
         title: t('home.action.file_manager'),
         shortTitle: t('home.action.file_manager_short_title')
-      },
-      {
-        ...baseItemsBottom[1],
-        title: t('home.action.favorite'),
-        shortTitle: t('home.action.favorite_short_title')
       }
     ])
   })()

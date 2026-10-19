@@ -723,6 +723,10 @@ impl WebSocketClient {
                 info!("Message recalled");
                 let _ = app_handle.emit_to("home", "ws-msg-recall", data);
             }
+            "mailNew" => {
+                info!("New mail");
+                let _ = app_handle.emit_to("home", "ws-mail-new", data);
+            }
             "msgMarkItem" => {
                 info!("Message liked/disliked");
                 let _ = app_handle.emit_to("home", "ws-msg-mark-item", data);

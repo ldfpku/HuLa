@@ -1,0 +1,74 @@
+import { WebviewWindow } from '@tauri-apps/api/webviewWindow'
+import { sendNotification } from '@tauri-apps/plugin-notification'
+import { defineStore } from 'pinia'
+import { StoresEnum } from '@/enums'
+import { getMailSsoUrl, getMailUnread } from '@/utils/ImRequestUtils'
+
+/** 服务端推送的新邮件事件（mailNew） */
+export type MailNewEvent = {
+  messageId: string
+  mailboxId: string
+  from: string
+  fromName: string | null
+  subject: string
+}
+
+/** 邮件窗口的标识 */
+const MAIL_WINDOW_LABEL = 'mail'
+
+/**
+ * 邮件：邮件功能由斯米伽邮箱网页提供，在独立窗口中通过一次性链接免登录打开；
+ * 这里维护收件箱未读数，并在收到新邮件时弹出系统通知。
+ */
+export const useMailStore = defineStore(StoresEnum.MAIL, () => {
+  const unreadCount = ref(0)
+  let opening = false
+
+  const refreshUnread = async () => {
+    const res = await getMailUnread()
+    if (res) unreadCount.value = Number(res.count) || 0
+  }
+
+  const handleMailNew = async (mail: MailNewEvent) => {
+    unreadCount.value += 1
+    sendNotification({
+      title: `新邮件：${mail.fromName || mail.from}`,
+      body: mail.subject || '(无主题)'
+    })
+  }
+
+  /** 打开邮件窗口；已打开时直接聚焦 */
+  const openMail = async (next?: string) => {
+    const existing = await WebviewWindow.getByLabel(MAIL_WINDOW_LABEL)
+    if (existing) {
+      await existing.unminimize()
+      await existing.show()
+      await existing.setFocus()
+      return
+    }
+    if (opening) return
+    opening = true
+    try {
+      const { url } = await getMailSsoUrl(next)
+      const webview = new WebviewWindow(MAIL_WINDOW_LABEL, {
+        url,
+        title: '斯米伽邮箱',
+        width: 1200,
+        height: 800,
+        minWidth: 800,
+        minHeight: 560,
+        center: true,
+        resizable: true,
+        decorations: true,
+        visible: true
+      })
+      await webview.once('tauri://destroyed', () => {
+        refreshUnread()
+      })
+    } finally {
+      opening = false
+    }
+  }
+
+  return { unreadCount, refreshUnread, handleMailNew, openMail }
+})

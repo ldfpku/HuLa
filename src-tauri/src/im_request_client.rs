@@ -330,6 +330,8 @@ pub enum ImUrl {
     GetQiniuToken,
     InitConfig,
     StorageProvider,
+    MailSso,
+    MailUnread,
     MapCoordTranslate,
     MapReverseGeocode,
     MapStatic,
@@ -565,6 +567,8 @@ impl ImUrl {
             ImUrl::GetQiniuToken => (http::Method::GET, "system/anyTenant/ossToken"),
             ImUrl::InitConfig => (http::Method::GET, "system/anyTenant/config/init"),
             ImUrl::StorageProvider => (http::Method::GET, "system/anyTenant/storage/provider"),
+            ImUrl::MailSso => (http::Method::GET, "im/mail/sso"),
+            ImUrl::MailUnread => (http::Method::GET, "im/mail/unread"),
             ImUrl::MapCoordTranslate => (http::Method::GET, "system/anyTenant/map/coord/translate"),
             ImUrl::MapReverseGeocode => {
                 (http::Method::GET, "system/anyTenant/map/geocoder/reverse")
@@ -875,6 +879,8 @@ impl ImUrl {
             "getQiniuToken" => Ok(ImUrl::GetQiniuToken),
             "initConfig" => Ok(ImUrl::InitConfig),
             "storageProvider" => Ok(ImUrl::StorageProvider),
+            "mailSso" => Ok(ImUrl::MailSso),
+            "mailUnread" => Ok(ImUrl::MailUnread),
             "mapCoordTranslate" => Ok(ImUrl::MapCoordTranslate),
             "mapReverseGeocode" => Ok(ImUrl::MapReverseGeocode),
             "mapStatic" => Ok(ImUrl::MapStatic),
