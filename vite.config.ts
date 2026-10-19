@@ -1,3 +1,4 @@
+import { readdirSync, statSync } from 'node:fs'
 import { fileURLToPath, URL } from 'node:url'
 import UnoCSS from '@unocss/vite'
 import vue from '@vitejs/plugin-vue'
@@ -34,6 +35,39 @@ const dependencies = Object.keys(packageJson.dependencies || {})
 // 预先获取本地IP
 const rawIP = getLocalIP() || (await internalIpV4())
 
+/**
+ * 网页版挂在 /im/ 下，但代码里直接写了 public 目录的绝对路径（如 '/emoji/xx.webp'、'/logo.png'），
+ * Vite 不会给这类字符串加 base。网页构建时把它们改成带 /im/ 前缀的地址。
+ */
+const createPublicPathRebase = (base: string) => {
+  const publicDir = fileURLToPath(new URL('./public', import.meta.url))
+  const entries = readdirSync(publicDir)
+  const escapeRegExp = (name: string) => name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const dirs = entries.filter((name) => statSync(`${publicDir}/${name}`).isDirectory()).map(escapeRegExp)
+  const files = entries.filter((name) => !statSync(`${publicDir}/${name}`).isDirectory()).map(escapeRegExp)
+  const pattern = new RegExp(`(['"\`(])/(?:(${dirs.join('|')})/|(${files.join('|')})(?=['"\`)?#]))`, 'g')
+  const prefix = base.replace(/\/$/, '')
+  return {
+    name: 'smj-web-public-paths',
+    enforce: 'pre' as const,
+    transform(code: string, id: string) {
+      if (id.includes('node_modules') || !id.includes('/src/') || !/\.(vue|ts|tsx|js|scss|css)(\?|$)/.test(id))
+        return null
+      if (!pattern.test(code)) return null
+      pattern.lastIndex = 0
+      return {
+        code: code.replace(pattern, (match, quote, dir, file, offset) => {
+          // 模板里的静态 src/href 和 import 语句 Vite 自己会处理 base，跳过
+          const before = code.slice(Math.max(0, offset - 12), offset)
+          if (/(?:\b(?:src|href|poster)=|\bfrom\s*|\bimport\s*\(?)$/.test(before)) return match
+          return `${quote}${prefix}/${dir ? `${dir}/` : file}`
+        }),
+        map: null
+      }
+    }
+  }
+}
+
 // https://vitejs.dev/config/
 /**! 不需要优化前端打包(如开启gzip) */
 export default defineConfig(({ mode }: ConfigEnv) => {
@@ -41,6 +75,9 @@ export default defineConfig(({ mode }: ConfigEnv) => {
   const config = loadEnv(mode, process.cwd(), '')
   const currentPlatform = config.TAURI_ENV_PLATFORM
   const isPC = currentPlatform === 'windows' || currentPlatform === 'darwin' || currentPlatform === 'linux'
+  // 网页版（vite --mode web）：入口换成 src/web/entry.ts，开发时把 /api 代理到 IM 服务端
+  const isWeb = mode === 'web'
+  const webProxyTarget = config.VITE_WEB_PROXY_TARGET || 'https://mail.smjtools.com'
 
   const serverPort = isPC ? 6130 : 5210
   const componentsDirs = getComponentsDirs(currentPlatform)
@@ -69,6 +106,8 @@ export default defineConfig(({ mode }: ConfigEnv) => {
   atStartup(config, mode, host)()
 
   return {
+    // 网页版挂在 mailflare 的 /im/ 下
+    base: isWeb ? '/im/' : '/',
     resolve: {
       alias: {
         // 配置主路径别名@
@@ -101,6 +140,11 @@ export default defineConfig(({ mode }: ConfigEnv) => {
       }
     },
     plugins: [
+      isWeb && createPublicPathRebase('/im/'),
+      isWeb && {
+        name: 'smj-web-entry',
+        transformIndexHtml: (html: string) => html.replace('/src/main.ts', '/src/web/entry.ts')
+      },
       /**
        * vue3.5.0已支持解构并具有响应式
        * */
@@ -155,12 +199,15 @@ export default defineConfig(({ mode }: ConfigEnv) => {
     clearScreen: false,
     // 2. tauri expects a fixed port, fail if that port is not available
     server: {
-      hmr: {
-        protocol: 'ws',
-        host: host,
-        port: serverPort
-      },
+      hmr: isWeb
+        ? undefined
+        : {
+            protocol: 'ws',
+            host: host,
+            port: serverPort
+          },
       cors: true, // 配置 CORS
+      proxy: isWeb ? { '/api': { target: webProxyTarget, changeOrigin: true, secure: true, ws: true } } : undefined,
       host: '0.0.0.0',
       port: serverPort,
       strictPort: true,
