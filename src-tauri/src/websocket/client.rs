@@ -12,7 +12,10 @@ use std::sync::atomic::{AtomicBool, AtomicU32, AtomicU64, Ordering};
 use tauri::{AppHandle, Emitter, Manager, State};
 use tokio::sync::{Mutex, RwLock, mpsc};
 use tokio::task::JoinHandle;
-use tokio::time::{Duration, interval, sleep};
+use tokio::time::{Duration, interval, sleep, timeout};
+
+/// WebSocket 握手（TCP、TLS 和 HTTP 升级）的最长等待时间
+const CONNECT_TIMEOUT_SECS: u64 = 15;
 
 use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
 use tracing::{debug, error, info, warn};
@@ -415,10 +418,21 @@ impl WebSocketClient {
         info!("Connecting to WebSocket: {}", redacted);
         self.update_state(ConnectionState::Connecting, false).await;
 
-        // 建立连接
-        let (ws_stream, _) = connect_async(url_str)
-            .await
-            .map_err(|e| anyhow::anyhow!("Failed to connect to WebSocket '{}': {}", url_str, e))?;
+        // 建立连接。握手要有超时：服务器接受了 TCP/TLS 却一直不回升级响应时，
+        // 不设超时会永远停在“连接中”，重连逻辑也不会再运行
+        let (ws_stream, _) = timeout(
+            Duration::from_secs(CONNECT_TIMEOUT_SECS),
+            connect_async(url_str),
+        )
+        .await
+        .map_err(|_| {
+            anyhow::anyhow!(
+                "WebSocket handshake timed out after {}s: {}",
+                CONNECT_TIMEOUT_SECS,
+                redacted
+            )
+        })?
+        .map_err(|e| anyhow::anyhow!("Failed to connect to WebSocket '{}': {}", redacted, e))?;
 
         let (mut ws_sender, mut ws_receiver) = ws_stream.split();
 
