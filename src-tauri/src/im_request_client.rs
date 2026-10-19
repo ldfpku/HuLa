@@ -417,6 +417,13 @@ pub enum ImUrl {
     CheckEmail,
     MergeMsg,
     GetUserByIds,
+    // 音视频通话与会议
+    RtcIceServers,
+    MeetingList,
+    MeetingCreate,
+    MeetingDetail,
+    MeetingJoin,
+    MeetingIcs,
     GenerateQRCode,
     CheckQRStatus,
     ScanQRCode,
@@ -862,6 +869,14 @@ impl ImUrl {
 
             ImUrl::MergeMsg => (http::Method::POST, "im/room/mergeMessage"),
             ImUrl::GetUserByIds => (http::Method::POST, "im/user/getUserByIds"),
+
+            // 音视频通话与会议
+            ImUrl::RtcIceServers => (http::Method::GET, "im/rtc/iceServers"),
+            ImUrl::MeetingList => (http::Method::GET, "im/meeting/list"),
+            ImUrl::MeetingCreate => (http::Method::POST, "im/meeting"),
+            ImUrl::MeetingDetail => (http::Method::GET, "im/meeting/detail"),
+            ImUrl::MeetingJoin => (http::Method::POST, "im/meeting/join"),
+            ImUrl::MeetingIcs => (http::Method::GET, "im/meeting/ics"),
         }
     }
 
@@ -994,6 +1009,12 @@ impl ImUrl {
             "checkEmail" => Ok(ImUrl::CheckEmail),
             "mergeMsg" => Ok(ImUrl::MergeMsg),
             "getUserByIds" => Ok(ImUrl::GetUserByIds),
+            "rtcIceServers" => Ok(ImUrl::RtcIceServers),
+            "meetingList" => Ok(ImUrl::MeetingList),
+            "meetingCreate" => Ok(ImUrl::MeetingCreate),
+            "meetingDetail" => Ok(ImUrl::MeetingDetail),
+            "meetingJoin" => Ok(ImUrl::MeetingJoin),
+            "meetingIcs" => Ok(ImUrl::MeetingIcs),
             "generateQRCode" => Ok(ImUrl::GenerateQRCode),
             "checkQRStatus" => Ok(ImUrl::CheckQRStatus),
             "scanQRCode" => Ok(ImUrl::ScanQRCode),

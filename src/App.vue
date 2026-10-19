@@ -108,7 +108,8 @@ useMitt.on(WsResponseMessageType.VideoCallRequest, (event) => {
     return
   }
 
-  handleVideoCall(remoteUid, callType)
+  // 来电带着通话所在的会话，不能用当前打开的会话（接听方可能正停在别的聊天里）
+  handleVideoCall(remoteUid, callType, event.roomId)
 })
 
 useMitt.on(WsResponseMessageType.LOGIN_SUCCESS, async (data: LoginSuccessResType) => {
@@ -494,7 +495,7 @@ useMitt.on(WsResponseMessageType.OFFLINE, async (onStatusChangeType: OnStatusCha
   }
 })
 
-const handleVideoCall = async (remotedUid: string, callType: CallTypeEnum) => {
+const handleVideoCall = async (remotedUid: string, callType: CallTypeEnum, callRoomId?: string) => {
   info(`监听到视频通话调用，remotedUid: ${remotedUid}, callType: ${callType}`)
   const currentSession = globalStore.currentSession
   const targetUid = remotedUid || currentSession?.detailId
@@ -507,14 +508,14 @@ const handleVideoCall = async (remotedUid: string, callType: CallTypeEnum) => {
       path: '/mobile/rtcCall',
       query: {
         remoteUserId: targetUid,
-        roomId: globalStore.currentSessionRoomId,
+        roomId: callRoomId || globalStore.currentSessionRoomId,
         callType: callType,
         // 接受方
         isIncoming: 'true'
       }
     })
   } else {
-    await createRtcCallWindow(true, targetUid, globalStore.currentSessionRoomId, callType)
+    await createRtcCallWindow(true, targetUid, callRoomId || globalStore.currentSessionRoomId, callType)
   }
 }
 

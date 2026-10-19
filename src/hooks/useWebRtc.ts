@@ -2,7 +2,7 @@ import { listen } from '@tauri-apps/api/event'
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow'
 import { error, info } from '@tauri-apps/plugin-log'
 import { useI18n } from 'vue-i18n'
-import { initConfig } from '@/utils/ImRequestUtils'
+import { getRtcIceServers } from '@/utils/MeetingRequestUtils'
 import { CallTypeEnum, RTCCallStatus } from '@/enums'
 import rustWebSocketClient from '@/services/webSocketRust'
 import { useUserStore } from '@/stores/user'
@@ -49,31 +49,20 @@ export interface WSRtcCallMsg {
   targetUid: string
 }
 
-// const TURN_SERVER = import.meta.env.VITE_TURN_SERVER_URL
 const MAX_TIME_OUT_SECONDS = 30
+// 服务端没配置 TURN 时的兜底：Cloudflare 公共 STUN，同一网络或普通 NAT 下可以直连
 let configuration: RTCConfiguration = {
-  iceServers: [
-    { urls: 'stun:117.72.67.248:3478' },
-    {
-      urls: ['turn:117.72.67.248:3478?transport=udp', 'turn:117.72.67.248:3478?transport=tcp'],
-      username: 'chr',
-      credential: '123456'
-    }
-  ],
+  iceServers: [{ urls: 'stun:stun.cloudflare.com:3478' }],
   iceTransportPolicy: 'all'
 }
 
+// 每次通话向服务端要 Cloudflare Realtime TURN 的临时凭证，密钥只在服务端
 const loadIceServers = async () => {
   try {
-    const init: any = await initConfig()
-    const ice = init?.iceServer
-    if (ice && Array.isArray(ice.urls) && ice.urls.length > 0) {
-      const entry: RTCIceServer =
-        ice.username && ice.credential
-          ? { urls: ice.urls, username: ice.username, credential: ice.credential }
-          : { urls: ice.urls }
-      configuration = { iceServers: [entry], iceTransportPolicy: 'all' }
-      info(`ICE 配置已加载: ${JSON.stringify(configuration)}`)
+    const { iceServers } = await getRtcIceServers()
+    if (Array.isArray(iceServers) && iceServers.length > 0) {
+      configuration = { iceServers, iceTransportPolicy: 'all' }
+      info(`ICE 配置已加载，共 ${iceServers.length} 组`)
     } else {
       info('ICE 配置为空，使用内置默认配置')
     }

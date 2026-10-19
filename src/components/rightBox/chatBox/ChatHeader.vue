@@ -81,6 +81,19 @@
         </n-popover>
       </div>
 
+      <div v-if="!isChannel && !isBotUser" class="options-box" @click="showScheduleMeeting = true">
+        <n-popover trigger="hover" :show-arrow="false" placement="bottom">
+          <template #trigger>
+            <!-- 预约会议：日历图标 -->
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+              <rect x="3.5" y="5" width="17" height="15.5" rx="2.5" />
+              <path d="M3.5 10h17M8 3v4M16 3v4M8 14h3" />
+            </svg>
+          </template>
+          <span>预约会议</span>
+        </n-popover>
+      </div>
+
       <div v-if="!isChannel && !isBotUser" class="options-box">
         <n-popover trigger="hover" :show-arrow="false" placement="bottom">
           <template #trigger>
@@ -192,6 +205,13 @@
     </div>
   </n-modal>
 
+  <!-- 预约视频会议（邮件邀请 + 日历邀请） -->
+  <ScheduleMeetingModal
+    v-if="currentSessionRoomId"
+    v-model:show="showScheduleMeeting"
+    :room-id="currentSessionRoomId"
+    :default-title="activeItem?.name ? `${activeItem.name} 的会议` : undefined" />
+
   <!-- 群二维码分享弹窗 -->
   <GroupQrCodeModal
     v-model:show="showQRCodeModal"
@@ -274,6 +294,7 @@ import ChatInnerDrawer from '../../chat-inner-drawer.vue'
 import SingleChatSidebar from './SingleChatSidebar.vue'
 import GroupChatSidebar from './GroupChatSidebar.vue'
 import GroupQrCodeModal from './GroupQrCodeModal.vue'
+import ScheduleMeetingModal from '@/components/meeting/ScheduleMeetingModal.vue'
 
 const { t } = useI18n()
 const { createModalWindow, startRtcCall } = useWindow()
@@ -292,6 +313,7 @@ const optionsType = ref<RoomActEnum>()
 const modalShow = ref(false)
 const sidebarShow = ref(false)
 const showQRCodeModal = ref(false)
+const showScheduleMeeting = ref(false)
 const showManageGroupMemberModal = ref(false)
 const { currentSession: activeItem, currentSessionRoomId } = storeToRefs(globalStore)
 const { persistMyRoomInfo, resolveMyRoomNickname } = useMyRoomInfoUpdater()
