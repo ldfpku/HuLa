@@ -16,7 +16,7 @@
       </div>
       <template v-else>
         <p v-if="draftError" class="text-12px color-#d03553">{{ draftError }}，可以直接手动填写。</p>
-        <n-form label-placement="left" label-width="64" :show-feedback="false" class="flex flex-col gap-12px">
+        <n-form label-placement="left" label-width="72" :show-feedback="false" class="flex flex-col gap-12px">
           <n-form-item label="待办">
             <n-input v-model:value="title" :maxlength="100" placeholder="要做的事" clearable />
           </n-form-item>
