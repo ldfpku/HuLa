@@ -1,29 +1,57 @@
-//! 建立 WebSocket 的 TCP 连接（RFC 8305 Happy Eyeballs 的简化实现）
+//! 建立 WebSocket 的 TCP 连接
 //!
+//! 系统设了 HTTP 代理时先经代理建隧道（与 reqwest 的 HTTP 请求走同一条路），
+//! 代理不可用时回退直连。直连按 RFC 8305 Happy Eyeballs 的简化做法：
 //! tokio-tungstenite 的 connect_async 用 `TcpStream::connect` 逐个尝试解析出的地址，
-//! 前一个地址不失败就不会试下一个。域名同时有 IPv6 和 IPv4 地址、而本机 IPv6 线路不通时，
-//! 每个 IPv6 地址都要等系统的 TCP 超时（Windows 约 21 秒）才放弃，握手因此超时。
-//! 这里两类地址交替排列，每隔一小段时间并行发起下一个，用最先连上的那个。
+//! 前一个地址不失败就不会试下一个，某一类地址不通时每个都要等系统的 TCP 超时
+//! （Windows 约 21 秒）。这里两类地址交替排列，每隔一小段时间并行发起下一个，用最先连上的那个。
 
+use super::proxy::{system_proxy_for, tunnel};
 use futures_util::stream::{FuturesUnordered, StreamExt};
 use std::io;
 use std::net::SocketAddr;
 use tokio::net::{TcpStream, lookup_host};
-use tokio::time::{Duration, Instant, sleep_until};
+use tokio::time::{Duration, Instant, sleep_until, timeout};
+use tracing::warn;
 use url::{Host, Url};
 
 /// 前一个地址还没有结果时，隔多久并行尝试下一个地址
 const ATTEMPT_DELAY_MS: u64 = 250;
 
-/// 连上的 TCP 连接和对应的地址
+/// 经代理建隧道最多等多久，超过就回退直连（整个握手仍受 15 秒超时约束）
+const PROXY_TIMEOUT_SECS: u64 = 5;
+
+/// 连上的 TCP 连接，以及走的是哪条路（写日志用）
 pub struct Dialed {
     pub stream: TcpStream,
-    pub addr: SocketAddr,
-    pub resolved: usize,
+    pub route: String,
 }
 
-/// 按 URL 的主机和端口建立 TCP 连接
+/// 按 URL 的主机和端口建立 TCP 连接：有系统代理先走代理，不行再直连
 pub async fn dial(url: &Url) -> io::Result<Dialed> {
+    if let Some(proxy) = system_proxy_for(url) {
+        let address = proxy.address();
+        match timeout(Duration::from_secs(PROXY_TIMEOUT_SECS), tunnel(&proxy, url)).await {
+            Ok(Ok(stream)) => {
+                return Ok(Dialed {
+                    stream,
+                    route: format!("proxy {} ({})", address, proxy.source),
+                });
+            }
+            Ok(Err(error)) => warn!(
+                "WebSocket proxy {} ({}) failed, connecting directly: {}",
+                address, proxy.source, error
+            ),
+            Err(_) => warn!(
+                "WebSocket proxy {} ({}) did not answer in {}s, connecting directly",
+                address, proxy.source, PROXY_TIMEOUT_SECS
+            ),
+        }
+    }
+    dial_direct(url).await
+}
+
+async fn dial_direct(url: &Url) -> io::Result<Dialed> {
     let port = url
         .port_or_known_default()
         .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, "URL has no port"))?;
@@ -42,8 +70,7 @@ pub async fn dial(url: &Url) -> io::Result<Dialed> {
     let (stream, addr) = race(interleave(addrs)).await?;
     Ok(Dialed {
         stream,
-        addr,
-        resolved,
+        route: format!("direct {} ({} addresses)", addr, resolved),
     })
 }
 

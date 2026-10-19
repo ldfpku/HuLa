@@ -421,7 +421,7 @@ impl WebSocketClient {
 
         // 建立连接。握手要有超时：服务器接受了 TCP/TLS 却一直不回升级响应时，
         // 不设超时会永远停在“连接中”，重连逻辑也不会再运行
-        // TCP 连接自己选地址（IPv6 不通时自动用 IPv4），再在其上做 TLS 和升级
+        // TCP 连接自己建：有系统代理先走代理，否则直连并在多个地址间竞速；再在其上做 TLS 和升级
         let started = std::time::Instant::now();
         let (ws_stream, _) = timeout(Duration::from_secs(CONNECT_TIMEOUT_SECS), async {
             let dialed = dial(&url)
@@ -429,9 +429,8 @@ impl WebSocketClient {
                 .map_err(tokio_tungstenite::tungstenite::Error::Io)?;
             let _ = dialed.stream.set_nodelay(true);
             info!(
-                "WebSocket TCP connected to {} ({} addresses) in {}ms",
-                dialed.addr,
-                dialed.resolved,
+                "WebSocket TCP connected via {} in {}ms",
+                dialed.route,
                 started.elapsed().as_millis()
             );
             client_async_tls_with_config(url_str, dialed.stream, None, None).await
