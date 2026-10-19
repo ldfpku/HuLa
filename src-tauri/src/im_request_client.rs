@@ -424,6 +424,7 @@ pub enum ImUrl {
     MeetingDetail,
     MeetingJoin,
     MeetingIcs,
+    MeetingCancel,
     GenerateQRCode,
     CheckQRStatus,
     ScanQRCode,
@@ -877,6 +878,7 @@ impl ImUrl {
             ImUrl::MeetingDetail => (http::Method::GET, "im/meeting/detail"),
             ImUrl::MeetingJoin => (http::Method::POST, "im/meeting/join"),
             ImUrl::MeetingIcs => (http::Method::GET, "im/meeting/ics"),
+            ImUrl::MeetingCancel => (http::Method::POST, "im/meeting/cancel"),
         }
     }
 
@@ -1015,6 +1017,7 @@ impl ImUrl {
             "meetingDetail" => Ok(ImUrl::MeetingDetail),
             "meetingJoin" => Ok(ImUrl::MeetingJoin),
             "meetingIcs" => Ok(ImUrl::MeetingIcs),
+            "meetingCancel" => Ok(ImUrl::MeetingCancel),
             "generateQRCode" => Ok(ImUrl::GenerateQRCode),
             "checkQRStatus" => Ok(ImUrl::CheckQRStatus),
             "scanQRCode" => Ok(ImUrl::ScanQRCode),
