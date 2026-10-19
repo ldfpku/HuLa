@@ -1,5 +1,12 @@
 import { ImUrlEnum, TauriCommand, type NotificationTypeEnum } from '@/enums'
-import type { CacheBadgeReq, LoginUserReq, ModifyUserInfoType, RegisterUserReq, UserItem } from '@/services/types'
+import type {
+  CacheBadgeReq,
+  LoginUserReq,
+  ModifyUserInfoType,
+  RegisterUserReq,
+  RoomMailboxState,
+  UserItem
+} from '@/services/types'
 import { ErrorType, invokeSilently, invokeWithErrorHandler, invokeWithRetry } from '@/utils/TauriInvokeHandler'
 import { useChatStore } from '../stores/chat'
 import { useGroupStore } from '../stores/group'
@@ -1352,4 +1359,19 @@ export async function getMailSsoUrl(next?: string) {
 /** 邮件：获取收件箱未读数 */
 export async function getMailUnread() {
   return await imRequestSilent<{ count: number }>({ url: ImUrlEnum.MAIL_UNREAD })
+}
+
+/** 群邮箱：查看群的邮箱地址和是否开启 */
+export async function getRoomMailbox(roomId: string) {
+  return await imRequest<RoomMailboxState>({ url: ImUrlEnum.ROOM_MAILBOX, params: { roomId } })
+}
+
+/** 群邮箱：开启（第一次开启时用 localPart 创建地址） */
+export async function enableRoomMailbox(body: { roomId: string; localPart?: string }) {
+  return await imRequest<RoomMailboxState>({ url: ImUrlEnum.ROOM_MAILBOX_ENABLE, body })
+}
+
+/** 群邮箱：关闭（地址和已收邮件保留） */
+export async function disableRoomMailbox(roomId: string) {
+  return await imRequest<RoomMailboxState>({ url: ImUrlEnum.ROOM_MAILBOX_DISABLE, body: { roomId } })
 }

@@ -625,6 +625,12 @@ export enum ImUrlEnum {
   MAIL_SSO = 'mailSso',
   /** 邮件：收件箱未读数 */
   MAIL_UNREAD = 'mailUnread',
+  /** 群邮箱：查看 */
+  ROOM_MAILBOX = 'roomMailbox',
+  /** 群邮箱：开启 */
+  ROOM_MAILBOX_ENABLE = 'roomMailboxEnable',
+  /** 群邮箱：关闭 */
+  ROOM_MAILBOX_DISABLE = 'roomMailboxDisable',
   /** 获取模型列表 */
   GET_ASSISTANT_MODEL_LIST = 'getAssistantModelList',
   /** 坐标转换 */
