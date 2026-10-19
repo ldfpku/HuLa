@@ -83,6 +83,54 @@
         isMobileDevice ? 'p-0' : 'px-8px pt-6px',
         !isMobileDevice || callType !== CallTypeEnum.VIDEO ? 'items-center justify-center' : ''
       ]">
+      <!-- 对方共享的屏幕：铺满内容区，视频通话时对方摄像头缩成小窗，点小窗互换 -->
+      <div
+        v-if="showRemoteScreen"
+        data-testid="remote-screen"
+        :class="isMobileDevice ? 'rounded-none' : 'rounded-8px'"
+        class="absolute inset-0 z-40 bg-black overflow-hidden"
+        :style="isMobileDevice ? {} : { left: '8px', right: '8px', top: '6px' }">
+        <video
+          ref="screenMainVideoRef"
+          autoplay
+          playsinline
+          :class="isScreenOnMain ? 'object-contain' : 'object-cover scale-x-[-1]'"
+          class="w-full h-full bg-black"></video>
+        <div class="absolute left-12px top-12px rounded-full bg-black/60 px-12px py-4px text-12px text-#fff">
+          {{ t('message.call_window.remote_sharing', { name: remoteUserInfo?.name || '' }) }}
+          <span v-if="connectionStatus === RTCCallStatus.ACCEPT" class="ml-6px">{{ formattedCallDuration }}</span>
+        </div>
+        <div v-if="hasRemoteVideo && callType === CallTypeEnum.VIDEO" class="absolute right-8px top-12px group">
+          <video
+            ref="screenPipVideoRef"
+            autoplay
+            playsinline
+            :class="[pipVideoSizeClass, isScreenOnMain ? 'object-cover scale-x-[-1]' : 'object-contain']"
+            class="rounded-8px bg-black border-2 border-white cursor-pointer"
+            :title="t('message.call_window.swap_view')"
+            @click="isScreenOnMain = !isScreenOnMain"></video>
+          <div
+            class="absolute inset-0 flex-center opacity-0 group-hover:opacity-100 transition-opacity bg-black bg-opacity-30 rounded-8px pointer-events-none">
+            <svg class="text-#fff size-20px">
+              <use href="#switch"></use>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <!-- 自己正在共享时的提示条 -->
+      <div
+        v-if="isScreenSharing"
+        data-testid="local-sharing"
+        class="absolute top-12px left-1/2 -translate-x-1/2 z-50 flex items-center gap-10px rounded-full bg-#034fbc px-14px py-6px text-13px text-#fff shadow-lg">
+        <svg class="size-14px color-#fff">
+          <use href="#screen-sharing"></use>
+        </svg>
+        <span>{{ t('message.call_window.sharing_self') }}</span>
+        <span class="cursor-pointer rounded-full bg-white/20 hover:bg-white/30 px-10px py-2px" @click="stopScreenShare()">
+          {{ t('message.call_window.stop_share') }}
+        </span>
+      </div>
       <!-- 视频通话时显示视频 (只有在双方都开启视频时才显示) -->
       <div
         v-if="callType === CallTypeEnum.VIDEO && localStream && (isVideoEnabled || hasRemoteVideo)"
@@ -277,6 +325,25 @@
           </div>
         </div>
 
+        <!-- 共享屏幕按钮 -->
+        <div v-if="!isMobileDevice" class="flex-col-x-center gap-8px w-80px">
+          <div
+            data-testid="screen-share-toggle"
+            @click="toggleScreenShare"
+            class="size-44px rounded-full flex-center"
+            :class="[
+              isScreenSharing ? 'bg-#034fbc hover:bg-#02409a' : 'bg-gray-600 hover:bg-gray-500',
+              connectionStatus === RTCCallStatus.ACCEPT ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'
+            ]">
+            <svg class="size-16px color-#fff">
+              <use href="#screen-sharing"></use>
+            </svg>
+          </div>
+          <div class="text-12px text-gray-400 text-center">
+            {{ isScreenSharing ? t('message.call_window.stop_share') : t('message.call_window.share_screen') }}
+          </div>
+        </div>
+
         <!-- 挂断按钮 -->
         <div class="flex-col-x-center gap-8px w-80px">
           <div
@@ -323,6 +390,25 @@
             </div>
             <div v-if="!isMobileDevice" class="text-12px text-gray-400 text-center">
               {{ isSpeakerOn ? t('message.call_window.speaker_on') : t('message.call_window.speaker_off') }}
+            </div>
+          </div>
+
+          <!-- 共享屏幕按钮 -->
+          <div v-if="!isMobileDevice" class="flex-col-x-center gap-8px w-80px">
+            <div
+              data-testid="screen-share-toggle"
+              @click="toggleScreenShare"
+              class="size-44px rounded-full flex-center"
+              :class="[
+                isScreenSharing ? 'bg-#034fbc hover:bg-#02409a' : 'bg-gray-600 hover:bg-gray-500',
+                connectionStatus === RTCCallStatus.ACCEPT ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'
+              ]">
+              <svg class="size-16px color-#fff">
+                <use href="#screen-sharing"></use>
+              </svg>
+            </div>
+            <div class="text-12px text-gray-400 text-center">
+              {{ isScreenSharing ? t('message.call_window.stop_share') : t('message.call_window.share_screen') }}
             </div>
           </div>
         </div>
@@ -398,7 +484,12 @@ const {
   pauseBell,
   playBell,
   stopBell,
-  startBell
+  startBell,
+  startScreenShare,
+  stopScreenShare,
+  isScreenSharing,
+  remoteScreenStream,
+  isRemoteScreenSharing
 } = useWebRtc(roomId, remoteUserId, callType, isReceiver)
 const remoteAudioRef = ref<HTMLAudioElement>()
 const isMuted = ref(false)
@@ -417,6 +508,11 @@ const actionBarRef = useTemplateRef<typeof ActionBar>('actionBarRef')
 const isLocalVideoMain = ref(true)
 // 通话接听状态
 const isCallAccepted = ref(!isReceiver)
+// 对方共享屏幕时的两个画面
+const screenMainVideoRef = ref<HTMLVideoElement>()
+const screenPipVideoRef = ref<HTMLVideoElement>()
+// true=屏幕在大画面，false=对方摄像头在大画面
+const isScreenOnMain = ref(true)
 
 const createSize = (width: number, height: number) => {
   const size = isWindows() ? new LogicalSize(width, height) : new PhysicalSize(width, height)
@@ -475,6 +571,37 @@ const hasRemoteVideo = computed(() => {
   const videoTracks = remoteStream.value.getVideoTracks()
   return videoTracks.length > 0 && videoTracks.some((track) => track.enabled)
 })
+
+// 对方正在共享且屏幕画面已到达
+const showRemoteScreen = computed(
+  () => isRemoteScreenSharing.value && !!remoteScreenStream.value?.getVideoTracks().length
+)
+
+const toggleScreenShare = async () => {
+  if (isScreenSharing.value) {
+    await stopScreenShare()
+  } else {
+    await startScreenShare()
+  }
+}
+
+// 屏幕画面自带系统声音，跟随扬声器开关；摄像头画面的声音由 remoteAudioRef 播放，这里静音
+const assignScreenVideos = async () => {
+  await nextTick()
+  if (!showRemoteScreen.value) return
+  const screen = remoteScreenStream.value
+  const camera = callType === CallTypeEnum.VIDEO && hasRemoteVideo.value ? remoteStream.value : null
+  const main = isScreenOnMain.value || !camera ? screen : camera
+  const pip = main === screen ? camera : screen
+  if (screenMainVideoRef.value) {
+    screenMainVideoRef.value.srcObject = main
+    screenMainVideoRef.value.muted = main !== screen || !isSpeakerOn.value
+  }
+  if (screenPipVideoRef.value) {
+    screenPipVideoRef.value.srcObject = pip
+    screenPipVideoRef.value.muted = pip !== screen || !isSpeakerOn.value
+  }
+}
 
 // 检测本地视频是否启用
 const hasLocalVideo = computed(() => {
@@ -600,6 +727,7 @@ const updateRemoteVideoAudio = () => {
 const toggleSpeaker = () => {
   isSpeakerOn.value = !isSpeakerOn.value
   updateRemoteVideoAudio()
+  void assignScreenVideos()
   console.log('切换扬声器状态:', isSpeakerOn.value, '远程视频静音:', !isSpeakerOn.value)
 
   if (connectionStatus.value === RTCCallStatus.CALLING && !isSpeakerOn.value) {
@@ -667,6 +795,8 @@ const acceptCall = async () => {
 
 // 监听视频状态变化，自动更新视频显示
 watch([hasLocalVideo, hasRemoteVideo, localStream, remoteStream], assignVideoStreams, { deep: true })
+
+watch([showRemoteScreen, remoteScreenStream, remoteStream, hasRemoteVideo, isScreenOnMain], assignScreenVideos)
 
 // 监听远程流变化，自动设置音频
 watch(

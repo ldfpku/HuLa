@@ -38,7 +38,9 @@ export const useMeeting = () => {
       title: joined.title,
       startsAt: joined.startsAt,
       durationMinutes: joined.durationMinutes,
-      hostName: joined.hostName
+      hostName: joined.hostName,
+      // 会议页据此显示“仅主持人可共享屏幕”开关
+      host: joined.host === true
     }
     const url = `${joined.url}#t=${encodeURIComponent(joined.authToken)}&m=${encodeURIComponent(JSON.stringify(meta))}`
 
