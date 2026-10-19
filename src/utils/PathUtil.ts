@@ -228,6 +228,15 @@ export const ensureModelFile = async (fileName: string, remoteUrl: string): Prom
   return await join(baseDirPath, modelRelativePath)
 }
 
+const isImFileUrl = (url: string) => {
+  try {
+    const { protocol, pathname } = new URL(url)
+    return (protocol === 'https:' || protocol === 'http:') && pathname.startsWith('/api/im/files/')
+  } catch {
+    return false
+  }
+}
+
 /**
  * 解析远程文件的真实类型
  * @param url 文件的远程地址
@@ -240,7 +249,8 @@ export async function detectRemoteFileType(options: {
   byteLength?: number
 }): Promise<FileTypeResult | undefined> {
   const { url } = options
-  if (!/^https?:\/\//i.test(url)) {
+  // 只探测聊天上传的文件（/api/im/files/...）；会议、邮件分享、网盘等普通链接不是文件，跳过
+  if (!isImFileUrl(url)) {
     return void 0
   }
   const cacheKey = options.url
