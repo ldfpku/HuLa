@@ -14,5 +14,6 @@ export const MSG_REPLY_TEXT_MAP: Record<number, string> = {
   [MsgEnum.VIDEO_CALL]: '[视频通话]',
   [MsgEnum.AUDIO_CALL]: '[语音通话]',
   [MsgEnum.BOT]: '[小管家]',
-  [MsgEnum.LOCATION]: '[位置]'
+  [MsgEnum.LOCATION]: '[位置]',
+  [MsgEnum.MAIL_CARD]: '[邮件]'
 }

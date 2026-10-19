@@ -273,5 +273,12 @@
     "forward_success": "메시지를 전달했습니다",
     "forward_failed": "전달에 실패했습니다",
     "non_text_message": "[텍스트가 아닌 메시지]"
+  },
+  "mail_card": {
+    "label": "메일",
+    "no_subject": "(제목 없음)",
+    "attachments": "첨부 파일 {count}개",
+    "open": "클릭하여 메일 보기",
+    "open_failed": "메일을 열 수 없습니다"
   }
 }

@@ -2,6 +2,7 @@ import { WebviewWindow } from '@tauri-apps/api/webviewWindow'
 import { sendNotification } from '@tauri-apps/plugin-notification'
 import { defineStore } from 'pinia'
 import { StoresEnum } from '@/enums'
+import type { MailCardBody } from '@/services/types'
 import { getMailSsoUrl, getMailUnread } from '@/utils/ImRequestUtils'
 
 /** 服务端推送的新邮件事件（mailNew） */
@@ -70,5 +71,31 @@ export const useMailStore = defineStore(StoresEnum.MAIL, () => {
     }
   }
 
-  return { unreadCount, refreshUnread, handleMailNew, openMail }
+  /** 打开聊天里的邮件卡片：每封分享的邮件一个窗口，同样通过一次性链接免登录 */
+  const openMailShare = async (card: MailCardBody) => {
+    const path = new URL(card.url).pathname
+    const label = `mail-share-${card.shareId}`
+    const existing = await WebviewWindow.getByLabel(label)
+    if (existing) {
+      await existing.unminimize()
+      await existing.show()
+      await existing.setFocus()
+      return
+    }
+    const { url } = await getMailSsoUrl(path)
+    new WebviewWindow(label, {
+      url,
+      title: card.subject || '邮件',
+      width: 900,
+      height: 720,
+      minWidth: 600,
+      minHeight: 480,
+      center: true,
+      resizable: true,
+      decorations: true,
+      visible: true
+    })
+  }
+
+  return { unreadCount, refreshUnread, handleMailNew, openMail, openMailShare }
 })

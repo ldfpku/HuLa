@@ -322,6 +322,7 @@ import Emoji from './Emoji.vue'
 import File from './File.vue'
 import Image from './Image.vue'
 import Location from './Location.vue'
+import MailCard from './MailCard.vue'
 import MergeMessage from './MergeMessage.vue'
 import BotMessage from './special/BotMessage.vue'
 import RecallMessage from './special/RecallMessage.vue'
@@ -472,7 +473,8 @@ const componentMap: Partial<Record<MsgEnum, Component>> = {
   [MsgEnum.RECALL]: RecallMessage,
   [MsgEnum.BOT]: BotMessage,
   [MsgEnum.MERGE]: MergeMessage,
-  [MsgEnum.LOCATION]: Location
+  [MsgEnum.LOCATION]: Location,
+  [MsgEnum.MAIL_CARD]: MailCard
 }
 
 const isSpecialMsgType = (type: number): boolean => {
@@ -483,7 +485,8 @@ const isSpecialMsgType = (type: number): boolean => {
     type === MsgEnum.VIDEO ||
     type === MsgEnum.FILE ||
     type === MsgEnum.MERGE ||
-    type === MsgEnum.LOCATION
+    type === MsgEnum.LOCATION ||
+    type === MsgEnum.MAIL_CARD
   )
 }
 

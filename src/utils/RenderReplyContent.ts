@@ -68,6 +68,14 @@ export const renderReplyContent = (name?: string, type?: MsgEnum, content?: stri
         ? `${name}:${MSG_REPLY_TEXT_MAP[MsgEnum.LOCATION]}`
         : MSG_REPLY_TEXT_MAP[MsgEnum.LOCATION]
     }
+    case MsgEnum.MAIL_CARD: {
+      // 会话列表传入的是整个消息体，回复预览传入的是字符串
+      const subject = typeof content === 'object' && content ? (content as { subject?: string }).subject : ''
+      const label = subject
+        ? `${MSG_REPLY_TEXT_MAP[MsgEnum.MAIL_CARD]} ${subject}`
+        : MSG_REPLY_TEXT_MAP[MsgEnum.MAIL_CARD]
+      return roomType === RoomTypeEnum.GROUP ? `${name}:${label}` : label
+    }
     default: {
       return ''
     }

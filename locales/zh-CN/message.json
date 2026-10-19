@@ -273,5 +273,12 @@
     "forward_success": "消息转发成功",
     "forward_failed": "消息转发失败",
     "non_text_message": "［非文本消息］"
+  },
+  "mail_card": {
+    "label": "邮件",
+    "no_subject": "(无主题)",
+    "attachments": "{count} 个附件",
+    "open": "点击查看邮件",
+    "open_failed": "打开邮件失败"
   }
 }

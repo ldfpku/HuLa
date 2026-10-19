@@ -246,7 +246,9 @@ export enum MsgEnum {
   /** AI 17*/
   AI,
   /** 位置 18*/
-  LOCATION
+  LOCATION,
+  /** 邮件卡片 19：从斯米伽邮箱转发到聊天的邮件 */
+  MAIL_CARD
 }
 
 /**

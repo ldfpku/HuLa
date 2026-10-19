@@ -477,10 +477,39 @@ export type LocationBody = {
   timestamp: string
 }
 
+/** 邮件卡片消息体：由斯米伽邮箱的「转发到聊天」生成 */
+export type MailCardBody = {
+  /** 分享 ID */
+  shareId: string
+  /** 邮件主题 */
+  subject: string
+  /** 发件人地址 */
+  from: string
+  /** 发件人名称 */
+  fromName: string
+  /** 邮件时间（毫秒） */
+  date: number
+  /** 正文摘要 */
+  snippet: string
+  /** 附件数量 */
+  attachmentCount: number
+  /** 查看邮件的地址 */
+  url: string
+}
+
 /**
  * 消息内容
  */
-export type MessageBody = TextBody | ImageBody | VoiceBody | VideoBody | FileBody | EmojiBody | LocationBody | any
+export type MessageBody =
+  | TextBody
+  | ImageBody
+  | VoiceBody
+  | VideoBody
+  | FileBody
+  | EmojiBody
+  | LocationBody
+  | MailCardBody
+  | any
 export type MsgType = {
   /** 消息ID */
   id: string

@@ -273,5 +273,12 @@
     "forward_success": "Messages forwarded",
     "forward_failed": "Failed to forward",
     "non_text_message": "[Non-text message]"
+  },
+  "mail_card": {
+    "label": "Mail",
+    "no_subject": "(No subject)",
+    "attachments": "{count} attachments",
+    "open": "Click to read the mail",
+    "open_failed": "Could not open the mail"
   }
 }
