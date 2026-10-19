@@ -3,7 +3,6 @@
     v-memo="[
       message.message.id,
       message.message.status,
-      message.message.body?.translatedText?.text || '',
       uploadProgress,
       searchKeyword,
       historyMode
@@ -169,8 +168,7 @@
               v-memo="[
                 message.message.id,
                 message.message.status,
-                message.message.body?.translatedText?.text || '',
-                uploadProgress,
+                          uploadProgress,
                 searchKeyword,
                 historyMode
               ]"
@@ -197,35 +195,6 @@
               :onVideoClick="onVideoClick"
               :search-keyword="searchKeyword"
               :history-mode="historyMode" />
-
-            <!-- 显示翻译文本 -->
-            <Transition name="fade-translate" appear mode="out-in">
-              <div v-if="message.message.body.translatedText" class="translated-text cursor-default flex flex-col">
-                <n-flex align="center" justify="space-between" class="mb-6px">
-                  <n-flex align="center" :size="4">
-                    <span class="text-(12px #909090)">{{ message.message.body.translatedText.provider }}</span>
-                    <svg class="size-12px">
-                      <use href="#success"></use>
-                    </svg>
-
-                    <n-tooltip trigger="hover">
-                      <template #trigger>
-                        <svg
-                          class="pl-6px size-10px cursor-pointer hover:color-#909090 hover:transition-colors"
-                          @click="handleCopyTranslation(message.message.body.translatedText.text)">
-                          <use href="#copy"></use>
-                        </svg>
-                      </template>
-                      <span>复制翻译</span>
-                    </n-tooltip>
-                  </n-flex>
-                  <svg class="size-10px cursor-pointer" @click="message.message.body.translatedText = null">
-                    <use href="#close"></use>
-                  </svg>
-                </n-flex>
-                <p class="select-text cursor-text">{{ message.message.body.translatedText.text }}</p>
-              </div>
-            </Transition>
 
             <!-- 消息状态指示器 -->
             <div v-if="isMe" class="absolute -left-6 top-2">
@@ -556,13 +525,6 @@ const handleRetry = (item: MessageType): void => {
 }
 
 // 处理复制翻译文本
-const handleCopyTranslation = (text: string) => {
-  if (text) {
-    navigator.clipboard.writeText(text)
-    window.$message.success('复制成功')
-  }
-}
-
 const hasBubble = (type: MsgEnum) => {
   return !(type === MsgEnum.RECALL || type === MsgEnum.SYSTEM || type === MsgEnum.BOT)
 }

@@ -54,8 +54,7 @@ export const useSettingStore = defineStore(StoresEnum.SETTING, {
     },
     chat: {
       sendKey: 'Enter',
-      isDouble: true,
-      translate: 'youdao'
+      isDouble: true
     },
     shortcuts: getDefaultShortcuts(),
     page: {
@@ -161,7 +160,7 @@ export const useSettingStore = defineStore(StoresEnum.SETTING, {
     /** 设置发送消息快捷键 */
     setSendMessageShortcut(shortcut: string) {
       if (!this.chat) {
-        this.chat = { sendKey: 'Enter', isDouble: true, translate: 'youdao' }
+        this.chat = { sendKey: 'Enter', isDouble: true }
       }
       this.chat.sendKey = shortcut
     },

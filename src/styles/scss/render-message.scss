@@ -126,18 +126,6 @@
   transition: all 0.4s ease-in-out;
 }
 
-/** 翻译气泡的样式 */
-.translated-text {
-  font-size: 12px;
-  padding: 4px 8px;
-  border-radius: 12px;
-  background-color: var(--bg-translate-bubble);
-  line-height: 22px;
-  margin-top: 6px;
-  max-width: var(--bubble-max-width);
-  width: fit-content;
-}
-
 /** 时间搓显示时候的动画(单聊) */
 .fade-single-enter-active,
 .fade-single-leave-active {
@@ -165,16 +153,6 @@
 }
 .chat-init-enter-from,
 .fchat-init-leave-to {
-  opacity: 0;
-}
-
-/** 翻译动画 */
-.fade-translate-enter-active,
-.fade-translate-leave-active {
-  transition: opacity 0.4s ease-in-out;
-}
-.fade-translate-enter-from,
-.fade-translate-leave-to {
   opacity: 0;
 }
 
@@ -235,7 +213,6 @@
 
   .bubble,
   .bubble-oneself,
-  .translated-text,
   .select-text {
     user-select: text;
     -webkit-user-select: text;
@@ -250,7 +227,6 @@
 
 :global(#image-chat-main .message-list .bubble),
 :global(#image-chat-main .message-list .bubble-oneself),
-:global(#image-chat-main .message-list .translated-text),
 :global(#image-chat-main .message-list .select-text),
 :global(#image-chat-main .message-list .reply-bubble),
 :global(#image-chat-main .message-list .emoji-reply-bubble) {

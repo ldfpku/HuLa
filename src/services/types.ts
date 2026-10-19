@@ -740,7 +740,6 @@ export type MsgReadUnReadCountType = {
 }
 
 /** 支持的翻译服务提供商类型  */
-export type TranslateProvider = 'youdao' | 'tencent'
 
 /** AI模型 */
 export type AIModel = {

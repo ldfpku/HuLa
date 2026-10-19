@@ -27,14 +27,6 @@
         "dark": "Dark"
       }
     },
-    "chat": {
-      "title": "Chat",
-      "translate_service": "Translation Service",
-      "translate_options": {
-        "tencent": "Tencent Cloud Translate",
-        "youdao": "Youdao Translate"
-      }
-    },
     "ui": {
       "title": "UI",
       "language": "Language",

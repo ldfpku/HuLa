@@ -422,9 +422,6 @@
     "feature": {
       "coming_soon": "준비 중인 기능입니다"
     },
-    "translate": {
-      "empty": "번역할 내용이 없습니다"
-    },
     "file": {
       "missing_local": "로컬에서 파일을 찾을 수 없습니다. 먼저 다운로드해주세요",
       "show_failed": "폴더에서 파일을 열 수 없습니다",

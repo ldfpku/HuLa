@@ -418,9 +418,6 @@
     "feature": {
       "coming_soon": "功能暂开发"
     },
-    "translate": {
-      "empty": "没有可翻译的内容"
-    },
     "file": {
       "missing_local": "暂时找不到本地文件，请先下载后再试~",
       "show_failed": "无法在文件夹中显示该文件",
