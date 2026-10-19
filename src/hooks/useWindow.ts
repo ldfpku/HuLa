@@ -447,7 +447,8 @@ export const useWindow = () => {
     }
   }
 
-  const startRtcCall = async (callType: CallTypeEnum) => {
+  /** shareScreen：从聊天顶部“屏幕共享”发起，接通后通话页提示开始共享 */
+  const startRtcCall = async (callType: CallTypeEnum, options?: { shareScreen?: boolean }) => {
     try {
       const currentSession = globalStore.currentSession
       if (!currentSession) {
@@ -467,7 +468,7 @@ export const useWindow = () => {
         window.$message.error('无法获取对方用户信息')
         return
       }
-      await createRtcCallWindow(false, remoteUid, globalStore.currentSessionRoomId, callType)
+      await createRtcCallWindow(false, remoteUid, globalStore.currentSessionRoomId, callType, options?.shareScreen)
     } catch (error) {
       console.error('创建视频通话窗口失败:', error)
     }
@@ -477,7 +478,8 @@ export const useWindow = () => {
     isIncoming: boolean,
     remoteUserId: string,
     roomId: string,
-    callType: CallTypeEnum
+    callType: CallTypeEnum,
+    shareScreen = false
   ) => {
     // 根据是否来电决定窗口尺寸
     const windowConfig = isIncoming
@@ -502,7 +504,8 @@ export const useWindow = () => {
         remoteUserId,
         roomId: roomId,
         callType,
-        isIncoming
+        isIncoming,
+        ...(shareScreen ? { shareScreen: '1' } : {})
       }
     )
   }

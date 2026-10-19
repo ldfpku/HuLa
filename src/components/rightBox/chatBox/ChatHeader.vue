@@ -550,8 +550,9 @@ const handleAssist = () => {
   window.$message.warning(t('home.chat_header.toast.todo'))
 }
 
+// 私聊：发起语音通话，接通后提示开始共享；群聊：发起会议，在会议里共享
 const handleMedia = () => {
-  window.$message.warning(t('home.chat_header.toast.todo'))
+  void startRtcCall(CallTypeEnum.AUDIO, { shareScreen: true })
 }
 
 /** 置顶 */

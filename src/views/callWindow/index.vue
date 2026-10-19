@@ -162,6 +162,21 @@
           {{ t('message.call_window.stop_share') }}
         </span>
       </div>
+      <!-- 从聊天顶部“屏幕共享”发起：接通后请用户点一下开始（浏览器要求共享由点击触发） -->
+      <div
+        v-else-if="showSharePrompt"
+        data-testid="share-prompt"
+        class="absolute top-12px left-1/2 -translate-x-1/2 z-50 flex items-center gap-10px rounded-full bg-#034fbc px-14px py-6px text-13px text-#fff shadow-lg">
+        <span>{{ t('message.call_window.share_prompt') }}</span>
+        <span
+          class="cursor-pointer rounded-full bg-white px-10px py-2px text-#034fbc"
+          @click="(sharePromptDismissed = true), startScreenShare()">
+          {{ t('message.call_window.share_screen') }}
+        </span>
+        <span class="cursor-pointer opacity-80 hover:opacity-100" @click="sharePromptDismissed = true">
+          {{ t('message.call_window.share_later') }}
+        </span>
+      </div>
       <!-- 视频通话时显示视频 (只有在双方都开启视频时才显示) -->
       <div
         v-if="callType === CallTypeEnum.VIDEO && localStream && (isVideoEnabled || hasRemoteVideo)"
@@ -539,6 +554,8 @@ const callType = resolveCallType(route.query.callType as string | null)
 // 是否是接受方，true 代表接受方
 const isReceiver = route.query.isIncoming === 'true'
 const shouldAutoAccept = isReceiver && route.query.autoAccept === '1'
+// 从聊天顶部“屏幕共享”发起的通话
+const wantsScreenShare = !isReceiver && route.query.shareScreen === '1'
 const isMobileDevice = isMobile()
 
 if ((!roomId || !remoteUserId) && isMobileDevice) {
@@ -690,6 +707,16 @@ const hasRemoteVideo = computed(() => {
 // 对方正在共享且屏幕画面已到达
 const showRemoteScreen = computed(
   () => isRemoteScreenSharing.value && !!remoteScreenStream.value?.getVideoTracks().length
+)
+
+const sharePromptDismissed = ref(false)
+const showSharePrompt = computed(
+  () =>
+    wantsScreenShare &&
+    !isMobileDevice &&
+    !sharePromptDismissed.value &&
+    !isScreenSharing.value &&
+    connectionStatus.value === RTCCallStatus.ACCEPT
 )
 
 const toggleScreenShare = async () => {

@@ -88,7 +88,9 @@
     "rc_need_primary": "Only the primary screen can be controlled. Ask again and choose the primary screen",
     "rc_controlling": "Controlling {name}'s computer",
     "rc_swap_hint": "(switch back to the screen view to control)",
-    "rc_being_controlled": "{name} is controlling your computer"
+    "rc_being_controlled": "{name} is controlling your computer",
+    "share_prompt": "Connected. Share your screen now?",
+    "share_later": "Not now"
   },
   "permission": {
     "mic": {
