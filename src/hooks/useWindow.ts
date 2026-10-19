@@ -454,9 +454,10 @@ export const useWindow = () => {
         window.$message?.warning?.('当前会话尚未准备好')
         return
       }
-      // 判断是否为群聊，如果是群聊则跳过
+      // 群聊的音视频是多人会议（Cloudflare RealtimeKit），立即开始并把会议链接发到群里
       if (currentSession.type === RoomTypeEnum.GROUP) {
-        window.$message.warning('群聊暂不支持音视频通话')
+        const { useMeeting } = await import('@/hooks/useMeeting')
+        await useMeeting().startMeeting({ roomId: globalStore.currentSessionRoomId })
         return
       }
 

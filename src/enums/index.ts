@@ -819,6 +819,15 @@ export enum ImUrlEnum {
   MERGE_MSG = 'mergeMsg',
   GET_USER_BY_IDS = 'getUserByIds',
 
+  /** 一对一通话的 ICE 服务器（Cloudflare TURN 临时凭证） */
+  RTC_ICE_SERVERS = 'rtcIceServers',
+  /** 视频会议 */
+  MEETING_LIST = 'meetingList',
+  MEETING_CREATE = 'meetingCreate',
+  MEETING_DETAIL = 'meetingDetail',
+  MEETING_JOIN = 'meetingJoin',
+  MEETING_ICS = 'meetingIcs',
+
   /** 发送 AI 消息 */
   MESSAGE_SEND_STREAM = 'messageSendStream',
   /** 保存生成内容消息（用于音频、图片、视频等生成功能） */
