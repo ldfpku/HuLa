@@ -9,7 +9,7 @@
       <n-flex justify="space-between" align="center" :size="0">
         <n-flex :size="4" vertical>
           <n-flex :size="0" align="center">
-            <p class="text-(20px [--chat-text-color]) font-semibold select-none">HuLa-</p>
+            <p class="text-(20px [--chat-text-color]) font-semibold select-none">SMJ-</p>
             <p class="gpt-subtitle">ChatBot</p>
             <div class="ml-6px p-[4px_8px] size-fit bg-[--bate-bg] rounded-8px text-(12px [--bate-color] center)">
               Beta
@@ -133,13 +133,6 @@
             class="bg-[--chat-bt-color] border-(1px solid [--line-color]) color-[--chat-text-color] size-fit p-[8px_9px] rounded-8px custom-shadow cursor-pointer">
             <svg class="size-18px"><use href="#settings"></use></svg>
           </div>
-          <a
-            target="_blank"
-            rel="noopener noreferrer"
-            href="https://github.com/HuLaSpark/HuLa"
-            class="bg-[--chat-bt-color] border-(1px solid [--line-color]) color-[--chat-text-color] size-fit p-[8px_9px] rounded-8px custom-shadow cursor-pointer">
-            <svg class="size-18px"><use href="#github"></use></svg>
-          </a>
         </n-flex>
 
         <n-flex :size="4" align="center">

@@ -719,7 +719,10 @@ onMounted(async () => {
   })
 
   if (isDesktop()) {
-    if (isReceiver && !isCallAccepted.value) {
+    if (shouldAutoAccept && isReceiver && !isCallAccepted.value) {
+      // 网页版：用户已在主页的来电提示里点了接听，打开通话页后直接接通
+      await acceptCall()
+    } else if (isReceiver && !isCallAccepted.value) {
       // 接收方立即开始播放铃声
       startBell()
 

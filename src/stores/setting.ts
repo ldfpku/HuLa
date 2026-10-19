@@ -60,7 +60,6 @@ export const useSettingStore = defineStore(StoresEnum.SETTING, {
     shortcuts: getDefaultShortcuts(),
     page: {
       shadow: true,
-      fonts: 'PingFang',
       blur: true,
       lang: 'AUTO'
     },

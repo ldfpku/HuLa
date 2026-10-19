@@ -65,8 +65,6 @@ declare namespace STO {
     page: {
       /** 是否开启阴影 */
       shadow: boolean
-      /** 字体 */
-      fonts: string
       /** 高斯模糊 */
       blur: boolean
       lang: string

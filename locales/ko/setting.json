@@ -1,7 +1,7 @@
 {
   "common": {
     "provider_label": "제공자",
-    "provider_name": "HuLa",
+    "provider_name": "SMJ",
     "tag_new": "신규"
   },
   "footer": {
@@ -10,7 +10,7 @@
     "share_joiner": "그리고",
     "share_cta": "소중한 의견을 공유해 주세요",
     "star_popover_title": "GitHub에서 스타 눌러주기",
-    "star_popover_desc": "HuLa가 마음에 드셨고 저희를 응원해 주고 싶으시다면, GitHub 저장소에 별을 눌러주실 수 있나요? 작은 행동이지만 저희에게는 큰 힘이 되며, 더 좋은 기능을 계속 만들어갈 수 있는 원동력이 됩니다.",
+    "star_popover_desc": "SMJ가 마음에 드셨고 저희를 응원해 주고 싶으시다면, GitHub 저장소에 별을 눌러주실 수 있나요? 작은 행동이지만 저희에게는 큰 힘이 되며, 더 좋은 기능을 계속 만들어갈 수 있는 원동력이 됩니다.",
     "later": "나중에",
     "star_button": "스타 누르기",
     "issue_popover_title": "GitHub에 피드백 남기기",
@@ -40,12 +40,7 @@
       "language": "언어",
       "blur": "가우시안 블러",
       "shadow": "그림자 효과 사용",
-      "font": "글꼴",
-      "menu_name": "메뉴 이름",
-      "font_options": {
-        "PingFang": "PingFang",
-        "AliFangYuan": "알리바바 방원체"
-      }
+      "menu_name": "메뉴 이름"
     },
     "system": {
       "title": "시스템",
@@ -123,7 +118,7 @@
     "file_scan_progress": "파일 스캔 중",
     "usage": "파일 스캔 비율",
     "used_space": "사용 중인 공간",
-    "app_used_space": "HuLa 데이터",
+    "app_used_space": "SMJ 데이터",
     "free_space": "여유 공간",
     "directory": "디렉터리",
     "curr_dir": "현재 디렉터리",

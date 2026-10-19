@@ -92,13 +92,13 @@
   "message_list": {
     "sync_loading": "正在同步消息",
     "official_popover": "官方群聊认证",
-    "bot_popover": "HuLa助手",
+    "bot_popover": "SMJ助手",
     "mention_tag": "[有人@我]",
     "shield_group": "您已屏蔽群聊",
     "shield_user": "您已屏蔽此人",
     "empty_description": "快和朋友聊天吧！",
     "empty_action": "寻找好友",
-    "default_last_msg": "欢迎使用HuLa"
+    "default_last_msg": "欢迎使用SMJ"
   },
   "message_menu": {
     "pin_success": "已置顶",

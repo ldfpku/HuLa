@@ -9,3 +9,5 @@ import { currentLabel } from './tauriShim'
 await import('../main')
 const { tryWebSignIn } = await import('./sharedLogin')
 void tryWebSignIn(currentLabel)
+const { startWebNotify } = await import('./notify')
+startWebNotify(currentLabel)

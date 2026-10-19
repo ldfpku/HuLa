@@ -89,7 +89,7 @@
       <span class="pl-10px">{{ t('setting.general.ui.title') }}</span>
 
       <n-flex class="item" :size="12" vertical>
-        <!-- 字体 -->
+        <!-- 语言 -->
         <n-flex align="center" justify="space-between">
           <span>{{ t('setting.general.ui.language') }}</span>
           <n-select class="w-140px" size="small" label-field="label" v-model:value="page.lang" :options="langOptions" />
@@ -113,19 +113,6 @@
 
         <span class="w-full h-1px bg-[--line-color]"></span>
 
-        <!-- 字体 -->
-        <n-flex align="center" justify="space-between">
-          <span>{{ t('setting.general.ui.font') }}</span>
-          <n-select
-            class="w-140px"
-            size="small"
-            label-field="label"
-            v-model:value="page.fonts"
-            :options="fontOptions" />
-        </n-flex>
-
-        <span class="w-full h-1px bg-[--line-color]"></span>
-
         <!-- 菜单显示模式 -->
         <n-flex align="center" justify="space-between">
           <span>{{ t('setting.general.ui.menu_name') }}</span>
@@ -144,7 +131,7 @@ import { NSwitch } from 'naive-ui'
 import { CloseBxEnum, ShowModeEnum } from '@/enums'
 import { useSettingStore } from '@/stores/setting.ts'
 import { isWindows } from '@/utils/PlatformConstants'
-import { useFontOptions, useTranslateOptions, langOptions } from './config.ts'
+import { useTranslateOptions, langOptions } from './config.ts'
 import { useTopicsList } from './model.tsx'
 import { useI18n } from 'vue-i18n'
 
@@ -156,7 +143,6 @@ const { showMode, escClose } = storeToRefs(settingStore)
 const activeItem = ref<string>(themes.pattern)
 const topicsList = useTopicsList()
 const translateOptions = useTranslateOptions()
-const fontOptions = useFontOptions()
 
 const showText = computed({
   get: () => showMode.value === ShowModeEnum.TEXT,

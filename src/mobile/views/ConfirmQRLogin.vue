@@ -8,7 +8,7 @@
           <div class="text-20px font-bold text-#343434">
             登录
             <span class="text-#034fbc">{{ props.deviceType }}</span>
-            &nbsp;的HULA
+            &nbsp;的SMJ
           </div>
         </div>
 

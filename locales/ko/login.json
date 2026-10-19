@@ -46,7 +46,7 @@
   },
   "qr_code_expired": "QR 코드가 만료되었습니다",
   "qr_code_expired_hint": "잠시 후 다시 시도해 주세요",
-  "qr_code_scan_hint": "HuLa 앱으로 QR 코드를 스캔해 주세요",
+  "qr_code_scan_hint": "SMJ 앱으로 QR 코드를 스캔해 주세요",
   "qr_code_gen_fail_hint": "QR 코드 생성에 실패했습니다",
   "qr_code_scan_success_hint": "스캔 성공, 승인을 기다리는 중",
   "wait_auth_hint": "승인을 기다리는 중...",
@@ -74,7 +74,7 @@
     "load_text": {
       "loading": "불러오는 중...",
       "refreshing": "새로고침 중...",
-      "scan_hint": "HuLa 앱으로 스캔해 주세요",
+      "scan_hint": "SMJ 앱으로 스캔해 주세요",
       "login": "로그인 중...",
       "retry": "잠시 후 다시 시도해 주세요",
       "auth_pending": "승인을 기다리는 중..."
@@ -87,20 +87,20 @@
   },
   "guide": {
     "welcome": {
-      "title": "🎉 HuLa에 오신 것을 환영합니다",
-      "desc": "HuLa는 Tauri로 제작되었으며 Windows, macOS, Linux, iOS, Android를 지원합니다"
+      "title": "🎉 SMJ에 오신 것을 환영합니다",
+      "desc": "SMJ는 Tauri로 제작되었으며 Windows, macOS, Linux, iOS, Android를 지원합니다"
     },
     "privacy": {
       "title": "🤔 개인정보 및 서비스 약관",
-      "desc": "먼저 HuLa의 개인정보 처리방침과 이용약관을 확인해 주세요"
+      "desc": "먼저 SMJ의 개인정보 처리방침과 이용약관을 확인해 주세요"
     },
     "network": {
       "title": "⚙️ 네트워크 설정",
-      "desc": "HuLa는 사용자 지정 서버 주소로 공식 서버를 대체할 수 있습니다"
+      "desc": "SMJ는 사용자 지정 서버 주소로 공식 서버를 대체할 수 있습니다"
     },
     "register": {
       "title": "🤓 로그인 방법",
-      "desc": "HuLa를 사용하기 전에 계정을 등록하고 프로필을 완성해 주세요"
+      "desc": "SMJ를 사용하기 전에 계정을 등록하고 프로필을 완성해 주세요"
     },
     "actions": {
       "next": "다음",
@@ -122,7 +122,7 @@
       "suffix": "접미사"
     },
     "placeholder": {
-      "host": "127.0.0.1 또는 hulaspark.com",
+      "host": "127.0.0.1 또는 mail.smjtools.com",
       "port": "443",
       "api_suffix": "api",
       "ws_suffix": "websocket"
@@ -162,7 +162,7 @@
       "login": "로그인"
     },
     "input": {
-      "account_placeholder": "HuLa 계정 입력",
+      "account_placeholder": "SMJ 계정 입력",
       "code_placeholder": "비밀번호 입력"
     },
     "register": {

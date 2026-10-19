@@ -46,7 +46,9 @@
                 color: '#000',
                 background: '#034fbc'
               }" />
-            <p v-else style="margin: 0">{{ item }}</p>
+            <p v-else class="text-#034fbc dark:text-#7aa7ff cursor-pointer" style="margin: 0" @click="openUrl(item)">
+              {{ item }}
+            </p>
           </div>
         </n-flex>
       </template>
@@ -82,6 +84,7 @@
 </template>
 <script setup lang="ts">
 import { openExternalUrl } from '@/hooks/useLinkSegments'
+import { parseMeetingLink } from '@/hooks/useMeeting'
 import { useGroupStore } from '@/stores/group'
 import type { TextBody } from '@/services/types'
 import { isMobile } from '@/utils/PlatformConstants'
@@ -104,6 +107,13 @@ const urlMap = props.body.urlContentMap || {}
 const keys = Object.keys(urlMap)
 // 正则表达式常量用于匹配URL
 const URL_REGEX = /https?:\/\/[^\s<]+[^<.,:;"')\]\s]/g
+const hostOf = (url: string) => {
+  try {
+    return new URL(url).host
+  } catch {
+    return url
+  }
+}
 
 const groupStore = useGroupStore()
 
@@ -146,12 +156,13 @@ const processLongUrls = computed(() => {
   let content = props.body.content || ''
   content = content.replace(/&nbsp;/g, '\u00A0')
 
-  return content.replace(URL_REGEX, (match, url) => {
-    // 如果urlMap中已有该链接的信息，添加到urlMap中
-    if (!urlMap[match] && url) {
+  return content.replace(URL_REGEX, (match) => {
+    // 后端没给预览信息的链接，用会议名或网址的域名作卡片标题
+    if (!urlMap[match]) {
+      const isMeeting = !!parseMeetingLink(match)
       urlMap[match] = {
-        title: url,
-        description: '链接',
+        title: isMeeting ? '视频会议' : hostOf(match),
+        description: isMeeting ? '点击加入会议' : '链接',
         image: ''
       }
       // 动态添加到keys中

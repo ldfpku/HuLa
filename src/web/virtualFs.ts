@@ -7,13 +7,19 @@ type Entry = { chunks: Uint8Array[]; blob?: Blob; url?: string; mtime: number }
 
 const files = new Map<string, Entry>()
 /** 业务代码会把临时目录（替身返回 /web）拼到文件名前，这里统一去掉，按文件名存取 */
-const key = (path: string) => String(path ?? '').replace(/^\/web\//, '')
+const key = (path: string) =>
+  String(path ?? '')
+    .replace(/^asset:\/\/(localhost\/)?/, '')
+    .replace(/\\/g, '/')
+    .replace(/\/{2,}/g, '/')
+    .replace(/^\/web\//, '')
 const handles = new Map<number, string>()
 let nextRid = 1
 
+// 一律复制一份：调用方之后可能把原 ArrayBuffer 交给 decodeAudioData 等，原缓冲会被转移变成 0 字节
 const toBytes = (data: unknown): Uint8Array => {
-  if (data instanceof Uint8Array) return data
-  if (data instanceof ArrayBuffer) return new Uint8Array(data)
+  if (data instanceof Uint8Array) return data.slice()
+  if (data instanceof ArrayBuffer) return new Uint8Array(data.slice(0))
   if (Array.isArray(data)) return Uint8Array.from(data)
   if (typeof data === 'string') return new TextEncoder().encode(data)
   return new Uint8Array()
