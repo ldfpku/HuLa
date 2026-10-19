@@ -114,7 +114,7 @@ const createWebAppManifest = (base: string) => {
     icons: [
       { src: `${base}brand/smj-icon-192.png`, sizes: '192x192', type: 'image/png', purpose: 'any' },
       { src: `${base}brand/smj-icon-512.png`, sizes: '512x512', type: 'image/png', purpose: 'any' },
-      { src: `${base}brand/smj-icon-512.png`, sizes: '512x512', type: 'image/png', purpose: 'maskable' }
+      { src: `${base}brand/smj-icon-maskable-512.png`, sizes: '512x512', type: 'image/png', purpose: 'maskable' }
     ]
   }
   const headTags = [
