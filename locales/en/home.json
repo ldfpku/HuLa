@@ -453,9 +453,6 @@
     "feature": {
       "coming_soon": "Feature under development"
     },
-    "translate": {
-      "empty": "Nothing to translate"
-    },
     "file": {
       "missing_local": "File not found locally, please download first",
       "show_failed": "Unable to reveal file in folder",

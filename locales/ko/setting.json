@@ -27,14 +27,6 @@
         "dark": "다크"
       }
     },
-    "chat": {
-      "title": "채팅",
-      "translate_service": "번역 서비스",
-      "translate_options": {
-        "tencent": "텐센트 클라우드 번역",
-        "youdao": "유다오 번역"
-      }
-    },
     "ui": {
       "title": "UI",
       "language": "언어",

@@ -20,7 +20,6 @@ import { useCommon } from '@/hooks/useCommon.ts'
 import { useDownload } from '@/hooks/useDownload'
 import { useMitt } from '@/hooks/useMitt.ts'
 import { useVideoViewer } from '@/hooks/useVideoViewer'
-import { translateTextStream } from '@/services/translate'
 import type { FilesMeta, MessageType, RightMouseMessageItem } from '@/services/types.ts'
 import { useCachedStore } from '@/stores/cached'
 import { useChatStore } from '@/stores/chat.ts'
@@ -29,7 +28,6 @@ import { useEmojiStore } from '@/stores/emoji'
 import { type FileDownloadStatus, useFileDownloadStore } from '@/stores/fileDownload'
 import { useGlobalStore } from '@/stores/global.ts'
 import { useGroupStore } from '@/stores/group'
-import { useSettingStore } from '@/stores/setting.ts'
 import { useUserStore } from '@/stores/user'
 import { saveFileAttachmentAs, saveVideoAttachmentAs } from '@/utils/AttachmentSaver'
 import { isDiffNow } from '@/utils/ComputedTime.ts'
@@ -59,8 +57,6 @@ export const useChatMain = (isHistoryMode = false, options: UseChatMainOptions =
   const { createWebviewWindow, sendWindowPayload, startRtcCall } = useWindow()
   const { getLocalVideoPath, checkVideoDownloaded } = useVideoViewer()
   const fileDownloadStore = useFileDownloadStore()
-  const settingStore = useSettingStore()
-  const { chat } = storeToRefs(settingStore)
   const globalStore = useGlobalStore()
   const groupStore = useGroupStore()
   const chatStore = useChatStore()
@@ -356,31 +352,6 @@ export const useChatMain = (isHistoryMode = false, options: UseChatMainOptions =
       },
       visible: (item: MessageType) => !shouldHideCopy(item)
     },
-    {
-      label: () => t('menu.translate'),
-      icon: 'translate',
-      click: async (item: MessageType) => {
-        const selectedText = getSelectedText(item.message.id)
-        if (!selectedText && item.message.body.translatedText) {
-          delete item.message.body.translatedText
-          return
-        }
-
-        const content = selectedText || item.message.body.content
-        if (!content) {
-          window.$message?.warning(t('home.chat_main.translate.empty'))
-          return
-        }
-
-        item.message.body.translatedText = { provider: chat.value.translate || 'tencent', text: '' }
-        await translateTextStream(content, chat.value.translate || 'tencent', (seg) => {
-          const prev = item.message.body.translatedText?.text || ''
-          item.message.body.translatedText = { provider: chat.value.translate || 'tencent', text: prev + seg }
-        })
-      },
-      visible: (item: MessageType) => item.message.type === MsgEnum.TEXT
-    },
-
     ...commonMenuList.value
   ])
   const specialMenuList = computed(() => {

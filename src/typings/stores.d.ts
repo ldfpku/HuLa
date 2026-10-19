@@ -50,7 +50,6 @@ declare namespace STO {
       /** 是否双击打开独立会话窗口 */
       isDouble: boolean
       /** 翻译提供商 */
-      translate: 'youdao' | 'tencent'
     }
     /** 快捷键设置 */
     shortcuts: {

@@ -22,10 +22,6 @@ export type Settings = {
     base_url: string
     ws_url: string
   }
-  youdao?: {
-    app_key: string
-    app_secret: string
-  }
   tencent?: {
     api_key: string
     secret_id: string

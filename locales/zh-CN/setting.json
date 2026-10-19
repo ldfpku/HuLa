@@ -27,14 +27,6 @@
         "dark": "深色"
       }
     },
-    "chat": {
-      "title": "聊天",
-      "translate_service": "翻译服务",
-      "translate_options": {
-        "tencent": "腾讯云翻译",
-        "youdao": "有道云翻译"
-      }
-    },
     "ui": {
       "title": "界面",
       "language": "语言",

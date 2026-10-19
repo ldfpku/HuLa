@@ -60,21 +60,6 @@ const useSendOptions = () => {
   ])
 }
 
-/** 翻译提供商的选项 */
-const useTranslateOptions = () => {
-  const { t } = useI18n()
-  return computed(() => [
-    {
-      label: t('setting.general.chat.translate_options.tencent'),
-      value: 'tencent'
-    },
-    {
-      label: t('setting.general.chat.translate_options.youdao'),
-      value: 'youdao'
-    }
-  ])
-}
-
 const langOptions = [
   {
     label: 'Automatic',
@@ -94,4 +79,4 @@ const langOptions = [
   }
 ]
 
-export { useSideOptions, useSendOptions, useTranslateOptions, langOptions }
+export { useSideOptions, useSendOptions, langOptions }
