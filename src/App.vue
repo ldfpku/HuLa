@@ -712,15 +712,6 @@ watch(
   { immediate: true }
 )
 
-/** 控制字体样式 */
-watch(
-  () => page.value.fonts,
-  (val) => {
-    document.documentElement.style.setProperty('--font-family', val)
-  },
-  { immediate: true }
-)
-
 /**
  * 语言发生变化
  */

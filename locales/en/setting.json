@@ -40,12 +40,7 @@
       "language": "Language",
       "blur": "Gaussian blur",
       "shadow": "Enable Shadow",
-      "font": "Font Family",
-      "menu_name": "Menu Name",
-      "font_options": {
-        "PingFang": "PingFang",
-        "AliFangYuan": "Alibaba Rounded"
-      }
+      "menu_name": "Menu Name"
     },
     "system": {
       "title": "System",
