@@ -133,6 +133,11 @@ export const isDesktop = (): boolean => PlatformDetector.platformType === 'deskt
 export const isMobile = (): boolean => PlatformDetector.platformType === 'mobile'
 
 /**
+ * 是否为网页版（浏览器里运行，由 src/web/tauriShim.ts 标记）
+ */
+export const isWeb = (): boolean => typeof window !== 'undefined' && Boolean((window as any).__SMJ_WEB__)
+
+/**
  * 是否为 Windows 系统
  */
 export const isWindows = (): boolean => PlatformDetector.osType === 'windows'
@@ -192,6 +197,7 @@ export const Platform = {
   // 平台判断
   isDesktop,
   isMobile,
+  isWeb,
 
   // 系统判断
   isWindows,

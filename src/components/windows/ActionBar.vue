@@ -14,7 +14,7 @@
         <div class="flex items-center">
           <!--  登录窗口的代理按钮  -->
           <div
-            v-if="proxy"
+            v-if="proxy && !isWebApp"
             @click="router.push('/network')"
             :class="{ network: isWindows() }"
             class="w-30px h-24px flex-center hover-box">
@@ -25,7 +25,7 @@
             </svg>
           </div>
           <!--  固定在最顶层  -->
-          <div v-if="topWinLabel !== void 0" @click="handleAlwaysOnTop" class="hover-box">
+          <div v-if="topWinLabel !== void 0 && !isWebApp" @click="handleAlwaysOnTop" class="hover-box">
             <n-popover trigger="hover">
               <template #trigger>
                 <svg
@@ -54,7 +54,7 @@
             </svg>
           </div>
           <!-- 最小化 -->
-          <div v-if="minW" @click="appWindow.minimize()" class="hover-box">
+          <div v-if="minW && !isWebApp" @click="appWindow.minimize()" class="hover-box">
             <svg
               :class="[iconColor !== '' ? `color-${iconColor}` : 'color-[--action-bar-icon-color]']"
               class="size-24px opacity-66 cursor-pointer">
@@ -62,7 +62,7 @@
             </svg>
           </div>
           <!-- 最大化 -->
-          <div v-if="maxW" @click="restoreWindow" class="hover-box">
+          <div v-if="maxW && !isWebApp" @click="restoreWindow" class="hover-box">
             <svg
               v-show="!windowMaximized"
               :class="[iconColor !== '' ? `color-${iconColor}` : 'color-[--action-bar-icon-color]']"
@@ -78,7 +78,7 @@
           </div>
           <!-- 关闭窗口 -->
           <div
-            v-if="closeW"
+            v-if="closeW && !isWebApp"
             @click="handleCloseWin"
             :class="{ windowMaximized: 'rounded-rt-8px' }"
             class="action-close">
@@ -146,9 +146,11 @@ import { useWindow } from '@/hooks/useWindow.ts'
 import router from '@/router'
 import { useAlwaysOnTopStore } from '@/stores/alwaysOnTop.ts'
 import { useSettingStore } from '@/stores/setting.ts'
-import { isCompatibility, isMac, isWindows } from '@/utils/PlatformConstants'
+import { isCompatibility, isMac, isWeb, isWindows } from '@/utils/PlatformConstants'
 
 const { t } = useI18n()
+// 网页版由浏览器管理窗口，不显示置顶、最小化、最大化、关闭和登录页的代理设置
+const isWebApp = isWeb()
 const appWindow = WebviewWindow.getCurrent()
 const {
   topWinLabel,

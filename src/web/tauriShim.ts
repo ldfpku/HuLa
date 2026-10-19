@@ -8,11 +8,23 @@
  */
 import { mockIPC, mockWindows } from '@tauri-apps/api/mocks'
 import { createCommands } from './commands'
+import { downloadFile, downloadIfSaved, messageDialog, openFileDialog, saveFileDialog } from './dialog'
+import { uploadFilePut, virtualFs } from './virtualFs'
 import { WebSocketClient } from './wsClient'
 
 const MAIN_WINDOWS = new Set(['login', 'home'])
 
-const currentLabel = location.pathname.split('/').filter(Boolean)[0] || 'login'
+/** 网页版部署在子路径下（如 /im/），窗口地址都要带上它 */
+const BASE = import.meta.env.BASE_URL.replace(/\/$/, '')
+
+// 打开 /im/ 时没有窗口名，按登录页处理，让路由能匹配到
+if (!location.pathname.slice(BASE.length).replace(/\//g, '')) {
+  history.replaceState(history.state, '', `${BASE}/login${location.search}`)
+}
+
+export const currentLabel = location.pathname.slice(BASE.length).split('/').filter(Boolean)[0] || 'login'
+
+const withBase = (url: string) => (/^[a-z]+:/i.test(url) || !url.startsWith('/') ? url : `${BASE}${url}`)
 
 const emit = (event: string, payload?: unknown) => {
   void (window as any).__TAURI_INTERNALS__.invoke('plugin:event|emit', { event, payload })
@@ -26,7 +38,7 @@ const size = () => ({ width: window.innerWidth, height: window.innerHeight })
 const openWindow = (args: any) => {
   const options = args?.options ?? {}
   const label: string = options.label ?? ''
-  const url: string = options.url ?? `/${label}`
+  const url = withBase(options.url ?? `/${label}`)
   if (label === currentLabel) return null
   if (MAIN_WINDOWS.has(label)) location.assign(url)
   else window.open(url, `smj-${label}`)
@@ -34,7 +46,7 @@ const openWindow = (args: any) => {
 }
 
 /** plugin:* 命令：只实现网页里有意义的，其余返回 null */
-const pluginCommand = (cmd: string, args: any): unknown => {
+const pluginCommand = (cmd: string, args: any, options?: any): unknown => {
   const [plugin, action] = cmd.slice('plugin:'.length).split('|')
   switch (plugin) {
     case 'log':
@@ -101,8 +113,47 @@ const pluginCommand = (cmd: string, args: any): unknown => {
       if (action === 'normalize' || action === 'resolve') return args?.path ?? (args?.paths ?? []).join('/')
       return '/web'
     case 'fs':
-      if (action === 'exists') return false
-      if (action === 'read_dir') return []
+      switch (action) {
+        case 'write_file':
+        case 'write_text_file': {
+          // 二进制内容作为请求体传入，路径在请求头里（与 plugin-fs 的 writeFile 一致）
+          const path = decodeURIComponent(options?.headers?.path ?? '')
+          virtualFs.writeFile(path, args)
+          downloadIfSaved(path)
+          return null
+        }
+        case 'copy_file':
+          // 只复制分块引用，不重复占用内存
+          virtualFs.copy(args?.fromPath, args?.toPath)
+          downloadIfSaved(args?.toPath ?? '')
+          return null
+        case 'open':
+        case 'create':
+          return virtualFs.open(args?.path, action === 'create' ? { create: true } : args?.options)
+        case 'write':
+          return virtualFs.write(args?.rid, args?.data)
+        case 'stat':
+        case 'lstat':
+          return virtualFs.stat(args?.path)
+        case 'read_file':
+          return virtualFs.read(args?.path)
+        case 'exists':
+          return virtualFs.has(args?.path)
+        case 'remove':
+          virtualFs.remove(args?.path)
+          return null
+        case 'read_dir':
+          return []
+        default:
+          return null
+      }
+    case 'resources':
+      if (action === 'close') downloadIfSaved(virtualFs.close(args?.rid) ?? '')
+      return null
+    case 'dialog':
+      if (action === 'open') return openFileDialog(args?.options)
+      if (action === 'save') return saveFileDialog(args?.options)
+      if (action === 'message') return messageDialog(args)
       return null
     case 'notification':
       if (action === 'is_permission_granted') return 'Notification' in window && Notification.permission === 'granted'
@@ -116,6 +167,8 @@ const pluginCommand = (cmd: string, args: any): unknown => {
       return null
     case 'opener':
       if (action === 'open_url') window.open(args?.url, '_blank', 'noopener')
+      // 打开本机文件（如会议的 .ics）：网页里改为下载，由浏览器交给系统日历等程序
+      if (action === 'open_path' && virtualFs.has(args?.path)) downloadFile(args.path)
       return null
     case 'clipboard-manager':
       if (action === 'write_text')
@@ -135,20 +188,24 @@ const pluginCommand = (cmd: string, args: any): unknown => {
   }
 }
 
+const handle = async (cmd: string, args: any, options?: any) => {
+  if (cmd.startsWith('plugin:')) return pluginCommand(cmd, args, options)
+  if (cmd === 'upload_file_put') return uploadFilePut(args)
+  const handler = commands[cmd]
+  if (handler) return handler(args as Record<string, any>)
+  console.warn(`[web] 未实现的命令: ${cmd}`, args)
+  return null
+}
+
 mockWindows(currentLabel)
-mockIPC(
-  async (cmd, args) => {
-    if (cmd.startsWith('plugin:')) return pluginCommand(cmd, args)
-    const handler = commands[cmd]
-    if (handler) return handler(args as Record<string, any>)
-    console.warn(`[web] 未实现的命令: ${cmd}`, args)
-    return null
-  },
-  { shouldMockEvents: true }
-)
+mockIPC(handle, { shouldMockEvents: true })
 
 const internals = (window as any).__TAURI_INTERNALS__
-internals.convertFileSrc = (filePath: string) => filePath
+// mockIPC 不转发 invoke 的第三个参数（请求头），文件写入要靠它带路径，所以除事件外都直接交给 handle
+const mockedInvoke = internals.invoke
+internals.invoke = (cmd: string, args: any, options?: any) =>
+  cmd.startsWith('plugin:event|') ? mockedInvoke(cmd, args, options) : handle(cmd, args, options)
+internals.convertFileSrc = (filePath: string) => virtualFs.objectUrl(filePath) ?? filePath
 internals.plugins = internals.plugins ?? {}
 ;(window as any).__TAURI_OS_PLUGIN_INTERNALS__ = {
   eol: '\n',

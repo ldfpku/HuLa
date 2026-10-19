@@ -3,6 +3,7 @@
  * 数据直接从服务端读取，不在本机保存聊天记录
  */
 import { ImRequestError, imRequest, refreshTokens, tokenStore, webConfig } from './imClient'
+import { virtualFs } from './virtualFs'
 import type { WebSocketClient } from './wsClient'
 
 type Args = Record<string, any> | undefined
@@ -18,6 +19,37 @@ const withTimeBlocks = (list: any[]) => {
     const current = item?.message?.sendTime ?? 0
     return { ...item, timeBlock: index === 0 || (prev && current - prev > TIME_BLOCK_GAP) ? 1 : undefined }
   })
+}
+
+const MIME_BY_EXT: Record<string, string> = {
+  png: 'image/png',
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  gif: 'image/gif',
+  webp: 'image/webp',
+  mp3: 'audio/mpeg',
+  wav: 'audio/wav',
+  m4a: 'audio/mp4',
+  mp4: 'video/mp4',
+  pdf: 'application/pdf',
+  txt: 'text/plain'
+}
+
+/** 与 Rust 的 get_files_meta 一致：从路径或地址取文件名和类型；网页里只有内存文件算“存在” */
+const fileMeta = (original: string) => {
+  let pathname = original
+  try {
+    pathname = new URL(original).pathname
+  } catch {}
+  const name = decodeURIComponent(pathname.split(/[\\/]/).pop() || original)
+  const ext = name.includes('.') ? (name.split('.').pop() ?? '').toLowerCase() : ''
+  return {
+    name,
+    path: original,
+    file_type: ext,
+    mime_type: MIME_BY_EXT[ext] ?? 'application/octet-stream',
+    exists: virtualFs.has(original)
+  }
 }
 
 const settings = () => ({
@@ -75,7 +107,7 @@ export const createCommands = (ws: WebSocketClient, emit: (event: string, payloa
       return null
     },
     remove_tokens: () => {
-      tokenStore.clear()
+      tokenStore.signOut()
       return null
     },
     save_user_info: () => null,
@@ -127,7 +159,7 @@ export const createCommands = (ws: WebSocketClient, emit: (event: string, payloa
     query_chat_history: () => ({ list: [], total: 0 }),
     query_files: () => ({ list: [], total: 0 }),
     debug_message_stats: () => null,
-    get_files_meta: () => [],
+    get_files_meta: (args) => (args?.filesPath ?? []).map(fileMeta),
     hide_splash_screen: () => null,
     set_complete: () => null
   }

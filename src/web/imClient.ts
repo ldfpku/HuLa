@@ -5,6 +5,8 @@
 import { IM_URLS } from './imUrls'
 
 const TOKEN_KEY = 'smj-web-im-tokens'
+/** 本标签页里主动退出过：不再用邮件网页的登录状态自动登回去 */
+const SIGNED_OUT_KEY = 'smj-web-signed-out'
 
 type Tokens = { uid: string; token: string; refreshToken: string }
 
@@ -24,9 +26,17 @@ export const tokenStore = {
   },
   set(tokens: Tokens) {
     localStorage.setItem(TOKEN_KEY, JSON.stringify(tokens))
+    sessionStorage.removeItem(SIGNED_OUT_KEY)
   },
   clear() {
     localStorage.removeItem(TOKEN_KEY)
+  },
+  signOut() {
+    localStorage.removeItem(TOKEN_KEY)
+    sessionStorage.setItem(SIGNED_OUT_KEY, '1')
+  },
+  signedOut() {
+    return sessionStorage.getItem(SIGNED_OUT_KEY) === '1'
   }
 }
 
