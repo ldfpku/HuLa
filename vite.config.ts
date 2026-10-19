@@ -143,7 +143,11 @@ export default defineConfig(({ mode }: ConfigEnv) => {
       isWeb && createPublicPathRebase('/im/'),
       isWeb && {
         name: 'smj-web-entry',
-        transformIndexHtml: (html: string) => html.replace('/src/main.ts', '/src/web/entry.ts')
+        // order: 'pre'：构建时要在 Vite 收集入口脚本之前替换，否则仍按 src/main.ts 打包
+        transformIndexHtml: {
+          order: 'pre' as const,
+          handler: (html: string) => html.replace('/src/main.ts', '/src/web/entry.ts')
+        }
       },
       /**
        * vue3.5.0已支持解构并具有响应式
