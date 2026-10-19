@@ -9,13 +9,24 @@ import { refreshTokens, tokenStore, webConfig } from './imClient'
  * 连接前用 token 换一张一次性 ticket（60 秒内有效，用一次即作废），
  * 地址里只带 ticket，不再带 token，代理和日志里留下的地址没有用处
  */
-const fetchSocketTicket = async (): Promise<string> => {
-  const token = tokenStore.get()?.token
-  if (!token) throw new Error('未登录')
+const requestSocketTicket = async (token: string): Promise<string> => {
   const response = await fetch(`${webConfig.baseUrl}/ws/ticket`, { method: 'POST', headers: { token } })
+  if (!response.ok) throw new Error(`获取连接凭证失败: HTTP ${response.status}`)
   const result = (await response.json()) as { code?: number; data?: { ticket?: string } }
   if (result?.code !== 200 || !result.data?.ticket) throw new Error(`获取连接凭证失败: ${result?.code}`)
   return result.data.ticket
+}
+
+/** 换不到 ticket 时重试一次；仍失败（例如服务端还没有 ticket 接口）返回 null，与桌面版一样退回 Token 参数 */
+const fetchSocketTicket = async (token: string): Promise<string | null> => {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      return await requestSocketTicket(token)
+    } catch (error) {
+      console.warn('[ws] 获取连接凭证失败', error)
+    }
+  }
+  return null
 }
 
 type Emit = (event: string, payload?: unknown) => void
@@ -137,19 +148,22 @@ export class WebSocketClient {
     this.socket = null
     this.setState(isReconnection ? 'RECONNECTING' : 'CONNECTING', isReconnection)
     const seq = ++this.openSeq
-    fetchSocketTicket()
-      .then((ticket) => {
-        if (seq === this.openSeq && !this.manualClose) this.connect(ticket, isReconnection)
-      })
-      .catch(() => {
-        if (seq === this.openSeq && !this.manualClose) this.scheduleReconnect()
-      })
+    const token = tokenStore.get()?.token
+    if (!token) {
+      this.scheduleReconnect()
+      return
+    }
+    void fetchSocketTicket(token).then((ticket) => {
+      if (seq !== this.openSeq || this.manualClose) return
+      if (ticket) this.connect('ticket', ticket, isReconnection)
+      else this.connect('Token', token, isReconnection)
+    })
   }
 
-  private connect(ticket: string, isReconnection: boolean) {
+  private connect(param: 'ticket' | 'Token', value: string, isReconnection: boolean) {
     const url = new URL(webConfig.wsUrl)
     url.searchParams.set('clientId', this.clientId)
-    url.searchParams.set('ticket', ticket)
+    url.searchParams.set(param, value)
     const socket = new WebSocket(url.toString())
     this.socket = socket
     socket.onopen = () => {
