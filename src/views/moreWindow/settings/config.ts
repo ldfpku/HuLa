@@ -75,21 +75,6 @@ const useTranslateOptions = () => {
   ])
 }
 
-/** 字体 */
-const useFontOptions = () => {
-  const { t } = useI18n()
-  return computed(() => [
-    {
-      label: t('setting.general.ui.font_options.PingFang'),
-      value: 'PingFang'
-    },
-    {
-      label: t('setting.general.ui.font_options.AliFangYuan'),
-      value: 'AliFangYuan'
-    }
-  ])
-}
-
 const langOptions = [
   {
     label: 'Automatic',
@@ -109,4 +94,4 @@ const langOptions = [
   }
 ]
 
-export { useSideOptions, useSendOptions, useFontOptions, useTranslateOptions, langOptions }
+export { useSideOptions, useSendOptions, useTranslateOptions, langOptions }

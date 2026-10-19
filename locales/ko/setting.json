@@ -40,12 +40,7 @@
       "language": "언어",
       "blur": "가우시안 블러",
       "shadow": "그림자 효과 사용",
-      "font": "글꼴",
-      "menu_name": "메뉴 이름",
-      "font_options": {
-        "PingFang": "PingFang",
-        "AliFangYuan": "알리바바 방원체"
-      }
+      "menu_name": "메뉴 이름"
     },
     "system": {
       "title": "시스템",

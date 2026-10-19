@@ -1,4 +1,3 @@
-@use 'fonts';
 * {
   font-family: var(--font-family), sans-serif !important;
   caret-color: #034fbc !important; /* 改变输入框光标的颜色 */
@@ -22,7 +21,8 @@ svg {
   // 是否启用阴影
   --shadow-enabled: 1;
   // 字体
-  --font-family: 'PingFang';
+  --font-family: 'Barlow', 'Noto Sans SC', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
+    'Microsoft YaHei';
   // 是否启用透明高斯模糊
   --blur-enabled: 1;
     // 应用背景色

@@ -40,12 +40,7 @@
       "language": "语言",
       "blur": "高斯模糊",
       "shadow": "启用阴影",
-      "font": "字体",
-      "menu_name": "菜单名称",
-      "font_options": {
-        "PingFang": "苹方",
-        "AliFangYuan": "阿里妈妈方圆体"
-      }
+      "menu_name": "菜单名称"
     },
     "system": {
       "title": "系统",
