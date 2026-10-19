@@ -1,12 +1,15 @@
 import { ImUrlEnum, TauriCommand, type NotificationTypeEnum } from '@/enums'
 import type {
   CacheBadgeReq,
+  ChatSummaryResult,
   DrivePickerListing,
   LoginUserReq,
+  MailTodoDraft,
   ModifyUserInfoType,
   RegisterUserReq,
   RoomFilePage,
   RoomMailboxState,
+  TodoItem,
   UnifiedSearchResult,
   UnifiedSearchScope,
   UserItem
@@ -1415,4 +1418,46 @@ export async function sendDriveFileToRoom(body: { roomId: string; driveItemId: s
 /** 网盘：列出根目录或某个文件夹 */
 export async function getDriveItems(parentId?: string) {
   return await imRequest<DrivePickerListing>({ url: ImUrlEnum.DRIVE_ITEMS, params: parentId ? { parentId } : {} })
+}
+
+/** Workers AI：摘要会话最近 count 条消息（默认 100，最多 500），结果只给自己看 */
+export async function summarizeChat(body: { roomId: string; count?: number }) {
+  return await imRequest<ChatSummaryResult>({ url: ImUrlEnum.AI_SUMMARY, body })
+}
+
+/** Workers AI：根据邮件（mailId）或聊天里的邮件卡片（shareId）生成待办草稿 */
+export async function draftMailTodo(body: { mailId?: string; shareId?: string }) {
+  return await imRequest<MailTodoDraft>({ url: ImUrlEnum.AI_MAIL_TODO, body })
+}
+
+/** 我的待办：open 未完成（默认）、done 已完成、all 全部 */
+export async function getTodoList(status: 'open' | 'done' | 'all' = 'open') {
+  return await imRequest<TodoItem[]>({ url: ImUrlEnum.TODO_LIST, params: { status } })
+}
+
+/** 我的待办：新建；带 mailId 或 shareId 时记录来源邮件 */
+export async function createTodo(body: {
+  title: string
+  notes?: string
+  dueAt?: number | null
+  mailId?: string
+  shareId?: string
+}) {
+  return await imRequest<TodoItem>({ url: ImUrlEnum.TODO_CREATE, body })
+}
+
+/** 我的待办：修改传入的字段 */
+export async function updateTodo(body: {
+  id: string
+  title?: string
+  notes?: string
+  dueAt?: number | null
+  done?: boolean
+}) {
+  return await imRequest<TodoItem>({ url: ImUrlEnum.TODO_UPDATE, body })
+}
+
+/** 我的待办：删除 */
+export async function deleteTodo(id: string) {
+  return await imRequest<boolean>({ url: ImUrlEnum.TODO_DELETE, body: { id } })
 }

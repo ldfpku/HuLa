@@ -152,6 +152,8 @@ export enum StoresEnum {
   MENUTOP = 'menuTop',
   /** 邮件 */
   MAIL = 'mail',
+  /** 我的待办 */
+  TODO = 'todo',
   /** 账号账号历史记录列表 */
   LOGIN_HISTORY = 'loginHistory',
   /** 好友列表 */
@@ -645,6 +647,18 @@ export enum ImUrlEnum {
   ROOM_FILE_FROM_DRIVE = 'roomFileFromDrive',
   /** 网盘：列出文件夹内容（发送文件时选择） */
   DRIVE_ITEMS = 'driveItems',
+  /** Workers AI：会话摘要（只返回给请求者，不写入聊天记录） */
+  AI_SUMMARY = 'aiSummary',
+  /** Workers AI：根据邮件生成待办草稿 */
+  AI_MAIL_TODO = 'aiMailTodo',
+  /** 我的待办：列表 */
+  TODO_LIST = 'todoList',
+  /** 我的待办：新建 */
+  TODO_CREATE = 'todoCreate',
+  /** 我的待办：修改（标题、要点、截止时间、完成） */
+  TODO_UPDATE = 'todoUpdate',
+  /** 我的待办：删除 */
+  TODO_DELETE = 'todoDelete',
   /** 获取模型列表 */
   GET_ASSISTANT_MODEL_LIST = 'getAssistantModelList',
   /** 坐标转换 */

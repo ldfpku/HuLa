@@ -31,6 +31,8 @@
     "favorite_short_title": "Favorites",
     "mail": "Mail",
     "mail_short_title": "Mail",
+    "todo": "To-dos",
+    "todo_short_title": "To-do",
     "plugin": "Plugins",
     "plugin_manage": "Plugin Management",
     "more": "More",

@@ -10,22 +10,35 @@
       <p v-if="body?.attachmentCount" class="ml-auto text-11px color-[--text-color] opacity-70">
         {{ t('message.mail_card.attachments', { count: body.attachmentCount }) }}
       </p>
+      <span
+        v-if="body?.shareId"
+        class="to-todo shrink-0 text-11px color-#034fbc"
+        :class="{ 'ml-auto': !body?.attachmentCount }"
+        title="用 AI 把这封邮件转成我的待办"
+        @click.stop="showTodo = true">
+        转待办
+      </span>
     </n-flex>
 
     <p class="text-14px font-medium color-[--text-color] leading-5 line-clamp-2 break-all">
       {{ body?.subject || t('message.mail_card.no_subject') }}
     </p>
     <p class="text-12px color-[--chat-text-color] pt-4px truncate">
-      {{ sender }}<span v-if="dateText" class="pl-8px opacity-70">{{ dateText }}</span>
+      {{ sender }}
+      <span v-if="dateText" class="pl-8px opacity-70">{{ dateText }}</span>
     </p>
-    <p v-if="body?.snippet" class="text-12px color-[--chat-text-color] opacity-80 pt-6px leading-5 line-clamp-3 break-all">
+    <p
+      v-if="body?.snippet"
+      class="text-12px color-[--chat-text-color] opacity-80 pt-6px leading-5 line-clamp-3 break-all">
       {{ body.snippet }}
     </p>
   </main>
+  <MailTodoModal v-if="body?.shareId" v-model:show="showTodo" :share-id="body.shareId" :subject="body.subject" />
 </template>
 
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
+import MailTodoModal from '@/components/ai/MailTodoModal.vue'
 import type { MailCardBody } from '@/services/types'
 import { useMailStore } from '@/stores/mail'
 import { formatTimestamp } from '@/utils/ComputedTime.ts'
@@ -38,6 +51,7 @@ const props = withDefaults(defineProps<{ body?: MailCardBody }>(), { body: undef
 
 const { t } = useI18n()
 const mailStore = useMailStore()
+const showTodo = ref(false)
 
 const sender = computed(() => {
   if (!props.body) return ''
@@ -60,6 +74,16 @@ const handleOpen = async () => {
 </script>
 
 <style scoped lang="scss">
+.to-todo {
+  cursor: pointer;
+  padding: 1px 6px;
+  border-radius: 4px;
+  border: 1px solid #034fbc66;
+  &:hover {
+    background: #034fbc14;
+  }
+}
+
 .mail-card {
   cursor: pointer;
   user-select: none;

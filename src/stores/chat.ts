@@ -1116,6 +1116,8 @@ export const useChatStore = defineStore(
 
     // 防止短时间内重复调用的缓存
     const markSessionReadLock = new Set<string>()
+    /** 每个会话最近一次标记已读前的未读条数 */
+    const unreadSnapshot = reactive<Record<string, number>>({})
 
     // 创建请求队列限制器，确保 markMsgRead 请求串行执行，避免触发服务器限流
     const markMsgReadQueue = pLimit(1)
@@ -1135,6 +1137,9 @@ export const useChatStore = defineStore(
 
       // 加锁，防止重复调用
       markSessionReadLock.add(roomId)
+
+      // 记下打开会话前的未读条数，“AI 摘要”据此摘要未读消息
+      if ((session.unreadCount || 0) > 0) unreadSnapshot[roomId] = session.unreadCount
 
       // 1. 记录已读时的活跃时间，用于重登时识别陈旧未读
       const activeTime = session.activeTime || Date.now()
@@ -1398,6 +1403,7 @@ export const useChatStore = defineStore(
 
     return {
       getMsgIndex,
+      unreadSnapshot,
       chatMessageList,
       pushMsg,
       deleteMsg,

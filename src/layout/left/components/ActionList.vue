@@ -66,7 +66,7 @@
           </svg>
         </n-badge>
         <!-- 邮件未读 -->
-        <n-badge v-if="item.url === 'mail'" :max="99" :value="item.badge" :show="!!item.badge">
+        <n-badge v-if="item.url === 'mail' || item.url === 'todo'" :max="99" :value="item.badge" :show="!!item.badge">
           <svg class="size-22px">
             <use :href="`#${item.icon}`"></use>
           </svg>

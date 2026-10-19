@@ -8,6 +8,7 @@ import type { BadgeType, UserInfoType } from '@/services/types.ts'
 import { useGroupStore } from '@/stores/group'
 import { useLoginHistoriesStore } from '@/stores/loginHistory.ts'
 import { useMailStore } from '@/stores/mail'
+import { useTodoStore } from '@/stores/todo'
 import { useMenuTopStore } from '@/stores/menuTop.ts'
 import { useSettingStore } from '@/stores/setting.ts'
 import { useUserStore } from '@/stores/user.ts'
@@ -144,6 +145,13 @@ export const leftHook = () => {
     size?: { width: number; height: number; minWidth?: number; minHeight?: number },
     window?: { resizable: boolean }
   ) => {
+    // 我的待办在弹窗中打开
+    if (url === 'todo') {
+      useTodoStore()
+        .open()
+        .catch((error) => info(`打开待办失败: ${error}`))
+      return
+    }
     // 邮件在独立窗口中打开斯米伽邮箱网页
     if (url === 'mail') {
       useMailStore()

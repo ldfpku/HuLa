@@ -1029,3 +1029,44 @@ export enum FeedPermission {
   PART_VISIBLE = 'partVisible', // 部分可见
   NOT_ANYONE = 'notAnyone' // 不给谁看
 }
+
+/** Workers AI 会话摘要：只返回给请求者，不写入聊天记录 */
+export type ChatSummaryResult = {
+  summary: string
+  /** 参与摘要的消息条数（撤回、空消息不计） */
+  messageCount: number
+  firstAt: number | null
+  lastAt: number | null
+  /** 长会话分成的段数 */
+  parts: number
+  /** 会话太长时没读到的较早消息条数 */
+  dropped: number
+}
+
+/** Workers AI 根据邮件生成的待办草稿，确认后才保存 */
+export type MailTodoDraft = {
+  title: string
+  /** 截止时间（毫秒），没有为 null */
+  dueAt: number | null
+  points: string[]
+  notes: string
+  mailId: string
+  mailSubject: string
+}
+
+/** 我的待办 */
+export type TodoItem = {
+  id: string
+  title: string
+  notes: string
+  dueAt: number | null
+  done: boolean
+  doneAt: number | null
+  sourceType: 'manual' | 'mail'
+  sourceId: string | null
+  sourceTitle: string
+  /** 来源邮件在邮件网页里的路径 */
+  sourcePath: string | null
+  createdAt: number
+  updatedAt: number
+}

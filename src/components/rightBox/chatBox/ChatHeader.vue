@@ -139,6 +139,26 @@
         </n-popover>
       </div>
 
+      <div v-if="!isBotUser" class="options-box" @click="showSummary = true">
+        <n-popover trigger="hover" :show-arrow="false" placement="bottom">
+          <template #trigger>
+            <!-- AI 摘要：文档加星光 -->
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round">
+              <path d="M14 3.5H6.5a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V12" />
+              <path d="M8 12h6M8 16h8" />
+              <path d="M18.5 2.5l.9 2.1 2.1.9-2.1.9-.9 2.1-.9-2.1-2.1-.9 2.1-.9z" />
+            </svg>
+          </template>
+          <span>AI 摘要</span>
+        </n-popover>
+      </div>
+
       <div class="options-box" @click="sidebarShow = !sidebarShow">
         <svg>
           <use href="#more"></use>
@@ -212,6 +232,12 @@
   </n-modal>
 
   <!-- 预约视频会议（邮件邀请 + 日历邀请） -->
+  <ChatSummaryModal
+    v-if="currentSessionRoomId"
+    v-model:show="showSummary"
+    :room-id="currentSessionRoomId"
+    :room-name="activeItem?.name" />
+
   <ScheduleMeetingModal
     v-if="currentSessionRoomId"
     v-model:show="showScheduleMeeting"
@@ -301,6 +327,7 @@ import SingleChatSidebar from './SingleChatSidebar.vue'
 import GroupChatSidebar from './GroupChatSidebar.vue'
 import GroupQrCodeModal from './GroupQrCodeModal.vue'
 import ScheduleMeetingModal from '@/components/meeting/ScheduleMeetingModal.vue'
+import ChatSummaryModal from '@/components/ai/ChatSummaryModal.vue'
 
 const { t } = useI18n()
 const { createModalWindow, startRtcCall } = useWindow()
@@ -320,6 +347,7 @@ const modalShow = ref(false)
 const sidebarShow = ref(false)
 const showQRCodeModal = ref(false)
 const showScheduleMeeting = ref(false)
+const showSummary = ref(false)
 const showManageGroupMemberModal = ref(false)
 const { currentSession: activeItem, currentSessionRoomId } = storeToRefs(globalStore)
 const { persistMyRoomInfo, resolveMyRoomNickname } = useMyRoomInfoUpdater()
