@@ -12,8 +12,8 @@
       <keep-alive>
         <AsyncCenter v-show="!currentPhonePane" />
       </keep-alive>
+      <!-- 手机上也要挂载（首屏加载遮罩要等三栏都加载完），没进入聊天/详情时隐藏；注释不能放在 keep-alive 里，开发模式会把它算作第二个子节点 -->
       <keep-alive>
-        <!-- 手机上也要挂载（首屏加载遮罩要等三栏都加载完），没进入聊天/详情时隐藏 -->
         <AsyncRight v-if="isPhoneLayout || !shrinkStatus" v-show="!isPhoneLayout || !!currentPhonePane" />
       </keep-alive>
     </div>
