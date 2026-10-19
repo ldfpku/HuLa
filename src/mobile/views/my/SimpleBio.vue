@@ -27,7 +27,7 @@
               <n-avatar
                 :size="74"
                 :src="AvatarUtils.getAvatarUrl(userStore.userInfo!.avatar!)"
-                fallback-src="/logo.png"
+                fallback-src="/avatar-light.svg"
                 round />
 
               <div @click="toMyInfo" class="flex flex-col flex-1 py-10px">

@@ -12,7 +12,7 @@
           :size="34"
           :src="avatarSrc"
           :color="themes.content === ThemeEnum.DARK ? '' : '#fff'"
-          :fallback-src="themes.content === ThemeEnum.DARK ? '/logoL.png' : '/logoD.png'"
+          :fallback-src="themes.content === ThemeEnum.DARK ? '/avatar-dark.svg' : '/avatar-light.svg'"
           round />
 
         <div
@@ -35,7 +35,7 @@
             :src="avatarSrc"
             round
             :color="themes.content === ThemeEnum.DARK ? '' : '#fff'"
-            :fallback-src="themes.content === ThemeEnum.DARK ? '/logoL.png' : '/logoD.png'"
+            :fallback-src="themes.content === ThemeEnum.DARK ? '/avatar-dark.svg' : '/avatar-light.svg'"
             class="size-68px text-20px select-none cursor-default" />
 
           <n-flex :size="10" class="text-[--text-color]" justify="center" vertical>

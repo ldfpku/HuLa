@@ -18,13 +18,9 @@
           v-else-if="detailsContent && isDetails && detailsContent.type === 'apply'"
           :type="detailsContent.applyType" />
 
-        <!-- 聊天界面背景图标：按 BIS v1.7，标志不降透明度，单独出现时需配品牌名 -->
+        <!-- 未选会话时的欢迎页：BIS B5 签名组合（主标 + 斯米伽），不降透明度 -->
         <div v-else class="flex-center flex-col gap-16px size-full select-none">
-          <img
-            class="h-72px"
-            :src="imgTheme === ThemeEnum.DARK ? '/brand/smj-symbol-reverse.svg' : '/brand/smj-symbol-color.svg'"
-            alt="" />
-          <p class="text-(16px [--text-color]) font-600 tracking-2px">斯米伽 SMJ</p>
+          <BrandLogo variant="signature" :on-dark="imgTheme === ThemeEnum.DARK" class="w-220px h-auto" />
         </div>
       </div>
     </div>
@@ -32,6 +28,7 @@
 </template>
 <script setup lang="ts">
 import { WebviewWindow } from '@tauri-apps/api/webviewWindow'
+import BrandLogo from '@/components/common/BrandLogo.vue'
 import { MittEnum, ThemeEnum } from '@/enums'
 import { useMitt } from '@/hooks/useMitt.ts'
 import router from '@/router'

@@ -47,7 +47,7 @@
         </ActionBar>
         <div data-tauri-drag-region class="size-full flex-center bg-#90909048 dark:bg-[#202020]">
           <!-- TODO: 默认的图片是这个格式，如果动态替换需要更改对应其他的格式 -->
-          <img data-tauri-drag-region class="size-76% object-contain" src="/hula.png" alt="" />
+          <BrandLogo data-tauri-drag-region class="size-76% object-contain" />
         </div>
       </div>
       <div data-tauri-drag-region class="flex absolute right-20px bottom-0 gap-15px">
@@ -266,6 +266,7 @@
 </template>
 
 <script setup lang="ts">
+import BrandLogo from '@/components/common/BrandLogo.vue'
 import { useI18n } from 'vue-i18n'
 import { WebviewWindow } from '@tauri-apps/api/webviewWindow'
 import { useRouter } from 'vue-router'

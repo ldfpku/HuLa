@@ -143,7 +143,7 @@
                         :class="{ 'grayscale-0': item.activeStatus === OnlineEnum.ONLINE }"
                         :size="26"
                         :color="themes.content === ThemeEnum.DARK ? '' : '#fff'"
-                        :fallback-src="themes.content === ThemeEnum.DARK ? '/logoL.png' : '/logoD.png'"
+                        :fallback-src="themes.content === ThemeEnum.DARK ? '/avatar-dark.svg' : '/avatar-light.svg'"
                         :src="AvatarUtils.getAvatarUrl(item.avatar)"
                         @load="userLoadedMap[item.uid] = true"
                         @error="userLoadedMap[item.uid] = true" />

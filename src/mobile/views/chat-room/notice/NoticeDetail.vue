@@ -97,7 +97,7 @@ const publisherAvatar = computed(() => {
 
 // 获取默认头像
 const getFallbackAvatar = () => {
-  return '/logo.png'
+  return '/avatar-light.svg'
 }
 
 const canEdit = computed(() => {

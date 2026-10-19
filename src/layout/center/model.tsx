@@ -26,7 +26,7 @@ export const options = computed(() => {
       return {
         label: userInfo?.name || item.remark,
         value: item.uid,
-        avatar: AvatarUtils.getAvatarUrl(userInfo?.avatar || '/logoD.png')
+        avatar: AvatarUtils.getAvatarUrl(userInfo?.avatar || '/avatar-light.svg')
       }
     })
     .filter(Boolean) as any
@@ -134,7 +134,7 @@ export const renderSourceList = (
               />
               <div style={{ display: 'flex', alignItems: 'center', flex: 1, minWidth: 0 }}>
                 {option.avatar ? (
-                  <NAvatar round src={option.avatar || '/logoD.png'} size={24} fallbackSrc="/logoD.png" />
+                  <NAvatar round src={option.avatar || '/avatar-light.svg'} size={24} fallbackSrc="/avatar-light.svg" />
                 ) : (
                   <NAvatar round size={24}>
                     {option.label?.slice(0, 1)}
@@ -154,7 +154,7 @@ export const renderLabel: TransferRenderTargetLabel = ({ option }: { option: any
   return (
     <div class="select-none" style={{ display: 'flex', margin: '6px 0' }}>
       {option.avatar ? (
-        <NAvatar round src={option.avatar || '/logoD.png'} size={24} fallbackSrc="/logoD.png" />
+        <NAvatar round src={option.avatar || '/avatar-light.svg'} size={24} fallbackSrc="/avatar-light.svg" />
       ) : (
         <NAvatar round size={24}>
           {option.label.slice(0, 1)}
@@ -210,7 +210,7 @@ export const renderTargetList = (
               }}>
               <div style={{ display: 'flex', alignItems: 'center', flex: 1, minWidth: 0 }}>
                 {option.avatar ? (
-                  <NAvatar round src={option.avatar || '/logoD.png'} size={24} fallbackSrc="/logoD.png" />
+                  <NAvatar round src={option.avatar || '/avatar-light.svg'} size={24} fallbackSrc="/avatar-light.svg" />
                 ) : (
                   <NAvatar round size={24}>
                     {option.label?.slice(0, 1)}

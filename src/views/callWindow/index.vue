@@ -9,7 +9,7 @@
         :size="56"
         :src="avatarSrc"
         :color="themes.content === ThemeEnum.DARK ? '' : '#fff'"
-        :fallback-src="themes.content === ThemeEnum.DARK ? '/logoL.png' : '/logoD.png'"
+        :fallback-src="themes.content === ThemeEnum.DARK ? '/avatar-dark.svg' : '/avatar-light.svg'"
         class="rounded-12px shadow-md" />
       <!-- 通话类型指示器 -->
       <div class="absolute -bottom-2px -right-2px w-20px h-20px rounded-full bg-blue-500 flex-center shadow-lg">
@@ -207,7 +207,7 @@
           :size="140"
           :src="avatarSrc"
           :color="themes.content === ThemeEnum.DARK ? '' : '#fff'"
-          :fallback-src="themes.content === ThemeEnum.DARK ? '/logoL.png' : '/logoD.png'"
+          :fallback-src="themes.content === ThemeEnum.DARK ? '/avatar-dark.svg' : '/avatar-light.svg'"
           class="rounded-22px mb-16px" />
 
         <!-- 用户名 -->

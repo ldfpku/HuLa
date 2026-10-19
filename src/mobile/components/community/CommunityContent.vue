@@ -4,7 +4,7 @@
     <div class="grid grid-cols-[38px_1fr] items-start gap-1">
       <!-- 头像：单独居中 -->
       <div class="self-center h-38px">
-        <n-avatar :size="40" :src="avatarUrl" fallback-src="/logo.png" round />
+        <n-avatar :size="40" :src="avatarUrl" fallback-src="/avatar-light.svg" round />
       </div>
 
       <!-- 中间：两行内容 -->

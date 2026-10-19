@@ -27,7 +27,7 @@
           @click="handleVersatile('simple')"
           :class="{ 'outline outline-2 outline-[--border-active-color] outline-offset': themes.versatile === 'simple' }"
           class="w-108px h-84px flex-col-center gap-10px cursor-pointer rounded-8px bg-#f1f1f1">
-          <img class="size-44px" src="/logoD.png" alt="" />
+          <img class="size-44px" src="/brand/smj-symbol-color.svg" alt="" />
           <p class="text-(12px [--chat-text-color])">{{ t('setting.theme.versatile.simple') }}</p>
         </div>
       </n-flex>

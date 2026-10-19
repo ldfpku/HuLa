@@ -7,7 +7,7 @@
       :class="
         groupStore.getUserInfo(uid)?.wearingItemId === '6' ? 'object-contain bg-#e9e9e980 dark:bg-#111' : 'object-cover'
       "
-      :src="groupStore.getUserInfo(uid)?.wearingItemId === '6' ? '/hula.png' : '/img/dispersion-bg.png'"
+      :src="'/img/dispersion-bg.png'"
       alt="" />
     <div class="h-20px"></div>
     <n-flex vertical :size="20" class="size-full p-10px box-border z-10 relative">
@@ -23,7 +23,7 @@
             :size="80"
             :src="avatarSrc"
             :color="themes.content === ThemeEnum.DARK ? '' : '#fff'"
-            :fallback-src="themes.content === ThemeEnum.DARK ? '/logoL.png' : '/logoD.png'" />
+            :fallback-src="themes.content === ThemeEnum.DARK ? '/avatar-dark.svg' : '/avatar-light.svg'" />
         </div>
 
         <!-- 在线状态点 -->
@@ -159,7 +159,7 @@
                   :height="38"
                   :src="cachedStore.badgeById(id)?.img"
                   :color="themes.content === ThemeEnum.DARK ? '' : '#c8c8c8'"
-                  :fallback-src="themes.content === ThemeEnum.DARK ? '/logoL.png' : '/logoD.png'"
+                  :fallback-src="themes.content === ThemeEnum.DARK ? '/avatar-dark.svg' : '/avatar-light.svg'"
                   @load="badgeLoadedMap[id] = true"
                   @error="badgeLoadedMap[id] = true" />
                 <n-popover trigger="hover" :show-arrow="false" placement="top">

@@ -86,7 +86,7 @@
                       :size="28"
                       :src="avatarSrc(announcement.uid)"
                       :color="themes.content === ThemeEnum.DARK ? '' : '#fff'"
-                      :fallback-src="themes.content === ThemeEnum.DARK ? '/logoL.png' : '/logoD.png'" />
+                      :fallback-src="themes.content === ThemeEnum.DARK ? '/avatar-dark.svg' : '/avatar-light.svg'" />
                     <n-flex vertical :size="4">
                       <div class="text-(12px [--chat-text-color])">
                         {{ groupStore.getUserInfo(announcement.uid)?.name }}
