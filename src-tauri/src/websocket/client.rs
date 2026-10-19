@@ -65,6 +65,9 @@ pub struct WebSocketClient {
     // 连接状态标记
     is_ws_connected: Arc<AtomicBool>,
 
+    // 当前连接的代号：每建立一次连接加一，旧连接的心跳和清理任务据此判断自己已过时
+    connection_generation: Arc<AtomicU64>,
+
     // 连接互斥锁，防止并发连接
     connection_mutex: Arc<Mutex<()>>,
 
@@ -95,6 +98,7 @@ impl WebSocketClient {
             )),
             background_heartbeat_failures: Arc::new(AtomicU32::new(0)),
             is_ws_connected: Arc::new(AtomicBool::new(false)),
+            connection_generation: Arc::new(AtomicU64::new(0)),
             connection_mutex: Arc::new(Mutex::new(())),
             task_handles: Arc::new(RwLock::new(Vec::new())),
             close_sender: Arc::new(RwLock::new(None)),
@@ -418,6 +422,17 @@ impl WebSocketClient {
 
         let (mut ws_sender, mut ws_receiver) = ws_stream.split();
 
+        let generation = self.connection_generation.fetch_add(1, Ordering::SeqCst) + 1;
+        // 新连接从“刚收到心跳回应”开始计时：否则断网前留下的旧时间和失败次数
+        // 会让新连接的第一次心跳检查就判定超时，连上即断，陷入重连循环
+        self.last_pong_time.store(
+            chrono::Utc::now().timestamp_millis() as u64,
+            Ordering::SeqCst,
+        );
+        self.consecutive_failures.store(0, Ordering::SeqCst);
+        self.background_heartbeat_failures
+            .store(0, Ordering::SeqCst);
+
         // 创建消息通道
         let (msg_sender, mut msg_receiver) = mpsc::unbounded_channel();
         *self.message_sender.write().await = Some(msg_sender);
@@ -442,7 +457,7 @@ impl WebSocketClient {
         self.send_pending_messages().await?;
 
         // 启动心跳
-        self.start_heartbeat().await;
+        self.start_heartbeat(generation).await;
 
         // 处理消息发送
         let message_sender_task = {
@@ -523,6 +538,7 @@ impl WebSocketClient {
         let should_stop = self.should_stop.clone();
         let heartbeat_active = self.heartbeat_active.clone();
         let message_sender_ref = self.message_sender.clone();
+        let connection_generation = self.connection_generation.clone();
 
         // 一个任务结束时要终止另一个：否则重连后旧连接的接收任务还活着，
         // 旧连接会继续收到推送（重复消息），它断开时还会把新连接的状态改成断开
@@ -550,8 +566,11 @@ impl WebSocketClient {
             // 清理
             sender_abort.abort();
             receiver_abort.abort();
-            heartbeat_active.store(false, Ordering::SeqCst);
-            *message_sender_ref.write().await = None;
+            // 已经有新连接时不能动共享状态，否则会停掉新连接的心跳、清掉它的发送器
+            if connection_generation.load(Ordering::SeqCst) == generation {
+                heartbeat_active.store(false, Ordering::SeqCst);
+                *message_sender_ref.write().await = None;
+            }
         });
 
         // 保存监控任务句柄
@@ -875,10 +894,9 @@ impl WebSocketClient {
     }
 
     /// 启动心跳机制
-    async fn start_heartbeat(&self) {
-        if self.heartbeat_active.swap(true, Ordering::SeqCst) {
-            return; // 已经在运行
-        }
+    /// 为代号为 `generation` 的连接启动心跳；有了更新的连接后它自行结束
+    async fn start_heartbeat(&self, generation: u64) {
+        self.heartbeat_active.store(true, Ordering::SeqCst);
 
         let config = self.config.read().await.clone();
         let interval_ms = config.heartbeat_interval;
@@ -893,13 +911,20 @@ impl WebSocketClient {
             let is_app_in_background = self.is_app_in_background.clone();
             let background_heartbeat_failures = self.background_heartbeat_failures.clone();
             let is_ws_connected = self.is_ws_connected.clone();
+            let connection_generation = self.connection_generation.clone();
 
             tokio::spawn(async move {
                 let mut heartbeat_interval = interval(Duration::from_millis(interval_ms));
+                let is_current = || connection_generation.load(Ordering::SeqCst) == generation;
 
-                while heartbeat_active.load(Ordering::SeqCst) && !should_stop.load(Ordering::SeqCst)
+                while heartbeat_active.load(Ordering::SeqCst)
+                    && !should_stop.load(Ordering::SeqCst)
+                    && is_current()
                 {
                     heartbeat_interval.tick().await;
+                    if !is_current() {
+                        break;
+                    }
 
                     // 发送心跳
                     let heartbeat_msg = WsMessage::Heartbeat;
