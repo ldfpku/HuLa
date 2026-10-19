@@ -111,21 +111,75 @@ export const virtualFs = {
   }
 }
 
-/** 按路径把内存里的文件 PUT 到上传地址，进度通过 Tauri Channel 回报，与 Rust 的 upload_file_put 一致 */
-export const uploadFilePut = (args: any) =>
-  new Promise<void>((resolve, reject) => {
-    const blob = virtualFs.blob(args?.path)
-    if (!blob) {
-      reject(`文件不存在: ${args?.path}`)
-      return
-    }
+/** 超过这个大小的文件分片上传：Cloudflare 单个请求最多 100 MB，服务端分片为 32 MB */
+const MULTIPART_THRESHOLD = 32 * 1024 * 1024
+
+type Progress = (loaded: number) => void
+
+/** 发一个请求，上传进度按已发送字节回报，返回响应文本 */
+const xhrSend = (
+  method: string,
+  url: string,
+  body: Blob | string | null,
+  headers: Record<string, string>,
+  onProgress?: Progress
+) =>
+  new Promise<string>((resolve, reject) => {
     const xhr = new XMLHttpRequest()
-    xhr.open('PUT', args.url)
-    for (const [key, value] of Object.entries<string>(args?.headers ?? {})) xhr.setRequestHeader(key, value)
-    xhr.upload.onprogress = (event) => {
-      args?.onProgress?.onmessage?.({ progressTotal: event.loaded, total: event.total || blob.size })
-    }
-    xhr.onload = () => (xhr.status >= 200 && xhr.status < 300 ? resolve() : reject(`上传失败: HTTP ${xhr.status}`))
+    xhr.open(method, url)
+    for (const [key, value] of Object.entries(headers)) xhr.setRequestHeader(key, value)
+    if (onProgress) xhr.upload.onprogress = (event) => onProgress(event.loaded)
+    xhr.onload = () =>
+      xhr.status >= 200 && xhr.status < 300 ? resolve(xhr.responseText) : reject(`上传失败: HTTP ${xhr.status}`)
     xhr.onerror = () => reject('上传失败: 网络错误')
-    xhr.send(blob)
+    xhr.send(body)
   })
+
+/**
+ * 聊天文件的分片上传（服务端 files.ts）：先 POST ?uploads&size 开始，逐片 PUT，再 POST 分片清单完成。
+ * 服务端不支持分片时返回 false，调用方退回整个文件 PUT
+ */
+const uploadInParts = async (url: string, blob: Blob, report: (loaded: number) => void): Promise<boolean> => {
+  const started = await xhrSend('POST', `${url}&uploads&size=${blob.size}`, null, {})
+    .then((text) => JSON.parse(text) as { uploadId?: string; partSize?: number; parts?: number })
+    .catch(() => null)
+  if (!started?.uploadId || !started.partSize || !started.parts) return false
+  const parts: { partNumber: number; etag: string }[] = []
+  try {
+    for (let partNumber = 1; partNumber <= started.parts; partNumber++) {
+      const offset = (partNumber - 1) * started.partSize
+      const chunk = blob.slice(offset, offset + started.partSize)
+      const partUrl = `${url}&uploadId=${encodeURIComponent(started.uploadId)}&partNumber=${partNumber}`
+      // 单片失败重试两次，网络抖一下不至于整个文件重传
+      let text = ''
+      for (let attempt = 0; ; attempt++) {
+        try {
+          text = await xhrSend('PUT', partUrl, chunk, {}, (loaded) => report(offset + loaded))
+          break
+        } catch (error) {
+          if (attempt >= 2) throw error
+        }
+      }
+      parts.push({ partNumber, etag: (JSON.parse(text) as { etag: string }).etag })
+    }
+    await xhrSend('POST', `${url}&uploadId=${encodeURIComponent(started.uploadId)}`, JSON.stringify({ parts }), {
+      'Content-Type': 'application/json'
+    })
+  } catch (error) {
+    void xhrSend('DELETE', `${url}&uploadId=${encodeURIComponent(started.uploadId)}`, null, {}).catch(() => undefined)
+    throw error
+  }
+  return true
+}
+
+/**
+ * 按路径把内存里的文件上传到上传地址，进度通过 Tauri Channel 回报，与 Rust 的 upload_file_put 一致；
+ * 大文件分片上传
+ */
+export const uploadFilePut = async (args: any) => {
+  const blob = virtualFs.blob(args?.path)
+  if (!blob) throw `文件不存在: ${args?.path}`
+  const report = (loaded: number) => args?.onProgress?.onmessage?.({ progressTotal: loaded, total: blob.size })
+  if (blob.size > MULTIPART_THRESHOLD && (await uploadInParts(args.url, blob, report))) return
+  await xhrSend('PUT', args.url, blob, args?.headers ?? {}, report)
+}

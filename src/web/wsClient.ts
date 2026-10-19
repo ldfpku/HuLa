@@ -5,6 +5,19 @@
  */
 import { refreshTokens, tokenStore, webConfig } from './imClient'
 
+/**
+ * 连接前用 token 换一张一次性 ticket（60 秒内有效，用一次即作废），
+ * 地址里只带 ticket，不再带 token，代理和日志里留下的地址没有用处
+ */
+const fetchSocketTicket = async (): Promise<string> => {
+  const token = tokenStore.get()?.token
+  if (!token) throw new Error('未登录')
+  const response = await fetch(`${webConfig.baseUrl}/ws/ticket`, { method: 'POST', headers: { token } })
+  const result = (await response.json()) as { code?: number; data?: { ticket?: string } }
+  if (result?.code !== 200 || !result.data?.ticket) throw new Error(`获取连接凭证失败: ${result?.code}`)
+  return result.data.ticket
+}
+
 type Emit = (event: string, payload?: unknown) => void
 
 const HEARTBEAT_INTERVAL = 9900
@@ -60,6 +73,8 @@ export class WebSocketClient {
   private attempts = 0
   private manualClose = false
   private pending: unknown[] = []
+  /** 每次 open 加一，等 ticket 期间又发起了新连接或断开时，旧的那次作废 */
+  private openSeq = 0
 
   constructor(private emit: Emit) {
     window.addEventListener('online', () => {
@@ -87,6 +102,7 @@ export class WebSocketClient {
 
   disconnect() {
     this.manualClose = true
+    this.openSeq++
     this.clearTimers()
     this.socket?.close()
     this.socket = null
@@ -117,11 +133,23 @@ export class WebSocketClient {
 
   private open(isReconnection: boolean) {
     this.clearTimers()
-    const tokens = tokenStore.get()
+    // 先摘掉旧连接，它稍后触发的 onclose 不会再安排一次重连
+    this.socket = null
+    this.setState(isReconnection ? 'RECONNECTING' : 'CONNECTING', isReconnection)
+    const seq = ++this.openSeq
+    fetchSocketTicket()
+      .then((ticket) => {
+        if (seq === this.openSeq && !this.manualClose) this.connect(ticket, isReconnection)
+      })
+      .catch(() => {
+        if (seq === this.openSeq && !this.manualClose) this.scheduleReconnect()
+      })
+  }
+
+  private connect(ticket: string, isReconnection: boolean) {
     const url = new URL(webConfig.wsUrl)
     url.searchParams.set('clientId', this.clientId)
-    if (tokens?.token) url.searchParams.set('Token', tokens.token)
-    this.setState(isReconnection ? 'RECONNECTING' : 'CONNECTING', isReconnection)
+    url.searchParams.set('ticket', ticket)
     const socket = new WebSocket(url.toString())
     this.socket = socket
     socket.onopen = () => {

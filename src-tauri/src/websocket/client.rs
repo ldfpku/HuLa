@@ -18,6 +18,7 @@ use tokio::time::{Duration, interval, sleep, timeout};
 const CONNECT_TIMEOUT_SECS: u64 = 15;
 
 use super::dial::dial;
+use super::ticket::fetch_ticket;
 use tokio_tungstenite::{client_async_tls_with_config, tungstenite::protocol::Message};
 use tracing::{debug, error, info, warn};
 use url::Url;
@@ -402,17 +403,29 @@ impl WebSocketClient {
         url.query_pairs_mut()
             .append_pair("clientId", &config.client_id);
 
+        // 先用 token 换一次性 ticket，地址里只带 ticket；旧版服务端没有 ticket 接口时退回 Token 参数（过渡一个版本）
+        let mut auth_param = "ticket";
         if let Some(ref token) = config.token {
-            url.query_pairs_mut().append_pair("Token", token);
+            match fetch_ticket(&url, token).await {
+                Some(ticket) => {
+                    url.query_pairs_mut().append_pair("ticket", &ticket);
+                }
+                None => {
+                    warn!("WebSocket ticket unavailable, falling back to the token parameter");
+                    auth_param = "Token";
+                    url.query_pairs_mut().append_pair("Token", token);
+                }
+            }
         }
 
         let url_str = url.as_str();
-        // 不要在日志中输出鉴权 Token
-        let redacted = match url_str.find("Token=") {
+        // 不要在日志中输出鉴权参数
+        let marker = format!("{auth_param}=");
+        let redacted = match url_str.find(&marker) {
             Some(start) => {
-                let after = &url_str[start + 7..];
+                let after = &url_str[start + marker.len()..];
                 let end = after.find('&').unwrap_or(after.len());
-                format!("{}Token=***{}", &url_str[..start], &after[end..])
+                format!("{}{}***{}", &url_str[..start], marker, &after[end..])
             }
             None => url_str.to_string(),
         };
