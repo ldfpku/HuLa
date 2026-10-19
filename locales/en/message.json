@@ -55,7 +55,18 @@
     "speaker_off": "Speaker off",
     "camera_disable": "Turn camera off",
     "camera_enable": "Turn camera on",
-    "hangup": "Hang up"
+    "hangup": "Hang up",
+    "share_screen": "Share screen",
+    "stop_share": "Stop sharing",
+    "sharing_self": "You are sharing your screen",
+    "remote_sharing": "{name} is sharing their screen",
+    "swap_view": "Swap views",
+    "share_unsupported": "Screen sharing is not available here. Open the web app in Chrome or Edge on a computer",
+    "share_after_connected": "You can share your screen once the call connects",
+    "share_peer_unsupported": "The other side runs an older client that cannot receive screen sharing",
+    "share_cancelled": "Screen sharing cancelled",
+    "share_failed": "Screen sharing failed. Check the system screen recording permission",
+    "share_ended": "Screen sharing ended"
   },
   "permission": {
     "mic": {

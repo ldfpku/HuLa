@@ -50,6 +50,28 @@ export interface WSRtcCallMsg {
 }
 
 const MAX_TIME_OUT_SECONDS = 30
+
+/**
+ * 屏幕共享不靠重新协商：主叫在建连时就多开一路视频和一路音频收发器（初始不带轨道），
+ * 共享时用 replaceTrack 把屏幕画面和系统声音放进去，停止时换回 null。
+ * 这两路的 mid 随 offer/answer 的 smjScreen 字段告诉对方，旧版客户端会忽略这个字段。
+ * 共享状态和以后的控制消息走一条双方预先约定 id 的数据通道（negotiated），不经过服务端。
+ */
+export const SMJ_CONTROL_CHANNEL_LABEL = 'smj-ctrl'
+export const SMJ_CONTROL_CHANNEL_ID = 100
+
+interface ScreenMids {
+  video?: string
+  audio?: string
+}
+
+/** 控制通道里的消息，type 区分用途；remote-control 等后续功能复用同一通道 */
+export interface SmjControlMessage {
+  type: string
+  [key: string]: unknown
+}
+
+type SignalWithScreen = RTCSessionDescriptionInit & { smjScreen?: ScreenMids | true }
 // 服务端没配置 TURN 时的兜底：Cloudflare 公共 STUN，同一网络或普通 NAT 下可以直连
 let configuration: RTCConfiguration = {
   iceServers: [{ urls: 'stun:stun.cloudflare.com:3478' }],
@@ -131,9 +153,23 @@ export const useWebRtc = (roomId: string, remoteUserId: string, callType: CallTy
   const animationFrameId = ref<number | null>(null)
   const startTime = ref<number>(0)
 
-  // 添加桌面共享相关状态
+  // 屏幕共享相关状态
   const isScreenSharing = ref(false)
-  const offer = ref<RTCSessionDescriptionInit>()
+  // 本地正在共享的屏幕流（预览用）
+  const localScreenStream = ref<MediaStream | null>(null)
+  // 对方共享过来的屏幕画面和系统声音
+  const remoteScreenStream = ref<MediaStream | null>(null)
+  const isRemoteScreenSharing = ref(false)
+  // 对方客户端是否支持接收屏幕共享（预留了共享轨道）
+  const peerSupportsScreen = ref(false)
+  const isScreenShareSupported = typeof navigator !== 'undefined' && !!navigator.mediaDevices?.getDisplayMedia
+  let screenMids: ScreenMids = {}
+  let screenSenders: { video?: RTCRtpSender; audio?: RTCRtpSender } = {}
+  // 对方是旧版客户端时退回到替换摄像头画面，停止共享时要换回来
+  let replacedCameraTrack: MediaStreamTrack | null = null
+  const controlChannel = ref<RTCDataChannel | null>(null)
+  const controlHandlers = new Map<string, Set<(message: SmjControlMessage) => void>>()
+  const offer = ref<SignalWithScreen>()
 
   // 接通后确保窗口聚焦显示
   const focusCurrentWindow = async () => {
@@ -444,20 +480,103 @@ export const useWebRtc = (roomId: string, remoteUserId: string, callType: CallTy
     }
   }
 
+  // 对方的屏幕轨道收进同一个流，每次换新对象让界面重新绑定
+  const addRemoteScreenTrack = (track: MediaStreamTrack) => {
+    const tracks = (remoteScreenStream.value?.getTracks() ?? []).filter((t) => t.kind !== track.kind)
+    remoteScreenStream.value = new MediaStream([...tracks, track])
+  }
+
+  const setupControlChannel = (pc: RTCPeerConnection) => {
+    const dc = pc.createDataChannel(SMJ_CONTROL_CHANNEL_LABEL, { negotiated: true, id: SMJ_CONTROL_CHANNEL_ID })
+    dc.onopen = () => {
+      // 通道晚于共享建立（如接通瞬间就开始共享）时补发一次状态
+      if (isScreenSharing.value) sendScreenState()
+    }
+    dc.onmessage = (event) => {
+      let message: SmjControlMessage
+      try {
+        message = JSON.parse(String(event.data))
+      } catch {
+        return
+      }
+      if (!message || typeof message.type !== 'string') return
+      if (message.type === 'screen') {
+        isRemoteScreenSharing.value = message.sharing === true
+      }
+      controlHandlers.get(message.type)?.forEach((handler) => {
+        try {
+          handler(message)
+        } catch (e) {
+          console.error('控制消息处理失败:', e)
+        }
+      })
+    }
+    dc.onerror = (event) => console.warn('控制通道出错:', event)
+    controlChannel.value = dc
+  }
+
+  /** 通过控制通道发消息给对方；通道未打开时返回 false */
+  const sendControlMessage = (message: SmjControlMessage) => {
+    const dc = controlChannel.value
+    if (!dc || dc.readyState !== 'open') return false
+    dc.send(JSON.stringify(message))
+    return true
+  }
+
+  /** 订阅对方发来的某类控制消息，返回取消订阅函数 */
+  const onControlMessage = (type: string, handler: (message: SmjControlMessage) => void) => {
+    if (!controlHandlers.has(type)) controlHandlers.set(type, new Set())
+    controlHandlers.get(type)!.add(handler)
+    return () => controlHandlers.get(type)?.delete(handler)
+  }
+
+  const sendScreenState = () => {
+    const sharing = isScreenSharing.value
+    sendControlMessage({
+      type: 'screen',
+      sharing,
+      audio: sharing && !!localScreenStream.value?.getAudioTracks().length
+    })
+  }
+
+  // 记下主叫预留的两路屏幕收发器的 mid（setLocalDescription 之后才有）
+  const readLocalScreenMids = (pc: RTCPeerConnection): ScreenMids => {
+    const mids: ScreenMids = {}
+    for (const transceiver of pc.getTransceivers()) {
+      if (transceiver.sender === screenSenders.video && transceiver.mid) mids.video = transceiver.mid
+      if (transceiver.sender === screenSenders.audio && transceiver.mid) mids.audio = transceiver.mid
+    }
+    return mids
+  }
+
+  // 被叫：按 offer 里的 mid 找到屏幕收发器，改成双向，这样自己也能共享
+  const claimScreenTransceivers = (pc: RTCPeerConnection) => {
+    for (const transceiver of pc.getTransceivers()) {
+      if (!transceiver.mid) continue
+      if (transceiver.mid === screenMids.video || transceiver.mid === screenMids.audio) {
+        transceiver.direction = 'sendrecv'
+        if (transceiver.mid === screenMids.video) screenSenders.video = transceiver.sender
+        else screenSenders.audio = transceiver.sender
+      }
+    }
+  }
+
   // 创建 RTCPeerConnection
-  const createPeerConnection = (roomId: string) => {
+  const createPeerConnection = (roomId: string, isOfferer: boolean) => {
     try {
       const pc = new RTCPeerConnection(configuration)
 
       // 监听远程流
       pc.ontrack = (event) => {
         info('pc 监听到 ontrack 事件')
-        if (event.streams[0]) {
-          console.log('收到远程流:', event.streams[0])
-          remoteStream.value = event.streams[0]
-        } else {
-          remoteStream.value = null
+        const mid = event.transceiver?.mid
+        if (mid && (mid === screenMids.video || mid === screenMids.audio)) {
+          addRemoteScreenTrack(event.track)
+          return
         }
+        // 自己组装对方的音视频流：屏幕轨道和摄像头轨道在旧版客户端那里同属一个流，这里要分开
+        const tracks = (remoteStream.value?.getTracks() ?? []).filter((t) => t.id !== event.track.id)
+        remoteStream.value = new MediaStream([...tracks, event.track])
       }
 
       // 添加本地流
@@ -469,6 +588,16 @@ export const useWebRtc = (roomId: string, remoteUserId: string, callType: CallTy
       } else {
         console.warn('localStream 为 null，无法添加本地流到 PeerConnection')
       }
+
+      // 主叫预留屏幕共享的收发器；被叫在收到 offer 后按 mid 认领对应的收发器
+      if (isOfferer) {
+        // 放进本地流：旧版被叫把收到的轨道都当作同一个流，不会因此丢掉通话声音
+        const streams = localStream.value ? [localStream.value] : []
+        const videoTransceiver = pc.addTransceiver('video', { direction: 'sendrecv', streams })
+        const audioTransceiver = pc.addTransceiver('audio', { direction: 'sendrecv', streams })
+        screenSenders = { video: videoTransceiver.sender, audio: audioTransceiver.sender }
+      }
+      setupControlChannel(pc)
 
       // 连接状态变化 "closed" | "connected" | "connecting" | "disconnected" | "failed" | "new";
       pc.onconnectionstatechange = (e) => {
@@ -597,11 +726,12 @@ export const useWebRtc = (roomId: string, remoteUserId: string, callType: CallTy
       }
 
       // 1. 创建 RTCPeerConnection
-      createPeerConnection(roomId)
+      createPeerConnection(roomId, true)
       // 创建并发送 offer
       const rtcOffer = await peerConnection.value!.createOffer()
-      offer.value = rtcOffer
       await peerConnection.value!.setLocalDescription(rtcOffer)
+      screenMids = readLocalScreenMids(peerConnection.value!)
+      offer.value = { type: rtcOffer.type, sdp: rtcOffer.sdp, smjScreen: screenMids }
       // 发起通话请求
       await sendCall()
       // 播放铃声
@@ -658,6 +788,9 @@ export const useWebRtc = (roomId: string, remoteUserId: string, callType: CallTy
       // 关闭媒体流
       localStream.value?.getTracks().forEach((track) => track.stop())
       remoteStream.value?.getTracks().forEach((track) => track.stop())
+      localScreenStream.value?.getTracks().forEach((track) => track.stop())
+      replacedCameraTrack?.stop()
+      controlChannel.value?.close?.()
     } catch (error) {
       window.$message.error('部分资源清理失败!')
       console.error('清理资源失败:', error)
@@ -679,6 +812,14 @@ export const useWebRtc = (roomId: string, remoteUserId: string, callType: CallTy
       connectionStatus.value = undefined
       rtcStatus.value = undefined
       isScreenSharing.value = false
+      localScreenStream.value = null
+      remoteScreenStream.value = null
+      isRemoteScreenSharing.value = false
+      peerSupportsScreen.value = false
+      screenMids = {}
+      screenSenders = {}
+      replacedCameraTrack = null
+      controlChannel.value = null
       isLinker.value = false
       // 关闭连接
       peerConnection.value = null
@@ -743,16 +884,21 @@ export const useWebRtc = (roomId: string, remoteUserId: string, callType: CallTy
 
       // 2. 创建 RTCPeerConnection
       await nextTick() // 等待一帧
-      createPeerConnection(roomId)
+      const offerScreen = (signal as SignalWithScreen).smjScreen
+      screenMids = offerScreen && offerScreen !== true ? offerScreen : {}
+      peerSupportsScreen.value = !!screenMids.video
+      createPeerConnection(roomId, false)
       rtcStatus.value = 'new'
 
       // 3. 设置远程描述
       info('设置远程描述')
-      await peerConnection.value!.setRemoteDescription(signal)
+      await peerConnection.value!.setRemoteDescription({ type: signal.type, sdp: signal.sdp })
+      claimScreenTransceivers(peerConnection.value!)
 
       // 4. 创建并发送 answer
-      const answer = await peerConnection.value!.createAnswer()
-      await peerConnection.value!.setLocalDescription(answer)
+      const rtcAnswer = await peerConnection.value!.createAnswer()
+      await peerConnection.value!.setLocalDescription(rtcAnswer)
+      const answer: SignalWithScreen = { type: rtcAnswer.type, sdp: rtcAnswer.sdp, smjScreen: true }
 
       if (!roomId) {
         window.$message.error('房间号不存在，请重新连接！')
@@ -816,7 +962,8 @@ export const useWebRtc = (roomId: string, remoteUserId: string, callType: CallTy
           }
           // 4. 发起者 - 设置远程描述
           console.log('发起者 - 设置远程描述', answer)
-          await peerConnection.value.setRemoteDescription(answer)
+          peerSupportsScreen.value = (answer as SignalWithScreen).smjScreen === true
+          await peerConnection.value.setRemoteDescription({ type: answer.type, sdp: answer.sdp })
         }
       }
     } catch (error) {
@@ -1021,83 +1168,102 @@ export const useWebRtc = (roomId: string, remoteUserId: string, callType: CallTy
     }
   }
 
-  // 停止桌面共享
-  const stopScreenShare = () => {
-    if (isScreenSharing.value) {
-      isScreenSharing.value = false
-      // 停止当前的本地流
-      if (localStream.value) {
-        localStream.value.getTracks().forEach((track) => track.stop())
+  // 停止屏幕共享：清空共享轨道，旧版对方则换回摄像头画面
+  const stopScreenShare = async () => {
+    if (!isScreenSharing.value) return false
+    isScreenSharing.value = false
+    const screen = localScreenStream.value
+    localScreenStream.value = null
+    try {
+      if (replacedCameraTrack) {
+        const sender = peerConnection.value?.getSenders().find((s) => s.track?.kind === 'video')
+        await sender?.replaceTrack(replacedCameraTrack)
+        replacedCameraTrack = null
+      } else {
+        await screenSenders.video?.replaceTrack(null)
+        await screenSenders.audio?.replaceTrack(null)
       }
-      if (!selectedVideoDevice.value || !rtcMsg.value.callType) {
-        return false
-      }
-      // 切换到默认设备
-      getLocalStream(rtcMsg.value.callType)
-      // 切换原来的视频轨道
-      selectedVideoDevice.value && switchVideoDevice(selectedVideoDevice.value)
-      return true
+    } catch (e) {
+      console.error('停止屏幕共享失败:', e)
+    } finally {
+      screen?.getTracks().forEach((track) => track.stop())
+      sendScreenState()
     }
-    return false
+    return true
   }
 
-  // 开始桌面共享
+  // 开始屏幕共享：浏览器弹出选择窗口，用户可选整个屏幕、窗口或标签页，并可勾选共享声音
   const startScreenShare = async () => {
-    try {
-      if (!navigator?.mediaDevices?.getDisplayMedia) {
-        window.$message.warning('当前设备不支持桌面共享功能！')
-        return
-      }
-      const screenStream = await navigator.mediaDevices.getDisplayMedia({
-        video: true,
-        audio: true // 如果需要共享音频
-      })
-      if (!screenStream) {
-        return
-      }
-
-      // 停止当前的本地流
-      if (localStream.value) {
-        localStream.value.getTracks().forEach((track) => track.stop())
-      }
-
-      // 替换本地流为桌面共享流
-      localStream.value = screenStream
-      // 添加新的视频轨道到连接
-      screenStream.getTracks().forEach((track) => {
-        if (localStream.value) {
-          peerConnection.value?.addTrack(track, localStream.value)
-        }
-      })
-      // 远程替换为桌面共享流
-      const newVideoTrack = screenStream.getVideoTracks()[0]
-      const oldVideoTrack = localStream.value.getVideoTracks()[0]
-      if (!newVideoTrack) {
-        window.$message.error('桌面共享失败，请检查权限设置!')
-        return
-      }
-      newVideoTrack.onended = () => {
-        window.$message.warning('屏幕共享已结束 ~')
-        stopScreenShare()
-      }
-      peerConnection.value?.getSenders().forEach((sender) => {
-        if (sender.track && sender.track.kind === 'video') {
-          sender.replaceTrack(newVideoTrack)
-        }
-      })
-      oldVideoTrack && localStream.value.removeTrack(oldVideoTrack)
-      localStream.value.addTrack(newVideoTrack)
-      isScreenSharing.value = true // 开始桌面共享
-    } catch (error: any) {
-      console.error('开始桌面共享失败:', error)
-      isScreenSharing.value = false
-      stopScreenShare()
-      if (error?.name === 'NotAllowedError') {
-        window.$message.warning('已取消屏幕共享...')
-        return
-      }
-      window.$message.error('桌面共享失败，请检查权限设置!')
+    if (isScreenSharing.value) return
+    if (!isScreenShareSupported) {
+      window.$message.warning(t('message.call_window.share_unsupported'))
+      return
     }
+    const pc = peerConnection.value
+    if (!pc || connectionStatus.value !== RTCCallStatus.ACCEPT) {
+      window.$message.warning(t('message.call_window.share_after_connected'))
+      return
+    }
+    const cameraSender = pc.getSenders().find((s) => s.track?.kind === 'video')
+    const canUseScreenTrack = peerSupportsScreen.value && !!screenSenders.video
+    if (!canUseScreenTrack && !cameraSender) {
+      window.$message.warning(t('message.call_window.share_peer_unsupported'))
+      return
+    }
+    let screenStream: MediaStream
+    try {
+      screenStream = await navigator.mediaDevices.getDisplayMedia({
+        video: { frameRate: { ideal: 15, max: 30 } },
+        audio: true,
+        // Chromium 系浏览器的扩展选项：允许共享系统声音、可在共享中切换标签页，不列出本页面自己
+        systemAudio: 'include',
+        surfaceSwitching: 'include',
+        selfBrowserSurface: 'exclude'
+      } as DisplayMediaStreamOptions)
+    } catch (e: any) {
+      if (e?.name === 'NotAllowedError' || e?.name === 'AbortError') {
+        window.$message.info(t('message.call_window.share_cancelled'))
+      } else {
+        error(`获取屏幕画面失败: ${String(e)}`)
+        window.$message.error(t('message.call_window.share_failed'))
+      }
+      return
+    }
+    const videoTrack = screenStream.getVideoTracks()[0]
+    if (!videoTrack) {
+      screenStream.getTracks().forEach((track) => track.stop())
+      window.$message.error(t('message.call_window.share_failed'))
+      return
+    }
+    // 文字和界面优先保清晰
+    videoTrack.contentHint = 'detail'
+    const audioTrack = screenStream.getAudioTracks()[0]
+    try {
+      if (canUseScreenTrack) {
+        await screenSenders.video!.replaceTrack(videoTrack)
+        if (audioTrack) await screenSenders.audio?.replaceTrack(audioTrack)
+      } else {
+        // 对方是旧版客户端：用屏幕画面替换摄像头画面，系统声音无法单独传
+        replacedCameraTrack = cameraSender!.track
+        await cameraSender!.replaceTrack(videoTrack)
+      }
+    } catch (e) {
+      screenStream.getTracks().forEach((track) => track.stop())
+      replacedCameraTrack = null
+      error(`发送屏幕画面失败: ${String(e)}`)
+      window.$message.error(t('message.call_window.share_failed'))
+      return
+    }
+    // 用户点浏览器自带的“停止共享”时
+    videoTrack.onended = () => {
+      if (isScreenSharing.value) {
+        void stopScreenShare()
+        window.$message.info(t('message.call_window.share_ended'))
+      }
+    }
+    localScreenStream.value = screenStream
+    isScreenSharing.value = true
+    sendScreenState()
   }
 
   const lisendCandidate = async () => {
@@ -1231,6 +1397,13 @@ export const useWebRtc = (roomId: string, remoteUserId: string, callType: CallTy
     startCallTimer,
     stopScreenShare,
     startScreenShare,
+    isScreenShareSupported,
+    localScreenStream,
+    remoteScreenStream,
+    isRemoteScreenSharing,
+    peerSupportsScreen,
+    sendControlMessage,
+    onControlMessage,
     toggleVideo,
     switchVideoDevice,
     switchCameraFacing,

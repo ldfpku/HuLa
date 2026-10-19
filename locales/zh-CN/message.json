@@ -55,7 +55,18 @@
     "speaker_off": "扬声器已关",
     "camera_disable": "关闭摄像头",
     "camera_enable": "开启摄像头",
-    "hangup": "挂断"
+    "hangup": "挂断",
+    "share_screen": "共享屏幕",
+    "stop_share": "停止共享",
+    "sharing_self": "你正在共享屏幕",
+    "remote_sharing": "{name} 正在共享屏幕",
+    "swap_view": "切换画面",
+    "share_unsupported": "当前环境不支持共享屏幕，请用电脑上的 Chrome 或 Edge 打开网页版",
+    "share_after_connected": "接通后才能共享屏幕",
+    "share_peer_unsupported": "对方的客户端版本较旧，暂时收不到屏幕共享",
+    "share_cancelled": "已取消共享屏幕",
+    "share_failed": "共享屏幕失败，请检查系统的屏幕录制权限",
+    "share_ended": "屏幕共享已结束"
   },
   "permission": {
     "mic": {
