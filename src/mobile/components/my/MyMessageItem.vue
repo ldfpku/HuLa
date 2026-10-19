@@ -3,7 +3,7 @@
     <div
       :class="props.message.type === 'reply' || props.message.type === 'comment' ? [''] : ['custom-border-b-1']"
       class="w-full py-5px grid grid-cols-[40px_1fr_40px] gap-10px items-center">
-      <div><n-avatar :size="40" src="#" fallback-src="/logo.png" round /></div>
+      <div><n-avatar :size="40" src="#" fallback-src="/avatar-light.svg" round /></div>
       <div class="flex flex-col gap-10px">
         <div class="text-14px text-#333 font-bold">苏小研</div>
         <div class="text-12px text-#999">消息内容：{{ props.message.content }}</div>

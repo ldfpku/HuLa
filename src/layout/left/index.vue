@@ -4,7 +4,8 @@
     <main
       :class="`left ${leftMinWidthClass} h-full p-[0_6px_40px] box-border flex-col-center select-none`"
       data-tauri-drag-region>
-      <p class="text-(16px [--left-text-color]) cursor-default select-none m-[4px_0_16px_0]">SMJ</p>
+      <!-- BIS B7：主标屏幕最小 48px 宽；侧栏是斯米伽蓝 / 深井蓝底，用反白双色 -->
+      <BrandLogo on-dark class="w-48px h-auto m-[6px_0_16px_0] cursor-default" />
       <!-- 头像模块 -->
       <LeftAvatar />
       <!-- 导航选项按钮模块 -->
@@ -19,6 +20,7 @@
 </template>
 <script lang="ts" setup>
 import type { Component } from 'vue'
+import BrandLogo from '@/components/common/BrandLogo.vue'
 import { MittEnum, ModalEnum } from '@/enums'
 import { useMitt } from '@/hooks/useMitt.ts'
 import { isMac26 } from '@/utils/PlatformConstants'

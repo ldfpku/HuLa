@@ -11,7 +11,7 @@
           <span
             :key="item"
             style="-webkit-user-select: text !important; user-select: text !important"
-            class="text-#fbb990 cursor-pointer">
+            class="smj-mention cursor-pointer">
             {{ item }}
           </span>
         </template>
@@ -21,7 +21,7 @@
         v-else-if="mentionTokenSet.has(item)"
         :key="item"
         style="-webkit-user-select: text !important; user-select: text !important"
-        class="text-#fbb990 cursor-text">
+        class="smj-mention cursor-text">
         {{ item }}
       </span>
       <template v-else-if="item.startsWith('http')">
@@ -46,7 +46,7 @@
                 color: '#000',
                 background: '#034fbc'
               }" />
-            <p v-else class="text-#034fbc dark:text-#7aa7ff cursor-pointer" style="margin: 0" @click="openUrl(item)">
+            <p v-else class="smj-link cursor-pointer" style="margin: 0" @click="openUrl(item)">
               {{ item }}
             </p>
           </div>
@@ -308,19 +308,42 @@ const onImageLoadError = (e: Event) => {
 </script>
 
 <style scoped>
+/** 链接与 @ 提及：BIS B14 链接用斯米伽蓝；自己的气泡是斯米伽蓝底，改白字。信号橙不做文字 */
+.smj-link {
+  color: #034fbc;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.smj-mention {
+  color: #034fbc;
+  font-weight: 600;
+}
+:global([data-theme='dark'] .smj-link),
+:global([data-theme='dark'] .smj-mention) {
+  color: #7a9fe2;
+}
+:global(.bubble-oneself .smj-link),
+:global(.bubble-oneself .smj-mention),
+:global(.bubble-oneself .text-card span) {
+  color: #fff;
+}
+:global(.bubble-oneself .text-card) {
+  background-color: rgba(255, 255, 255, 0.12);
+}
+
 .text-card {
   display: flex;
   margin: 8px 0;
   padding: 12px;
-  border-radius: 8px;
-  background-color: rgba(0, 0, 0, 0.03);
+  border-radius: 4px;
+  background-color: rgba(10, 31, 84, 0.04);
   cursor: pointer;
   user-select: none;
   transition: background-color 0.2s ease;
 }
 
 .text-card:hover {
-  background-color: rgba(0, 0, 0, 0.08);
+  background-color: rgba(10, 31, 84, 0.08);
 }
 
 .text-card-image-wrapper {

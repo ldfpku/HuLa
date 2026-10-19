@@ -1,5 +1,5 @@
 <p align="center">
-  <img width="350px" height="150px" src="public/hula.png"/>
+  <img width="350px" height="150px" src="public/brand/smj-wordmark-color.svg"/>
 </p>
 
 <p align="center">一款基于Tauri、Vite 7、Vue 3 和 TypeScript 构建的即时通讯系统</p>

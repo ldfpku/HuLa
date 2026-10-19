@@ -474,7 +474,7 @@ watchEffect(() => {
   loginDisabled.value = !(userInfo.value.account && userInfo.value.password && protocol.value)
   // 清空账号的时候设置默认头像
   if (!userInfo.value.account) {
-    userInfo.value.avatar = '/logo.png'
+    userInfo.value.avatar = '/avatar-light.svg'
   }
 })
 
@@ -494,7 +494,7 @@ watch(
   () => userInfo.value.account,
   (newAccount) => {
     if (!newAccount) {
-      userInfo.value.avatar = '/logo.png'
+      userInfo.value.avatar = '/avatar-light.svg'
       return
     }
 
@@ -640,7 +640,7 @@ const delAccount = (item: UserInfoType) => {
   }
   userInfo.value.account = ''
   userInfo.value.password = ''
-  userInfo.value.avatar = '/logo.png'
+  userInfo.value.avatar = '/avatar-light.svg'
 }
 
 const handleForgetPassword = () => {
@@ -702,7 +702,7 @@ const refreshAvatar = useDebounceFn((newAccount: string) => {
   if (matchedAccount) {
     userInfo.value.avatar = AvatarUtils.getAvatarUrl(matchedAccount.avatar)
   } else {
-    userInfo.value.avatar = '/logo.png'
+    userInfo.value.avatar = '/avatar-light.svg'
   }
 }, 300)
 

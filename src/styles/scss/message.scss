@@ -1,5 +1,5 @@
 .msg-box {
-  border-radius: 12px;
+  border-radius: 4px;
   transition:
     background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1),
     color 0.2s cubic-bezier(0.4, 0, 0.2, 1),
@@ -22,25 +22,27 @@
   }
 
   .text {
-    color: #808080;
+    color: var(--chat-text-color);
     transition: color 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   &:not(.active):hover {
     background: var(--bg-msg-hover);
-    border-radius: 12px;
+    border-radius: 4px;
     cursor: pointer;
   }
 }
 
 .active {
   background: var(--msg-active-color);
-  border-radius: 12px;
-  color: #fff;
+  border-radius: 4px;
+  color: var(--msg-active-text-color);
+  box-shadow: inset 3px 0 0 var(--msg-active-mark-color);
   transform: translateZ(0); /* 启用硬件加速 */
 
   .text {
-    color: #fff;
+    color: var(--msg-active-text-color);
+    opacity: 0.8;
   }
 }
 

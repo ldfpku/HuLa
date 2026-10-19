@@ -12,7 +12,7 @@
       <n-flex class="ma text-center w-260px pointer-events-auto" vertical :size="16">
         <n-flex justify="center" align="center">
           <span class="text-(24px #636c7e) textFont">{{ t('auth.register.title') }}</span>
-          <img class="w-100px h-40px" src="/hula.png" alt="" />
+          <BrandLogo class="w-110px h-auto" on-dark />
         </n-flex>
         <n-form :model="info" :rules="rules" ref="registerForm">
           <!-- 注册信息 -->
@@ -215,6 +215,7 @@
 </template>
 
 <script setup lang="ts">
+import BrandLogo from '@/components/common/BrandLogo.vue'
 import { getCurrentWebviewWindow, WebviewWindow } from '@tauri-apps/api/webviewWindow'
 import dayjs from 'dayjs'
 import { darkTheme, lightTheme, type FormInst } from 'naive-ui'

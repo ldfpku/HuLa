@@ -170,9 +170,13 @@ const createFaviconBadge = () => {
     const cy = radius
     ctx.beginPath()
     ctx.arc(cx, cy, radius, 0, Math.PI * 2)
-    ctx.fillStyle = '#e5484d'
-    ctx.fill()
+    // 图标底是斯米伽蓝，角标用白底蓝字才看得清；信号橙只属于标志上钩，不做角标
     ctx.fillStyle = '#ffffff'
+    ctx.fill()
+    ctx.lineWidth = 3
+    ctx.strokeStyle = '#0a1f54'
+    ctx.stroke()
+    ctx.fillStyle = '#034fbc'
     ctx.font = `bold ${text.length > 2 ? 20 : 26}px sans-serif`
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'

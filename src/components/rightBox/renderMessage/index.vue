@@ -73,7 +73,7 @@
                 @click="handleAvatarClick(message.fromUser.uid, message.message.id)"
                 class="select-none"
                 :color="themes.content === ThemeEnum.DARK ? '' : '#fff'"
-                :fallback-src="themes.content === ThemeEnum.DARK ? '/logoL.png' : '/logoD.png'"
+                :fallback-src="themes.content === ThemeEnum.DARK ? '/avatar-dark.svg' : '/avatar-light.svg'"
                 :src="getAvatarSrc(message.fromUser.uid)"
                 :class="isMe ? '' : 'mr-10px'" />
             </ContextMenu>
@@ -107,7 +107,7 @@
                       class="select-none"
                       :size="18"
                       round
-                      :fallback-src="themes.content === ThemeEnum.DARK ? '/logoL.png' : '/logoD.png'"
+                      :fallback-src="themes.content === ThemeEnum.DARK ? '/avatar-dark.svg' : '/avatar-light.svg'"
                       :src="cachedStore.badgeById(groupStore.getUserInfo(fromUser.uid)?.wearingItemId)?.img" />
                   </template>
                   <span>
@@ -229,7 +229,7 @@
               round
               :size="20"
               :color="themes.content === ThemeEnum.DARK ? '' : '#fff'"
-              :fallback-src="themes.content === ThemeEnum.DARK ? '/logoL.png' : '/logoD.png'"
+              :fallback-src="themes.content === ThemeEnum.DARK ? '/avatar-dark.svg' : '/avatar-light.svg'"
               :src="getAvatarSrc(message.message.body.reply.uid)" />
             <span>{{ `${message.message.body.reply.username}: ` }}</span>
             <span class="content-span">

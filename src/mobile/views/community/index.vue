@@ -50,7 +50,7 @@
         <!-- 图片区 -->
         <div class="w-full h-30vh relative">
           <div class="flex h-95% w-full relative">
-            <img class="w-full h-full object-contain bg-#90909048 dark:bg-#111" src="/hula.png" alt="" />
+            <BrandLogo class="w-full h-full object-contain p-12px box-border" />
           </div>
           <!-- 左上角通知按钮 -->
           <Transition name="header-fade">
@@ -105,6 +105,7 @@
 </template>
 
 <script setup lang="ts">
+import BrandLogo from '@/components/common/BrandLogo.vue'
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
 import { useFeedStore } from '@/stores/feed'

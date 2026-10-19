@@ -32,6 +32,8 @@
 
     // 消息列表样式
     --msg-active-color: #034fbc;
+    --msg-active-text-color: #fff;
+    --msg-active-mark-color: transparent;
     // 群公告消息背景色
     --group-notice-bg: #fff;
 
@@ -78,6 +80,8 @@ html[data-theme='dark'] {
 
     // 消息列表样式
     --msg-active-color: rgba(3, 79, 188, 0.4);
+    --msg-active-text-color: #fff;
+    --msg-active-mark-color: transparent;
     // 群公告消息背景色
     --group-notice-bg: rgba(133, 133, 133, 0.2);
 

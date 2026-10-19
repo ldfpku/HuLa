@@ -4,7 +4,7 @@
     <ActionBar :max-w="false" :shrink="false" proxy data-tauri-drag-region />
 
     <n-flex justify="center" class="mt-15px" data-tauri-drag-region>
-      <img src="/hula.png" class="w-100px h-40px drop-shadow-xl" alt="" data-tauri-drag-region />
+      <BrandLogo class="w-110px h-auto" on-dark data-tauri-drag-region />
     </n-flex>
 
     <!-- 二维码 -->
@@ -75,6 +75,7 @@
   </n-config-provider>
 </template>
 <script setup lang="ts">
+import BrandLogo from '@/components/common/BrandLogo.vue'
 import { invoke } from '@tauri-apps/api/core'
 import { darkTheme, lightTheme } from 'naive-ui'
 import { storeToRefs } from 'pinia'

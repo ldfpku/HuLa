@@ -1,6 +1,6 @@
 /** 气泡样式 */
 @mixin bubble {
-  @apply w-fit min-h-1em p-[8px_12px] line-height-22px bg-[--bg-bubble] rounded-[2px_18px_18px] custom-shadow;
+  @apply w-fit min-h-1em p-[8px_12px] line-height-22px bg-[--bg-bubble] rounded-[2px_4px_4px];
   max-width: var(--bubble-max-width, 32vw); /** 默认为群聊宽度 */
   white-space: pre-wrap; /** 保留空白符号并正常换行，支持特殊字符 */
   word-break: break-word; /** 优先在单词边界换行，必要时在单词内换行 */
@@ -30,7 +30,7 @@
 }
 .bubble-oneself {
   @include bubble;
-  @apply rounded-[18px_2px_18px_18px] color-#fff;
+  @apply rounded-[4px_2px_4px_4px] color-#fff;
   background-color: var(--bg-active-msg);
 }
 
@@ -55,9 +55,10 @@
 }
 .float-box {
   background-color: var(--right-bg-color);
-  border-radius: 50px;
+  border-radius: 4px;
   padding: 6px 8px;
-  box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.16);
+  border: 1px solid var(--line-color);
+  box-shadow: 0 6px 20px var(--overlay-shadow-color);
   transition: background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   &:hover {
     background-color: var(--float-hover-bg-color);
@@ -233,3 +234,4 @@
   user-select: text;
   -webkit-user-select: text;
 }
+

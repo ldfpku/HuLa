@@ -33,7 +33,7 @@
                       <n-avatar
                         :size="42"
                         :src="AvatarUtils.getAvatarUrl(item.avatar)"
-                        fallback-src="/logo.png"
+                        fallback-src="/avatar-light.svg"
                         round />
                       <n-text class="line-clamp-1">
                         {{ item.name }}

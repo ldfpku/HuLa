@@ -56,7 +56,7 @@
                     round
                     :size="44"
                     :src="AvatarUtils.getAvatarUrl(groupStore.getUserInfo(item.uid)!.avatar!)"
-                    fallback-src="/logo.png"
+                    fallback-src="/avatar-light.svg"
                     style="border: 1px solid var(--avatar-border-color)" />
                   <!-- 文字信息 -->
                   <div class="flex flex-col leading-tight truncate">

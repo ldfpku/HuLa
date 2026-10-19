@@ -11,7 +11,7 @@
         <n-avatar
           class="welcome size-80px rounded-50% border-(2px solid #fff) dark:border-(2px solid #606060)"
           :color="themes.content === ThemeEnum.DARK ? '#282828' : '#fff'"
-          :fallback-src="themes.content === ThemeEnum.DARK ? '/logoL.png' : '/logoD.png'"
+          :fallback-src="themes.content === ThemeEnum.DARK ? '/avatar-dark.svg' : '/avatar-light.svg'"
           :src="AvatarUtils.getAvatarUrl(info.avatar)" />
       </n-flex>
 
@@ -113,7 +113,7 @@
     <!-- 自动登录样式 -->
     <n-flex v-else-if="uiState === 'auto'" vertical :size="29" data-tauri-drag-region>
       <n-flex justify="center" class="mt-15px">
-        <img src="/hula.png" class="w-140px h-60px" alt="" />
+        <BrandLogo class="w-128px h-auto" on-dark />
       </n-flex>
       <n-flex :size="30" vertical>
         <!-- 头像 -->
@@ -122,7 +122,7 @@
             round
             :size="110"
             :color="themes.content === ThemeEnum.DARK ? '#282828' : '#fff'"
-            :fallback-src="themes.content === ThemeEnum.DARK ? '/logoL.png' : '/logoD.png'"
+            :fallback-src="themes.content === ThemeEnum.DARK ? '/avatar-dark.svg' : '/avatar-light.svg'"
             :src="AvatarUtils.getAvatarUrl(userStore.userInfo?.avatar ?? '')" />
         </n-flex>
 
@@ -219,6 +219,7 @@
   </n-config-provider>
 </template>
 <script setup lang="ts">
+import BrandLogo from '@/components/common/BrandLogo.vue'
 import { useI18n } from 'vue-i18n'
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow'
 import { useNetwork } from '@vueuse/core'
@@ -409,7 +410,7 @@ watch(
   () => info.value.account,
   (newAccount) => {
     if (!newAccount) {
-      info.value.avatar = '/logoD.png'
+      info.value.avatar = '/avatar-light.svg'
       return
     }
 
@@ -420,7 +421,7 @@ watch(
     if (matchedAccount) {
       info.value.avatar = matchedAccount.avatar
     } else {
-      info.value.avatar = '/logoD.png'
+      info.value.avatar = '/avatar-light.svg'
     }
   }
 )
@@ -471,7 +472,7 @@ const delAccount = (item: UserInfoType) => {
   }
   info.value.account = ''
   info.value.password = ''
-  info.value.avatar = '/logoD.png'
+  info.value.avatar = '/avatar-light.svg'
 }
 
 /**

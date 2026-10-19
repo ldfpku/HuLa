@@ -35,7 +35,7 @@
             style="border: 1px solid var(--avatar-border-color)"
             :size="44"
             :color="themes.content === ThemeEnum.DARK ? '' : '#fff'"
-            :fallback-src="themes.content === ThemeEnum.DARK ? '/logoL.png' : '/logoD.png'"
+            :fallback-src="themes.content === ThemeEnum.DARK ? '/avatar-dark.svg' : '/avatar-light.svg'"
             :src="AvatarUtils.getAvatarUrl(item.avatar)"
             round />
 
@@ -46,8 +46,7 @@
                 <n-popover trigger="hover" v-if="item.hotFlag === IsAllUserEnum.Yes">
                   <template #trigger>
                     <svg
-                      :class="[globalStore.currentSessionRoomId === item.roomId ? 'color-#7a9fe2' : 'color-#034fbc']"
-                      class="size-20px select-none outline-none cursor-pointer">
+                      class="color-#034fbc dark:color-#7a9fe2 size-20px select-none outline-none cursor-pointer">
                       <use href="#auth"></use>
                     </svg>
                   </template>
@@ -66,7 +65,7 @@
               <span
                 v-if="item.account !== UserType.BOT"
                 :class="{ 'color-#d5304f90!': item.shield && globalStore.currentSessionRoomId === item.roomId }"
-                class="text text-10px w-fit truncate text-right">
+                class="text smj-data text-11px w-fit truncate text-right">
                 {{ item.lastMsgTime }}
               </span>
             </n-flex>
@@ -109,8 +108,7 @@
               </template>
               <template v-else-if="item.muteNotification === 1 && !item.unreadCount">
                 <svg
-                  :class="[globalStore.currentSessionRoomId === item.roomId ? 'color-#fefefe' : 'color-#909090']"
-                  class="size-14px">
+                  class="size-14px color-[--chat-text-color]">
                   <use href="#close-remind"></use>
                 </svg>
               </template>
@@ -119,7 +117,7 @@
                 :max="99"
                 :value="item.unreadCount"
                 :show="globalStore.unreadReady && item.unreadCount > 0"
-                :color="item.muteNotification === 1 ? 'rgba(128, 128, 128, 0.5)' : undefined" />
+                :color="item.muteNotification === 1 ? '#636c7e' : undefined" />
             </n-flex>
           </n-flex>
         </n-flex>

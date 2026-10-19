@@ -129,7 +129,7 @@ const enrichedContactsList = computed(() => {
     return {
       ...item,
       name: userInfo?.name || item.remark || t('fileManager.common.unknownUser'),
-      avatar: AvatarUtils.getAvatarUrl(userInfo?.avatar || '/logoD.png'),
+      avatar: AvatarUtils.getAvatarUrl(userInfo?.avatar || '/avatar-light.svg'),
       activeStatus: item.activeStatus
     }
   })
