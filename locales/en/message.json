@@ -59,6 +59,8 @@
     "share_screen": "Share screen",
     "stop_share": "Stop sharing",
     "sharing_self": "You are sharing your screen",
+    "sharing_window": "You are sharing a window",
+    "share_preview": "What others see",
     "remote_sharing": "{name} is sharing their screen",
     "swap_view": "Swap views",
     "share_unsupported": "Screen sharing is not available here. Open the web app in Chrome or Edge on a computer",

@@ -36,6 +36,10 @@ use desktops::remote_control::{
     remote_control_active, remote_control_input, remote_control_request, remote_control_stop,
 };
 #[cfg(desktop)]
+use desktops::share_indicator::{
+    screen_share_indicator_hide, screen_share_indicator_show, screen_share_indicator_stop,
+};
+#[cfg(desktop)]
 use desktops::tray;
 #[cfg(desktop)]
 use desktops::video_thumbnail::get_video_thumbnail;
@@ -496,6 +500,12 @@ fn get_invoke_handlers() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Se
         remote_control_stop,
         #[cfg(desktop)]
         remote_control_active,
+        #[cfg(desktop)]
+        screen_share_indicator_show,
+        #[cfg(desktop)]
+        screen_share_indicator_hide,
+        #[cfg(desktop)]
+        screen_share_indicator_stop,
         #[cfg(target_os = "windows")]
         get_windows_scale_info,
         // 通用命令（桌面端和移动端都支持）

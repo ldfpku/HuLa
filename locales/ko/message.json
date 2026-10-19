@@ -59,6 +59,8 @@
     "share_screen": "화면 공유",
     "stop_share": "공유 중지",
     "sharing_self": "화면을 공유하고 있습니다",
+    "sharing_window": "창을 공유하고 있습니다",
+    "share_preview": "상대방에게 보이는 화면",
     "remote_sharing": "{name} 님이 화면을 공유하고 있습니다",
     "swap_view": "화면 전환",
     "share_unsupported": "이 환경에서는 화면 공유를 사용할 수 없습니다. 컴퓨터의 Chrome 또는 Edge에서 웹 앱을 여세요",

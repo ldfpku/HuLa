@@ -59,6 +59,8 @@
     "share_screen": "共享屏幕",
     "stop_share": "停止共享",
     "sharing_self": "你正在共享屏幕",
+    "sharing_window": "你正在共享一个窗口",
+    "share_preview": "你共享出去的画面",
     "remote_sharing": "{name} 正在共享屏幕",
     "swap_view": "切换画面",
     "share_unsupported": "当前环境不支持共享屏幕，请用电脑上的 Chrome 或 Edge 打开网页版",

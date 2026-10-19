@@ -134,6 +134,20 @@
         </div>
       </div>
 
+      <!-- 自己正在共享时：通话窗口四周的绿色边框和共享画面预览（行业惯例的“正在共享”提示） -->
+      <div
+        v-if="isScreenSharing"
+        data-testid="sharing-frame"
+        class="fixed inset-0 z-60 pointer-events-none border-4px border-solid border-#12a150"></div>
+      <div
+        v-if="isScreenSharing && localScreenStream"
+        data-testid="local-share-preview"
+        class="absolute left-12px bottom-12px z-45 w-200px rounded-6px overflow-hidden border-3px border-solid border-#12a150 bg-black shadow-lg">
+        <video ref="localSharePreviewRef" autoplay playsinline muted class="block w-full aspect-video object-contain"></video>
+        <div class="px-8px py-3px text-11px text-#fff bg-#12a150 truncate">
+          {{ t('message.call_window.share_preview') }}
+        </div>
+      </div>
       <!-- 正在被对方远程控制：醒目的红色提示条，随时可以停止 -->
       <div
         v-if="isBeingControlled"
@@ -164,11 +178,11 @@
       <div
         v-else-if="isScreenSharing"
         data-testid="local-sharing"
-        class="absolute top-12px left-1/2 -translate-x-1/2 z-50 flex items-center gap-10px rounded-full bg-#034fbc px-14px py-6px text-13px text-#fff shadow-lg">
+        class="absolute top-12px left-1/2 -translate-x-1/2 z-50 flex items-center gap-10px rounded-full bg-#12a150 px-14px py-6px text-13px text-#fff shadow-lg">
         <svg class="size-14px color-#fff">
           <use href="#screen-sharing"></use>
         </svg>
-        <span>{{ t('message.call_window.sharing_self') }}</span>
+        <span>{{ sharingSelfLabel }}</span>
         <span
           class="cursor-pointer rounded-full bg-white/20 hover:bg-white/30 px-10px py-2px"
           @click="stopScreenShare()">
@@ -539,6 +553,7 @@ import { useRoute } from 'vue-router'
 import type ActionBar from '@/components/windows/ActionBar.vue'
 import { CallTypeEnum, RTCCallStatus, ThemeEnum } from '@/enums'
 import { useRemoteControl } from '@/hooks/useRemoteControl'
+import { useShareIndicator } from '@/hooks/useShareIndicator'
 import { useWebRtc } from '@/hooks/useWebRtc'
 import type { RemoteInput } from '@/utils/RemoteControlUtils'
 import RemoteControlSurface from './components/RemoteControlSurface.vue'
@@ -678,6 +693,23 @@ watch(awaitingShare, (waiting) => {
     .show()
     .then(() => win.setFocus())
     .catch(() => {})
+})
+
+// 桌面版：被共享的显示器四周加边框、屏幕顶部显示提示条
+useShareIndicator(isScreenSharing, localScreenStream, stopScreenShare)
+
+// 自己共享出去的画面预览，让共享方随时看到别人看到的内容
+const localSharePreviewRef = ref<HTMLVideoElement>()
+const sharingSelfLabel = computed(() => {
+  const settings = localScreenStream.value?.getVideoTracks()[0]?.getSettings() as
+    | (MediaTrackSettings & { displaySurface?: string })
+    | undefined
+  return settings?.displaySurface === 'window'
+    ? t('message.call_window.sharing_window')
+    : t('message.call_window.sharing_self')
+})
+watch([localSharePreviewRef, localScreenStream], ([el, stream]) => {
+  if (el && el.srcObject !== stream) el.srcObject = stream
 })
 
 const toggleRemoteControl = () => {
