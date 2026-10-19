@@ -98,21 +98,6 @@
           @keyup.enter="normalLogin('PC', true, false)"
           clearable />
 
-        <!-- 协议 -->
-        <n-flex align="center" justify="center" :size="6">
-          <n-checkbox v-model:checked="protocol" />
-          <div class="text-12px color-#909090 cursor-default lh-14px agreement">
-            <span>{{ t('login.term.checkout.text1') }}</span>
-            <span class="color-#034fbc cursor-pointer" @click.stop="openServiceAgreement">
-              {{ t('login.term.checkout.text2') }}
-            </span>
-            <span>{{ t('login.term.checkout.text3') }}</span>
-            <span class="color-#034fbc cursor-pointer" @click.stop="openPrivacyAgreement">
-              {{ t('login.term.checkout.text4') }}
-            </span>
-          </div>
-        </n-flex>
-
         <n-button
           :loading="loading"
           :disabled="loginDisabled"
@@ -240,14 +225,12 @@ import { useNetwork } from '@vueuse/core'
 import { darkTheme, lightTheme } from 'naive-ui'
 import { storeToRefs } from 'pinia'
 import { useCheckUpdate } from '@/hooks/useCheckUpdate'
-import { type DriverStepConfig, useDriver } from '@/hooks/useDriver'
 import { useMitt } from '@/hooks/useMitt'
 import { useWindow } from '@/hooks/useWindow.ts'
 import router from '@/router'
 import type { UserInfoType } from '@/services/types.ts'
 import { WsResponseMessageType } from '@/services/wsType'
 import { useGlobalStore } from '@/stores/global'
-import { useGuideStore } from '@/stores/guide'
 import { useLoginHistoriesStore } from '@/stores/loginHistory.ts'
 import { useSettingStore } from '@/stores/setting.ts'
 import { useUserStore } from '@/stores/user.ts'
@@ -267,16 +250,12 @@ const { themes } = storeToRefs(settingStore)
 const naiveTheme = computed(() => (themes.value.content === 'dark' ? darkTheme : lightTheme))
 const userStore = useUserStore()
 const globalStore = useGlobalStore()
-const guideStore = useGuideStore()
 const { isTrayMenuShow } = storeToRefs(globalStore)
-const { isGuideCompleted } = storeToRefs(guideStore)
 /** 网络连接是否正常 */
 const { isOnline } = useNetwork()
 const loginHistoriesStore = useLoginHistoriesStore()
 const { loginHistories } = loginHistoriesStore
 const { login } = storeToRefs(settingStore)
-/** 协议 */
-const protocol = ref(true)
 const arrowStatus = ref(false)
 const moreShow = ref(false)
 const { createWebviewWindow, createModalWindow, getWindowPayload } = useWindow()
@@ -352,67 +331,6 @@ const cancelAutoLoginAndShowManual = () => {
   loginHistories.length > 0 && giveAccount(loginHistories[0])
 }
 
-const driverSteps = computed<DriverStepConfig[]>(() => [
-  {
-    element: '.welcome',
-    popover: {
-      title: t('login.guide.welcome.title'),
-      description: t('login.guide.welcome.desc'),
-      side: 'bottom',
-      align: 'center'
-    }
-  },
-  {
-    element: '.agreement',
-    popover: {
-      title: t('login.guide.privacy.title'),
-      description: t('login.guide.privacy.desc'),
-      onNextClick: () => {
-        if (isMac()) {
-          moreShow.value = true
-        }
-      }
-    }
-  },
-  {
-    element: '.network',
-    popover: {
-      title: t('login.guide.network.title'),
-      description: t('login.guide.network.desc'),
-      onNextClick: () => {
-        moreShow.value = true
-      }
-    }
-  },
-  ...(ACCOUNT_FEATURES.selfRegister
-    ? [
-        {
-          element: '.register',
-          popover: {
-            title: t('login.guide.register.title'),
-            description: t('login.guide.register.desc')
-          }
-        }
-      ]
-    : [])
-])
-
-const driverConfig = computed(() => ({
-  nextBtnText: t('login.guide.actions.next'),
-  prevBtnText: t('login.guide.actions.prev'),
-  doneBtnText: t('login.guide.actions.done'),
-  progressText: t('login.guide.actions.progress', {
-    current: '{{current}}',
-    total: '{{total}}'
-  })
-}))
-
-const { startTour, reinitialize } = useDriver(driverSteps.value, driverConfig.value)
-
-watch([driverSteps, driverConfig], ([steps, config]) => {
-  reinitialize(steps, config)
-})
-
 // 输入框占位符
 const accountPH = ref(t('login.input.account.placeholder'))
 const passwordPH = ref(t('login.input.pass.placeholder'))
@@ -460,7 +378,7 @@ watchEffect(() => {
     loginDisabled.value = !isOnline.value || !userStore.userInfo?.account
     return
   }
-  loginDisabled.value = !(info.value.account && info.value.password && protocol.value && isOnline.value)
+  loginDisabled.value = !(info.value.account && info.value.password && isOnline.value)
 })
 
 watch(
@@ -588,16 +506,6 @@ const removeStoredAccount = () => {
   cancelAutoLoginAndShowManual()
 }
 
-/** 打开服务协议窗口 */
-const openServiceAgreement = async () => {
-  await createModalWindow('服务协议', 'modal-serviceAgreement', 600, 600, 'login')
-}
-
-/** 打开隐私保护协议窗口 */
-const openPrivacyAgreement = async () => {
-  await createModalWindow('隐私保护指引', 'modal-privacyAgreement', 600, 600, 'login')
-}
-
 const closeMenu = (event: MouseEvent) => {
   const target = event.target as Element
   if (!target.matches('.account-box, .account-box *, .down')) {
@@ -632,11 +540,6 @@ onBeforeMount(async () => {
 })
 
 onMounted(async () => {
-  // 检查引导状态，只有未完成时才启动引导
-  if (!isGuideCompleted.value) {
-    startTour()
-  }
-
   // 只有在需要登录的情况下才显示登录窗口
   if (!isJumpDirectly.value) {
     await getCurrentWebviewWindow().show()

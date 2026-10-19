@@ -341,7 +341,7 @@ const handleAssistantReady = () => {
 }
 
 const handleAssistantError = async (error: unknown) => {
-  console.error('加载 HuLa 小管家失败:', error)
+  console.error('加载小管家失败:', error)
   customModelPath.value = null
   selectedModelKey.value = null
   applyFirstPreset({ force: true })

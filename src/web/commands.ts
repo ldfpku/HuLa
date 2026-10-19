@@ -2,7 +2,7 @@
  * 网页版的 Rust 命令实现：前端 invoke 的命令名和参数保持不变，
  * 数据直接从服务端读取，不在本机保存聊天记录
  */
-import { ImRequestError, imRequest, refreshTokens, tokenStore, webConfig } from './imClient'
+import { ImRequestError, imRequest, refreshTokens, signOutMail, tokenStore, webConfig } from './imClient'
 import { virtualFs } from './virtualFs'
 import type { WebSocketClient } from './wsClient'
 
@@ -106,9 +106,21 @@ export const createCommands = (ws: WebSocketClient, emit: (event: string, payloa
       })
       return null
     },
-    remove_tokens: () => {
-      tokenStore.signOut()
+    remove_tokens: async () => {
+      tokenStore.clear()
+      await signOutMail()
       return null
+    },
+    // 窗口之间传数据：新窗口是另一个标签页，借 localStorage 传（与 Rust 的 window_payload 一致）
+    push_window_payload: (args) => {
+      localStorage.setItem(`smj-web-payload:${args?.label}`, JSON.stringify(args?.payload ?? null))
+      return null
+    },
+    get_window_payload: (args) => {
+      const key = `smj-web-payload:${args?.label}`
+      const raw = localStorage.getItem(key)
+      if (args?.once) localStorage.removeItem(key)
+      return raw ? JSON.parse(raw) : null
     },
     save_user_info: () => null,
     update_user_last_opt_time: () => null,

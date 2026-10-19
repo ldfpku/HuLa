@@ -315,7 +315,7 @@
     "modal": {
       "add_friend": "Add friend request"
     },
-    "developer_badge": "HuLa Developer"
+    "developer_badge": "SMJ Developer"
   },
   "profile_edit": {
     "title": "Edit profile",
@@ -366,7 +366,7 @@
   "about": {
     "version": "Version: {version} ({arch})",
     "device": "Device: {type}{version}",
-    "copyright": "Copyright © {start}-{end} HuLaSpark",
+    "copyright": "Copyright © {start}-{end} SMJ",
     "rights": "All Rights Reserved."
   },
   "apply_list": {
