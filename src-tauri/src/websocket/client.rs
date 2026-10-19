@@ -791,6 +791,10 @@ impl WebSocketClient {
                 info!("Message recalled");
                 let _ = app_handle.emit_to("home", "ws-msg-recall", data);
             }
+            "msgFileDeleted" => {
+                info!("Message file deleted");
+                let _ = app_handle.emit_to("home", "ws-msg-file-deleted", data);
+            }
             "mailNew" => {
                 info!("New mail");
                 let _ = app_handle.emit_to("home", "ws-mail-new", data);

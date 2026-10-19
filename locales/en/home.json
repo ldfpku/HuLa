@@ -461,6 +461,7 @@
     "file": {
       "missing_local": "File not found locally, please download first",
       "show_failed": "Unable to reveal file in folder",
+      "confirm_delete": "Nobody will be able to open this file afterwards; the chat keeps a note that it was deleted. Delete it?",
       "download_prompt": "File not downloaded yet, please download first",
       "download_success": "File downloaded successfully",
       "download_failed": "File download failed, please retry",

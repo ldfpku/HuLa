@@ -315,6 +315,13 @@ export type MarkItemType = {
   actType: ActEnum
 }
 
+/** 聊天里的文件被删除：消息变成一条系统提示 */
+export type MsgFileDeletedType = {
+  msgId: string
+  roomId: string
+  message?: MessageType
+}
+
 export type RevokedMsgType = {
   /** 消息ID */
   msgId: string
@@ -653,6 +660,8 @@ export type MsgType = {
   messageMarks: MessageMarkType
   /** 消息发送状态 */
   status: MessageStatusEnum
+  /** 发送端本地的临时 ID：服务端把自己发的消息推给自己的其他设备时带上，发出的那台设备据此去重 */
+  clientMsgId?: string
 }
 
 export type ReplyType = {

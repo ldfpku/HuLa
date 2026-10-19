@@ -41,7 +41,7 @@ import { useChatStore } from '@/stores/chat'
 import { useAnnouncementStore } from '@/stores/announcement'
 import { useFeedStore } from '@/stores/feed'
 import { useFeedNotificationStore } from '@/stores/feedNotification'
-import type { MarkItemType, RevokedMsgType, UserItem } from '@/services/types.ts'
+import type { MarkItemType, MsgFileDeletedType, RevokedMsgType, UserItem } from '@/services/types.ts'
 import * as ImRequestUtils from '@/utils/ImRequestUtils'
 import { listen } from '@tauri-apps/api/event'
 import { useTauriListener } from '@/hooks/useTauriListener'
@@ -133,6 +133,10 @@ useMitt.on(WsResponseMessageType.LOGIN_SUCCESS, async (data: LoginSuccessResType
 
 useMitt.on(WsResponseMessageType.MSG_RECALL, (data: RevokedMsgType) => {
   chatStore.updateRecallMsg(data)
+})
+
+useMitt.on(WsResponseMessageType.MSG_FILE_DELETED, (data: MsgFileDeletedType) => {
+  chatStore.applyMsgFileDeleted(data)
 })
 
 useMitt.on(WsResponseMessageType.MY_ROOM_INFO_CHANGE, (data: { myName: string; roomId: string; uid: string }) => {

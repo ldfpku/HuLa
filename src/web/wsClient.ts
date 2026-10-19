@@ -31,6 +31,7 @@ const EVENT_BY_TYPE: Record<string, string> = {
   loginSuccess: 'ws-login-success',
   receiveMessage: 'ws-receive-message',
   msgRecall: 'ws-msg-recall',
+  msgFileDeleted: 'ws-msg-file-deleted',
   mailNew: 'ws-mail-new',
   msgMarkItem: 'ws-msg-mark-item',
   online: 'ws-online',

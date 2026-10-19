@@ -81,6 +81,7 @@ export const IM_URLS: Record<string, [string, string]> = {
   getBadgeList: ['GET', 'im/user/badges'],
   blockUser: ['PUT', 'im/user/black'],
   recallMsg: ['PUT', 'im/chat/msg/recall'],
+  deleteMsgFile: ['POST', 'im/chat/msg/file/delete'],
   markMsg: ['PUT', 'im/chat/msg/mark'],
   getMsgList: ['POST', 'im/chat/msg/list'],
   getMsgPage: ['GET', 'im/chat/msg/page'],

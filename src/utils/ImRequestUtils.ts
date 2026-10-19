@@ -5,6 +5,7 @@ import type {
   DrivePickerListing,
   LoginUserReq,
   MailTodoDraft,
+  MessageType,
   ModifyUserInfoType,
   RegisterUserReq,
   RoomFilePage,
@@ -283,6 +284,14 @@ export async function blockUser(body: { uid: string; deadline: string }) {
 export async function recallMsg(body: { msgId: string; roomId: string }) {
   return await imRequest({
     url: ImUrlEnum.RECALL_MSG,
+    body
+  })
+}
+
+/** 删除聊天里的文件（发送者本人，或群主、群管理员）；返回变成系统提示后的消息 */
+export async function deleteMsgFile(body: { msgId: string; roomId: string }) {
+  return await imRequest<MessageType>({
+    url: ImUrlEnum.DELETE_MSG_FILE,
     body
   })
 }

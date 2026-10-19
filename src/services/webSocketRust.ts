@@ -271,6 +271,13 @@ class RustWebSocketClient {
     )
 
     this.listenerController.add(
+      await listen('ws-msg-file-deleted', (event: any) => {
+        info('聊天文件已删除')
+        useMitt.emit(WsResponseMessageType.MSG_FILE_DELETED, event.payload)
+      })
+    )
+
+    this.listenerController.add(
       await listen('ws-mail-new', (event: any) => {
         info('新邮件')
         useMitt.emit(WsResponseMessageType.MAIL_NEW, event.payload)

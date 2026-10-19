@@ -457,6 +457,7 @@
     "file": {
       "missing_local": "暂时找不到本地文件，请先下载后再试~",
       "show_failed": "无法在文件夹中显示该文件",
+      "confirm_delete": "删除后所有人都无法再打开这个文件，聊天里会留下一条“已删除”的提示。确定删除吗？",
       "download_prompt": "文件还未下载，请先下载后再试~",
       "download_success": "文件下载完成，请查看~",
       "download_failed": "文件下载失败，请重试",
