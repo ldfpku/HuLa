@@ -163,6 +163,7 @@
   },
   "chat_header": {
     "bot_tag": "봇",
+    "back": "뒤로",
     "status_abnormal": "친구 상태를 확인할 수 없습니다",
     "toolbar": {
       "audio_call": "음성 통화",

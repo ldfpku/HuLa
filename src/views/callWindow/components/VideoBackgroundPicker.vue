@@ -1,20 +1,18 @@
 <template>
-  <n-popover trigger="click" placement="top" :show-arrow="false" raw style="padding: 0" @update:show="onShow">
-    <template #trigger>
-      <div class="flex-col-x-center gap-8px w-80px" data-testid="bg-toggle">
-        <div
-          class="size-44px rounded-full flex-center cursor-pointer"
-          :class="selected !== 'none' ? 'bg-#034fbc hover:bg-#02409a' : 'bg-gray-600 hover:bg-gray-500'">
-          <n-spin v-if="loading" :size="16" stroke="#fff" />
-          <svg v-else class="size-16px color-#fff">
-            <use href="#photo"></use>
-          </svg>
-        </div>
-        <div class="text-12px text-gray-400 text-center">{{ t('message.call_window.bg_button') }}</div>
-      </div>
-    </template>
-
-    <div data-testid="bg-panel" class="w-336px rounded-8px bg-#1f2733 p-14px text-#fff shadow-lg select-none">
+  <DefineCircle>
+    <div
+      class="size-44px rounded-full flex-center cursor-pointer"
+      :class="selected !== 'none' ? 'bg-#034fbc hover:bg-#02409a' : 'bg-gray-600 hover:bg-gray-500'">
+      <n-spin v-if="loading" :size="16" stroke="#fff" />
+      <svg v-else class="size-16px color-#fff">
+        <use href="#photo"></use>
+      </svg>
+    </div>
+  </DefineCircle>
+  <DefinePanel>
+    <div
+      data-testid="bg-panel"
+      class="w-336px max-w-[calc(100vw-24px)] box-border rounded-8px bg-#1f2733 p-14px text-#fff shadow-lg select-none">
       <div class="text-14px font-medium mb-4px">{{ t('message.call_window.bg_title') }}</div>
       <div class="text-12px text-gray-400 mb-12px">
         {{ supported === false ? t('message.call_window.bg_unsupported') : t('message.call_window.bg_hint') }}
@@ -44,18 +42,50 @@
       </div>
       <input ref="fileInputRef" type="file" accept="image/png,image/jpeg,image/webp" class="hidden" @change="onFile" />
     </div>
+  </DefinePanel>
+
+  <!-- 手机（compact）：按钮在屏幕左侧，跟着按钮弹出会超出屏幕，改为在按钮上方、屏幕水平居中弹出 -->
+  <template v-if="compact">
+    <div ref="triggerRef" data-testid="bg-toggle" @click="toggleCompact">
+      <ReuseCircle />
+    </div>
+    <n-popover
+      trigger="manual"
+      placement="top"
+      :show-arrow="false"
+      raw
+      style="padding: 0"
+      :show="compactShow"
+      :x="compactPoint.x"
+      :y="compactPoint.y"
+      @clickoutside="onClickOutside">
+      <ReusePanel />
+    </n-popover>
+  </template>
+  <n-popover v-else trigger="click" placement="top" :show-arrow="false" raw style="padding: 0" @update:show="onShow">
+    <template #trigger>
+      <div class="flex-col-x-center gap-8px w-80px" data-testid="bg-toggle">
+        <ReuseCircle />
+        <div class="text-12px text-gray-400 text-center">{{ t('message.call_window.bg_button') }}</div>
+      </div>
+    </template>
+    <ReusePanel />
   </n-popover>
 </template>
 
 <script setup lang="ts">
+import { createReusableTemplate } from '@vueuse/core'
 import { storeToRefs } from 'pinia'
 import { useI18n } from 'vue-i18n'
 import { BRAND_BACKGROUNDS, useVideoBackgroundStore, type VideoBackgroundId } from '@/stores/videoBackground'
 import { preloadSegmenter, VideoBackgroundProcessor } from '@/utils/videoBackground/VideoBackgroundProcessor'
 
-defineProps<{ loading: boolean }>()
+/** compact：手机通话页底部的圆形按钮，不带文字 */
+const props = defineProps<{ loading: boolean; compact?: boolean }>()
 
 const { t } = useI18n()
+const [DefineCircle, ReuseCircle] = createReusableTemplate()
+const [DefinePanel, ReusePanel] = createReusableTemplate()
 const store = useVideoBackgroundStore()
 const { selected, customImage } = storeToRefs(store)
 const fileInputRef = ref<HTMLInputElement>()
@@ -88,6 +118,24 @@ const onShow = async (show: boolean) => {
   if (!show || supported.value !== undefined) return
   supported.value = await VideoBackgroundProcessor.checkSupport()
   if (supported.value) void preloadSegmenter(store.assetsDir())
+}
+
+const triggerRef = ref<HTMLElement>()
+const compactShow = ref(false)
+const compactPoint = reactive({ x: 0, y: 0 })
+
+const toggleCompact = () => {
+  if (!props.compact || !triggerRef.value) return
+  const rect = triggerRef.value.getBoundingClientRect()
+  compactPoint.x = window.innerWidth / 2
+  compactPoint.y = rect.top - 8
+  compactShow.value = !compactShow.value
+  void onShow(compactShow.value)
+}
+
+const onClickOutside = (event: MouseEvent) => {
+  if (!props.compact || triggerRef.value?.contains(event.target as Node)) return
+  compactShow.value = false
 }
 
 const pickFile = () => fileInputRef.value?.click()

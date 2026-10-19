@@ -1,5 +1,6 @@
 import { MittEnum, NotificationTypeEnum, RoomTypeEnum, SessionOperateEnum, UserType } from '@/enums'
 import { useMitt } from '@/hooks/useMitt.ts'
+import { openPhonePane } from '@/hooks/usePhoneLayout'
 import type { SessionItem } from '@/services/types.ts'
 import { useChatStore } from '@/stores/chat.ts'
 import { useContactStore } from '@/stores/contacts.ts'
@@ -63,6 +64,7 @@ export const useMessage = () => {
     console.log('[handleMsgClick] 点击会话:', roomId, 'UI未读数:', item.unreadCount)
 
     globalStore.updateCurrentSessionRoomId(roomId)
+    openPhonePane('chat')
 
     chatStore.getSession(roomId)
     chatStore.markSessionRead(roomId)

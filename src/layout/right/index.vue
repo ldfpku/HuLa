@@ -1,11 +1,18 @@
 <template>
   <!-- 主容器维持 600px 的最小宽度，确保聊天侧边信息不过度挤压 -->
-  <main data-tauri-drag-region class="flex-1 bg-[--right-bg-color] flex flex-col min-h-0 min-w-600px">
+  <main
+    data-tauri-drag-region
+    class="flex-1 bg-[--right-bg-color] flex flex-col min-h-0"
+    :class="isPhoneLayout ? 'min-w-0' : 'min-w-600px'">
     <div
       :style="{ background: shouldShowChat ? 'var(--right-theme-bg-color)' : '' }"
       data-tauri-drag-region
       class="flex-1 flex flex-col min-h-0">
       <ActionBar :current-label="appWindow.label" />
+      <!-- 手机单栏的联系人详情、申请列表：顶部返回 -->
+      <div v-if="isPhoneLayout && !shouldShowChat" class="flex-y-center flex-shrink-0 h-48px px-4px">
+        <PhoneBackButton />
+      </div>
 
       <!-- 需要判断当前路由是否是信息详情界面 -->
       <div class="flex-1 min-h-0 flex flex-col">
@@ -29,8 +36,10 @@
 <script setup lang="ts">
 import { WebviewWindow } from '@tauri-apps/api/webviewWindow'
 import BrandLogo from '@/components/common/BrandLogo.vue'
+import PhoneBackButton from '@/components/common/PhoneBackButton.vue'
 import { MittEnum, ThemeEnum } from '@/enums'
 import { useMitt } from '@/hooks/useMitt.ts'
+import { isPhoneLayout } from '@/hooks/usePhoneLayout'
 import router from '@/router'
 import type { DetailsContent } from '@/services/types'
 import { useSettingStore } from '@/stores/setting.ts'

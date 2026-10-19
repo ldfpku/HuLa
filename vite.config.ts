@@ -94,6 +94,55 @@ const createVideoBackgroundWasm = () => {
   }
 }
 
+/**
+ * 网页版“添加到主屏幕”（PWA）：输出 manifest.webmanifest 和 service worker（src/web/sw.js → sw.js），
+ * 并在页面 <head> 里写入 manifest、主题色和 iOS 主屏幕需要的标签。图标都是随包的品牌图标，不引用外部地址。
+ */
+const createWebAppManifest = (base: string) => {
+  const manifest = {
+    id: base,
+    name: 'SMJ 即时通讯',
+    short_name: 'SMJ',
+    description: '斯米伽（SMJ）内部即时通讯，与斯米伽邮箱共用账号',
+    lang: 'zh-CN',
+    start_url: base,
+    scope: base,
+    display: 'standalone',
+    orientation: 'any',
+    background_color: '#ffffff',
+    theme_color: '#034fbc',
+    icons: [
+      { src: `${base}brand/smj-icon-192.png`, sizes: '192x192', type: 'image/png', purpose: 'any' },
+      { src: `${base}brand/smj-icon-512.png`, sizes: '512x512', type: 'image/png', purpose: 'any' },
+      { src: `${base}brand/smj-icon-maskable-512.png`, sizes: '512x512', type: 'image/png', purpose: 'maskable' }
+    ]
+  }
+  const headTags = [
+    `<link rel="manifest" href="${base}manifest.webmanifest" />`,
+    '<meta name="theme-color" content="#034fbc" />',
+    '<meta name="mobile-web-app-capable" content="yes" />',
+    '<meta name="apple-mobile-web-app-capable" content="yes" />',
+    '<meta name="apple-mobile-web-app-title" content="SMJ" />',
+    '<meta name="apple-mobile-web-app-status-bar-style" content="default" />',
+    '<meta name="application-name" content="SMJ" />'
+  ].join('\n    ')
+  return {
+    name: 'smj-web-app-manifest',
+    transformIndexHtml: (html: string) =>
+      html
+        .replace('</head>', `    ${headTags}\n  </head>`)
+        .replace('<html lang="en">', '<html lang="zh-CN">')
+        // 软键盘弹出时让页面缩到键盘上方（Android Chrome），iOS 由 src/web/phone.ts 按可见区域处理
+        .replace('viewport-fit=cover"', 'viewport-fit=cover, interactive-widget=resizes-content"'),
+    generateBundle(this: { emitFile: (file: { type: 'asset'; fileName: string; source: string }) => void }) {
+      this.emitFile({ type: 'asset', fileName: 'manifest.webmanifest', source: JSON.stringify(manifest, null, 2) })
+      // 缓存名带上构建时间：每次发布 service worker 内容都不同，浏览器才会换新并清掉旧缓存
+      const sw = readFileSync(fileURLToPath(new URL('./src/web/sw.js', import.meta.url)), 'utf8')
+      this.emitFile({ type: 'asset', fileName: 'sw.js', source: sw.replace('__SMJ_BUILD__', Date.now().toString(36)) })
+    }
+  }
+}
+
 // https://vitejs.dev/config/
 /**! 不需要优化前端打包(如开启gzip) */
 export default defineConfig(({ mode }: ConfigEnv) => {
@@ -182,6 +231,7 @@ export default defineConfig(({ mode }: ConfigEnv) => {
       },
       createVideoBackgroundWasm(),
       isWeb && createPublicPathRebase('/im/'),
+      isWeb && createWebAppManifest('/im/'),
       isWeb && {
         name: 'smj-web-entry',
         // order: 'pre'：构建时要在 Vite 收集入口脚本之前替换，否则仍按 src/main.ts 打包

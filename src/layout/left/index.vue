@@ -1,11 +1,12 @@
 <template>
-  <div style="background: var(--left-bg-color)" class="h-full">
-    <div style="background: var(--left-bg-color)" class="h-30px"></div>
+  <!-- smj-left*：网页版手机单栏时由 src/web/phone.scss 改成底部导航 -->
+  <div style="background: var(--left-bg-color)" class="smj-left h-full">
+    <div style="background: var(--left-bg-color)" class="smj-left-spacer h-30px"></div>
     <main
       :class="`left ${leftMinWidthClass} h-full p-[0_6px_40px] box-border flex-col-center select-none`"
       data-tauri-drag-region>
       <!-- BIS B7：主标屏幕最小 48px 宽；侧栏是斯米伽蓝 / 深井蓝底，用反白双色 -->
-      <BrandLogo on-dark class="w-48px h-auto m-[6px_0_16px_0] cursor-default" />
+      <BrandLogo on-dark class="smj-left-logo w-48px h-auto m-[6px_0_16px_0] cursor-default" />
       <!-- 头像模块 -->
       <LeftAvatar />
       <!-- 导航选项按钮模块 -->

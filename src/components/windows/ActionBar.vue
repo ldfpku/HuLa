@@ -2,6 +2,7 @@
   <!--  user-select: none让元素不可以选中-->
   <div
     :data-tauri-drag-region="isDrag"
+    class="smj-action-bar"
     :class="isCompatibility() ? 'flex justify-end select-none' : 'h-24px select-none w-full'">
     <!-- win 和 linux 的DOM -->
     <template v-if="isCompatibility()">

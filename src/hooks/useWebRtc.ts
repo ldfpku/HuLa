@@ -1199,8 +1199,14 @@ export const useWebRtc = (roomId: string, remoteUserId: string, callType: CallTy
       const { frontCamera, backCamera } = getFrontAndBackCameras()
 
       if (!frontCamera || !backCamera) {
-        // 如果无法通过设备名称识别，则使用 facingMode 约束
-        await switchVideoDevice('user')
+        // 认不出前后摄像头（设备名不含 front/back）时，轮换到下一个摄像头
+        const devices = videoDevices.value
+        if (devices.length < 2) {
+          window.$message.warning('没有可切换的摄像头')
+          return
+        }
+        const index = devices.findIndex((device) => device.deviceId === selectedVideoDevice.value)
+        await switchVideoDevice(devices[(index + 1) % devices.length].deviceId)
         return
       }
 

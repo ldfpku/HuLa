@@ -5,6 +5,11 @@
  */
 import './devProxy'
 import { currentLabel } from './tauriShim'
+import { startPhoneSupport } from './phone'
+import { registerServiceWorker } from './pwa'
+
+startPhoneSupport()
+registerServiceWorker()
 
 await import('../main')
 const { tryWebSignIn } = await import('./sharedLogin')

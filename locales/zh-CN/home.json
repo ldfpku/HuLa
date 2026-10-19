@@ -160,6 +160,7 @@
   },
   "chat_header": {
     "bot_tag": "助手",
+    "back": "返回",
     "status_abnormal": "好友状态异常",
     "toolbar": {
       "audio_call": "语音通话",

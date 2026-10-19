@@ -133,6 +133,12 @@ export const isDesktop = (): boolean => PlatformDetector.platformType === 'deskt
 export const isMobile = (): boolean => PlatformDetector.platformType === 'mobile'
 
 /**
+ * 网页版的手机（单栏）布局条件：桌面三栏要 64 + 160 + 600px，900px 以下放不下；横屏手机高度不够也算。
+ * src/hooks/usePhoneLayout.ts 和 src/web/phone.ts 共用
+ */
+export const PHONE_LAYOUT_QUERY = '(max-width: 899px), (max-height: 520px) and (pointer: coarse)'
+
+/**
  * 是否为网页版（浏览器里运行，由 src/web/tauriShim.ts 标记）
  */
 export const isWeb = (): boolean => typeof window !== 'undefined' && Boolean((window as any).__SMJ_WEB__)

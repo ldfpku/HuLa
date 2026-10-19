@@ -1,0 +1,267 @@
+/**
+ * 网页版手机适配的全局样式（html.smj-phone 由 ./phone.ts 按 PHONE_LAYOUT_QUERY 加上）
+ * - 高度用可见区域（--smj-app-height），避开 iOS 地址栏和软键盘
+ * - 四周留出安全区（刘海、圆角、底部手势条）
+ * - 左侧导航改成底部导航，桌面的窗口按钮条不显示
+ */
+html.smj-phone {
+  height: var(--smj-app-height, 100dvh);
+  overflow: hidden;
+  overscroll-behavior: none;
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+
+  body {
+    height: 100%;
+    overflow: hidden;
+    background: var(--left-bg-color, #034fbc);
+  }
+
+  #app {
+    height: 100%;
+    box-sizing: border-box;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left);
+    background: var(--right-bg-color, #fff);
+  }
+
+  // App.vue 根节点是 h-100vh w-100vw；手机上 100vh 比可见区域高，改成跟随 #app
+  #app > .h-100vh {
+    height: 100% !important;
+    width: 100% !important;
+  }
+
+  // 窗口控制条（最小化、最大化、收起侧栏）在手机上没有意义
+  .smj-action-bar {
+    display: none !important;
+  }
+
+  // ---------- 底部导航（桌面的左侧栏） ----------
+  #layout.smj-phone {
+    // 单栏时各栏宽度跟屏幕走，不让内容把整页撑宽
+    > div,
+    > div > * {
+      min-width: 0;
+    }
+
+    .smj-left {
+      overflow: hidden;
+      height: auto;
+      flex-shrink: 0;
+      // 底部手势条
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+
+    .smj-left-spacer,
+    .smj-left-logo {
+      display: none;
+    }
+
+    main.left {
+      flex-direction: row;
+      justify-content: flex-start;
+      align-items: center;
+      height: 56px;
+      min-width: 0;
+      padding: 0 8px 0 14px;
+      gap: 10px;
+
+      // ActionList：上下两组按钮排成一行
+      > div.flex-1 {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: 0;
+        height: 100%;
+
+        > header,
+        > footer {
+          flex-direction: row;
+          align-items: center;
+          gap: 2px;
+          margin-top: 0;
+          min-width: 0;
+        }
+
+        > header {
+          flex: 1;
+          justify-content: space-around;
+        }
+      }
+
+      // 触控目标至少 44px
+      .top-action,
+      .bottom-action,
+      .more,
+      header > div,
+      footer > div {
+        min-width: 44px;
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-sizing: border-box;
+      }
+    }
+
+    // 会话列表、联系人列表占满剩余高度
+    #center {
+      width: 100% !important;
+      min-width: 0 !important;
+      max-width: none !important;
+      flex: 1 1 auto !important;
+      border-right: none;
+
+      > header {
+        margin-top: 8px;
+      }
+
+      .resize-handle {
+        display: none;
+      }
+    }
+  }
+
+  // 左下“更多”菜单：贴着底部导航右侧弹出，不要超出屏幕
+  .setting-item {
+    position: fixed !important;
+    left: auto !important;
+    top: auto !important;
+    right: 12px !important;
+    bottom: calc(64px + env(safe-area-inset-bottom)) !important;
+    .menu-item {
+      padding: 8px 12px;
+    }
+  }
+
+  // ---------- 设置窗口：左侧菜单改成顶部横向标签 ----------
+  .smj-settings {
+    flex-direction: column;
+
+    .smj-settings-nav {
+      width: 100% !important;
+      min-width: 0 !important;
+      height: auto !important;
+      padding: 6px 8px !important;
+      overflow-x: auto;
+      flex-shrink: 0;
+      flex-direction: row;
+
+      .menu-list {
+        display: flex;
+        flex-direction: row !important;
+        gap: 4px;
+        > div {
+          flex-shrink: 0;
+        }
+        .menu-item {
+          width: auto !important;
+          white-space: nowrap;
+          margin-top: 0 !important;
+          padding: 8px 12px !important;
+        }
+      }
+    }
+
+    .smj-settings-body {
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      border-left: none;
+      border-top: 1px solid var(--line-color);
+
+      > .header {
+        display: none;
+      }
+
+      > .n-scrollbar {
+        flex: 1;
+        max-height: none !important;
+        min-height: 0;
+      }
+
+      .p-24px {
+        padding: 16px 12px;
+      }
+    }
+  }
+
+  // 弹窗不超出屏幕
+  .n-modal,
+  .n-dialog,
+  .n-card.n-modal {
+    max-width: calc(100vw - 24px);
+  }
+
+  .n-modal-body-wrapper .n-modal-scroll-content {
+    max-height: var(--smj-app-height, 100dvh);
+  }
+
+  // 页内来电横幅：底部整宽
+  #smj-web-incoming-call {
+    left: 12px !important;
+    right: 12px !important;
+    bottom: calc(12px + env(safe-area-inset-bottom)) !important;
+    width: auto !important;
+    max-width: none !important;
+  }
+}
+
+// ---------- 手机上在页内打开的“窗口”（设置、邮件、通话等），见 ./phoneWindows.ts ----------
+.smj-phone-window {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  display: flex;
+  flex-direction: column;
+  background: var(--right-bg-color, #fff);
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left);
+
+  &__bar {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    height: 48px;
+    flex-shrink: 0;
+    padding: 0 12px 0 4px;
+    border-bottom: 1px solid var(--right-chat-footer-line-color, #e3e8f0);
+    color: var(--text-color, #1a2b4a);
+    font-size: 16px;
+    font-weight: 500;
+  }
+
+  &__back {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border: 0;
+    padding: 0;
+    background: none;
+    color: inherit;
+    cursor: pointer;
+  }
+
+  &__title {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__frame {
+    flex: 1;
+    width: 100%;
+    min-height: 0;
+    border: 0;
+    display: block;
+    background: var(--right-bg-color, #fff);
+  }
+
+  // 通话页自己铺满（有挂断按钮），不要标题栏
+  &--bare {
+    padding: 0;
+    background: #000;
+  }
+}

@@ -122,6 +122,7 @@ import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { MittEnum, OnlineEnum, RoomTypeEnum, ThemeEnum, UserType } from '@/enums'
 import { useMitt } from '@/hooks/useMitt.ts'
+import { openPhonePane } from '@/hooks/usePhoneLayout'
 import type { DetailsContent } from '@/services/types'
 import { useContactStore } from '@/stores/contacts.ts'
 import { useFeedStore } from '@/stores/feed'
@@ -189,6 +190,7 @@ const handleClick = (index: string, type: number) => {
     detailsShow: detailsShow.value
   }
   useMitt.emit(MittEnum.DETAILS_SHOW, data)
+  openPhonePane('contact')
 }
 // todo 需要循环数组来展示分组
 const showMenu = (event: MouseEvent) => {
@@ -234,6 +236,7 @@ const handleApply = async (applyType: 'friend' | 'group') => {
     } as DetailsContent
   })
   activeItem.value = ''
+  openPhonePane('contact')
 }
 
 /** 获取联系人数据 */

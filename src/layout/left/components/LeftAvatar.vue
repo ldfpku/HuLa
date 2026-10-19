@@ -1,7 +1,7 @@
 <template>
   <n-popover
     v-model:show="infoShow"
-    :placement="shrinkStatus ? 'bottom-start' : 'right-start'"
+    :placement="isPhoneLayout ? 'top-start' : shrinkStatus ? 'bottom-start' : 'right-start'"
     :show-arrow="false"
     style="padding: 0; background: rgba(255, 255, 255, 0.2); backdrop-filter: blur(10px)"
     trigger="click">
@@ -71,6 +71,7 @@
   </n-popover>
 </template>
 <script setup lang="ts">
+import { isPhoneLayout } from '@/hooks/usePhoneLayout'
 import { storeToRefs } from 'pinia'
 import { useI18n } from 'vue-i18n'
 import { ThemeEnum } from '@/enums'

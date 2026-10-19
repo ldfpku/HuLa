@@ -163,6 +163,7 @@
   },
   "chat_header": {
     "bot_tag": "Assistant",
+    "back": "Back",
     "status_abnormal": "Friend status unavailable",
     "toolbar": {
       "audio_call": "Voice call",
