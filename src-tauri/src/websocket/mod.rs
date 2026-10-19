@@ -2,6 +2,7 @@
 /// 提供 WebSocket 连接管理、心跳机制、消息处理等功能
 pub mod client;
 pub mod commands;
+pub mod dial;
 pub mod message;
 pub mod types;
 

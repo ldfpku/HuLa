@@ -17,7 +17,8 @@ use tokio::time::{Duration, interval, sleep, timeout};
 /// WebSocket 握手（TCP、TLS 和 HTTP 升级）的最长等待时间
 const CONNECT_TIMEOUT_SECS: u64 = 15;
 
-use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
+use super::dial::dial;
+use tokio_tungstenite::{client_async_tls_with_config, tungstenite::protocol::Message};
 use tracing::{debug, error, info, warn};
 use url::Url;
 
@@ -420,10 +421,21 @@ impl WebSocketClient {
 
         // 建立连接。握手要有超时：服务器接受了 TCP/TLS 却一直不回升级响应时，
         // 不设超时会永远停在“连接中”，重连逻辑也不会再运行
-        let (ws_stream, _) = timeout(
-            Duration::from_secs(CONNECT_TIMEOUT_SECS),
-            connect_async(url_str),
-        )
+        // TCP 连接自己选地址（IPv6 不通时自动用 IPv4），再在其上做 TLS 和升级
+        let started = std::time::Instant::now();
+        let (ws_stream, _) = timeout(Duration::from_secs(CONNECT_TIMEOUT_SECS), async {
+            let dialed = dial(&url)
+                .await
+                .map_err(tokio_tungstenite::tungstenite::Error::Io)?;
+            let _ = dialed.stream.set_nodelay(true);
+            info!(
+                "WebSocket TCP connected to {} ({} addresses) in {}ms",
+                dialed.addr,
+                dialed.resolved,
+                started.elapsed().as_millis()
+            );
+            client_async_tls_with_config(url_str, dialed.stream, None, None).await
+        })
         .await
         .map_err(|_| {
             anyhow::anyhow!(
@@ -434,6 +446,10 @@ impl WebSocketClient {
         })?
         .map_err(|e| anyhow::anyhow!("Failed to connect to WebSocket '{}': {}", redacted, e))?;
 
+        info!(
+            "WebSocket handshake completed in {}ms",
+            started.elapsed().as_millis()
+        );
         let (mut ws_sender, mut ws_receiver) = ws_stream.split();
 
         let generation = self.connection_generation.fetch_add(1, Ordering::SeqCst) + 1;
