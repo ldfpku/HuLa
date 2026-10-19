@@ -1,14 +1,14 @@
 {
   "privacy": {
     "header": {
-      "title": "HuLa Privacy Protection Guidelines",
+      "title": "SMJ Privacy Protection Guidelines",
       "updatedAt": "Updated on: September 3, 2025"
     },
     "sections": [
       {
         "title": "Introduction",
         "paragraphs": [
-          "HuLa (hereinafter referred to as \"we\") fully understands the importance of personal information to you and will do everything possible to keep it safe and reliable. To earn and maintain your trust, we strictly abide by principles such as responsibility-consistency, explicit purpose, informed consent, minimal necessity, security assurance, subject participation, and openness and transparency. We also pledge to adopt industry-standard security measures to safeguard your personal information.",
+          "SMJ (hereinafter referred to as \"we\") fully understands the importance of personal information to you and will do everything possible to keep it safe and reliable. To earn and maintain your trust, we strictly abide by principles such as responsibility-consistency, explicit purpose, informed consent, minimal necessity, security assurance, subject participation, and openness and transparency. We also pledge to adopt industry-standard security measures to safeguard your personal information.",
           "Please read and understand these Privacy Protection Guidelines carefully before using our products or services."
         ]
       },
@@ -21,9 +21,9 @@
           {
             "subtitle": "1.1 When We Collect Your Personal Information",
             "paragraphs": [
-              "(1) Account registration: When you register a HuLa account, we collect your mobile number, email address, and other details to create the account.",
+              "(1) Account registration: When you register a SMJ account, we collect your mobile number, email address, and other details to create the account.",
               "(2) Identity verification: To ensure account security, we may ask you to provide identity documents for real-name verification.",
-              "(3) Service usage: While you use HuLa services, we collect your chat history, friend relationships, group information, etc.",
+              "(3) Service usage: While you use SMJ services, we collect your chat history, friend relationships, group information, etc.",
               "(4) Device information: We collect data such as device model, operating system version, and device identifiers to provide a better service experience."
             ]
           },
@@ -51,10 +51,10 @@
           {
             "subtitle": "3.1 Sharing",
             "paragraphs": [
-              "We do not share your personal information with companies, organizations, or individuals outside of HuLa except in the following circumstances:",
+              "We do not share your personal information with companies, organizations, or individuals outside of SMJ except in the following circumstances:",
               "(1) With your explicit consent or authorization;",
               "(2) When required by applicable laws, legal procedures, or mandatory governmental or judicial requests;",
-              "(3) Within the scope permitted by law to protect the rights, property, or safety of HuLa, HuLa users, or the public;",
+              "(3) Within the scope permitted by law to protect the rights, property, or safety of SMJ, SMJ users, or the public;",
               "(4) With our affiliates: we may share your personal information with affiliated companies."
             ]
           },
@@ -162,20 +162,20 @@
   },
   "server": {
     "header": {
-      "title": "HuLa Service Agreement",
+      "title": "SMJ Service Agreement",
       "updatedAt": "Updated on: September 3, 2025"
     },
     "sections": [
       {
         "title": "1. Confirmation and Acceptance of Service Terms",
         "paragraphs": [
-          "Welcome to HuLa! All electronic services of HuLa are owned and operated by HuLa. Users must fully agree to all terms of service and complete the registration process to become official HuLa users."
+          "Welcome to SMJ! All electronic services of SMJ are owned and operated by SMJ. Users must fully agree to all terms of service and complete the registration process to become official SMJ users."
         ]
       },
       {
         "title": "2. Service Overview",
         "paragraphs": [
-          "HuLa is a free instant messaging application that allows users to chat via text, voice, and video, as well as share images and files. HuLa is committed to providing secure, stable, and convenient communication services."
+          "SMJ is a free instant messaging application that allows users to chat via text, voice, and video, as well as share images and files. SMJ is committed to providing secure, stable, and convenient communication services."
         ]
       },
       {
@@ -183,14 +183,14 @@
         "paragraphs": [
           "3.1 Users must provide authentic, accurate, and complete personal information when registering.",
           "3.2 Users are responsible for the security of their passwords and accounts. Any losses or damages resulting from activities conducted through the account are borne solely by the user.",
-          "3.3 Users agree to receive information from HuLa, including but not limited to product updates, service announcements, and special offers."
+          "3.3 Users agree to receive information from SMJ, including but not limited to product updates, service announcements, and special offers."
         ]
       },
       {
         "title": "4. User Conduct",
         "paragraphs": [
-          "4.1 Users must comply with applicable laws and regulations of the People's Republic of China while using HuLa services.",
-          "4.2 Users are prohibited from using HuLa services for unlawful activities.",
+          "4.1 Users must comply with applicable laws and regulations of the People's Republic of China while using SMJ services.",
+          "4.2 Users are prohibited from using SMJ services for unlawful activities.",
           "4.3 Users may not publish or disseminate unlawful, harmful, threatening, abusive, harassing, infringing, defamatory, vulgar, obscene, or otherwise objectionable content.",
           "4.4 Users may not publish or disseminate content that infringes the intellectual property or other rights of third parties.",
           "4.5 Users may not maliciously spread viruses, trojans, or other malicious programs."
@@ -199,46 +199,46 @@
       {
         "title": "5. Privacy Protection",
         "paragraphs": [
-          "5.1 HuLa attaches great importance to user privacy. Unless otherwise required by law, HuLa will not disclose or transfer user information to third parties without consent.",
-          "5.2 HuLa adopts industry-standard security measures to protect user information from unauthorized access, use, or disclosure.",
-          "5.3 Users understand and agree that HuLa may collect and use relevant information to provide better services."
+          "5.1 SMJ attaches great importance to user privacy. Unless otherwise required by law, SMJ will not disclose or transfer user information to third parties without consent.",
+          "5.2 SMJ adopts industry-standard security measures to protect user information from unauthorized access, use, or disclosure.",
+          "5.3 Users understand and agree that SMJ may collect and use relevant information to provide better services."
         ]
       },
       {
         "title": "6. Intellectual Property",
         "paragraphs": [
-          "6.1 HuLa and its related technologies, trademarks, and copyrights are owned by HuLa.",
-          "6.2 Without written permission from HuLa, users may not perform reverse engineering, disassembly, or decompilation on the software.",
-          "6.3 Users retain intellectual property rights over the content they publish via HuLa, but grant HuLa a worldwide, royalty-free, non-exclusive license to use such content."
+          "6.1 SMJ and its related technologies, trademarks, and copyrights are owned by SMJ.",
+          "6.2 Without written permission from SMJ, users may not perform reverse engineering, disassembly, or decompilation on the software.",
+          "6.3 Users retain intellectual property rights over the content they publish via SMJ, but grant SMJ a worldwide, royalty-free, non-exclusive license to use such content."
         ]
       },
       {
         "title": "7. Disclaimer",
         "paragraphs": [
-          "7.1 Users agree that they use HuLa services entirely at their own risk.",
-          "7.2 HuLa does not guarantee that the service will meet users' requirements, nor does it guarantee uninterrupted service.",
-          "7.3 HuLa assumes no responsibility for any network service interruptions or defects caused by force majeure or reasons beyond HuLa's control."
+          "7.1 Users agree that they use SMJ services entirely at their own risk.",
+          "7.2 SMJ does not guarantee that the service will meet users' requirements, nor does it guarantee uninterrupted service.",
+          "7.3 SMJ assumes no responsibility for any network service interruptions or defects caused by force majeure or reasons beyond SMJ's control."
         ]
       },
       {
         "title": "8. Service Changes, Interruptions, or Termination",
         "paragraphs": [
-          "8.1 HuLa reserves the right to change, suspend, or terminate part or all of its services based on business needs.",
-          "8.2 If services must be paused for maintenance or upgrades, HuLa will provide prior notice whenever possible.",
-          "8.3 If a user violates any term of this agreement, HuLa may terminate service to that user."
+          "8.1 SMJ reserves the right to change, suspend, or terminate part or all of its services based on business needs.",
+          "8.2 If services must be paused for maintenance or upgrades, SMJ will provide prior notice whenever possible.",
+          "8.3 If a user violates any term of this agreement, SMJ may terminate service to that user."
         ]
       },
       {
         "title": "9. Modifications to the Agreement",
         "paragraphs": [
-          "HuLa may modify any terms of this agreement at any time. When changes occur, HuLa will notify users appropriately. If you do not agree with the changes, you may stop using the services. Continued use constitutes acceptance of the modifications."
+          "SMJ may modify any terms of this agreement at any time. When changes occur, SMJ will notify users appropriately. If you do not agree with the changes, you may stop using the services. Continued use constitutes acceptance of the modifications."
         ]
       },
       {
         "title": "10. Governing Law and Dispute Resolution",
         "paragraphs": [
           "10.1 The formation, execution, interpretation, and dispute resolution related to this agreement are governed by the laws of the People's Republic of China.",
-          "10.2 In the event of disputes, both parties should attempt to resolve them through friendly negotiation. If negotiations fail, either party may file a lawsuit with the People's Court located in HuLa's jurisdiction."
+          "10.2 In the event of disputes, both parties should attempt to resolve them through friendly negotiation. If negotiations fail, either party may file a lawsuit with the People's Court located in SMJ's jurisdiction."
         ]
       },
       {

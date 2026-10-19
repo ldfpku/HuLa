@@ -92,13 +92,13 @@
   "message_list": {
     "sync_loading": "메시지 동기화 중",
     "official_popover": "공식 그룹",
-    "bot_popover": "HuLa 어시스턴트",
+    "bot_popover": "SMJ 어시스턴트",
     "mention_tag": "[나를 언급함]",
     "shield_group": "그룹 알림 차단됨",
     "shield_user": "사용자 알림 차단됨",
     "empty_description": "친구들과 대화를 시작해보세요!",
     "empty_action": "친구 찾기",
-    "default_last_msg": "HuLa에 오신 것을 환영합니다"
+    "default_last_msg": "SMJ에 오신 것을 환영합니다"
   },
   "message_menu": {
     "pin_success": "고정되었습니다",

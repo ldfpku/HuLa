@@ -2,7 +2,7 @@ import { NFlex } from 'naive-ui'
 import type { VNode } from 'vue'
 import { MacOsKeyEnum, WinKeyEnum } from '@/enums'
 import { isWindows } from '@/utils/PlatformConstants'
-import pkg from '~/package.json'
+import { version } from '~/package.json'
 import { Button, Input, InputNumber, Select, Slider, Switch } from './model.tsx'
 
 const key = computed(() => {
@@ -22,7 +22,7 @@ type ChatConfig = {
 export const content: ChatConfig = {
   system: [
     {
-      title: `当前版本：v${pkg.version}`,
+      title: `当前版本：v${version}`,
       description: '已是最新版本',
       features: <Button title={'检查更新'} icon={'refresh'} />
     },

@@ -92,13 +92,13 @@
   "message_list": {
     "sync_loading": "Syncing messages",
     "official_popover": "Official group",
-    "bot_popover": "HuLa Assistant",
+    "bot_popover": "SMJ Assistant",
     "mention_tag": "[Mentioned me]",
     "shield_group": "Group muted",
     "shield_user": "User muted",
     "empty_description": "Start chatting with friends!",
     "empty_action": "Find friends",
-    "default_last_msg": "Welcome to HuLa"
+    "default_last_msg": "Welcome to SMJ"
   },
   "message_menu": {
     "pin_success": "Pinned",

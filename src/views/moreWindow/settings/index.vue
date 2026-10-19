@@ -20,16 +20,6 @@
         </div>
       </div>
 
-      <div class="absolute bottom-20px left-60px select-none cursor-default flex items-center gap-10px">
-        <p class="text-(12px #666)">{{ t('setting.common.provider_label') }}:</p>
-        <a
-          target="_blank"
-          rel="noopener noreferrer"
-          href="https://github.com/HuLaSpark/HuLa"
-          class="text-(12px #034fbc) cursor-pointer no-underline">
-          {{ t('setting.common.provider_name') }}
-        </a>
-      </div>
     </section>
 
     <!-- 右边内容 -->
@@ -52,7 +42,6 @@
         <template v-else>
           <div class="flex-1 p-24px"><router-view /></div>
 
-          <Foot />
         </template>
       </n-scrollbar>
     </section>
@@ -63,7 +52,6 @@ import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow'
 import router from '@/router'
 import { useScannerStore } from '@/stores/scanner.ts'
 import { useSettingStore } from '@/stores/setting.ts'
-import Foot from '@/views/moreWindow/settings/Foot.vue'
 import { useSideOptions } from './config.ts'
 import { useI18n } from 'vue-i18n'
 

@@ -315,7 +315,7 @@
     "modal": {
       "add_friend": "친구 추가 요청"
     },
-    "developer_badge": "HuLa 개발자"
+    "developer_badge": "SMJ 개발자"
   },
   "profile_edit": {
     "title": "프로필 편집",
@@ -366,7 +366,7 @@
   "about": {
     "version": "버전: {version} ({arch})",
     "device": "기기: {type}{version}",
-    "copyright": "Copyright © {start}-{end} HuLaSpark",
+    "copyright": "Copyright © {start}-{end} SMJ",
     "rights": "All Rights Reserved."
   },
   "apply_list": {

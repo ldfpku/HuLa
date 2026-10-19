@@ -40,12 +40,12 @@ import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow'
 import { arch, version } from '@tauri-apps/plugin-os'
 import dayjs from 'dayjs'
 import { getOSType, isWindows } from '@/utils/PlatformConstants'
-import pkg from '~/package.json'
+import { version as appVersion } from '~/package.json'
 
 const { t } = useI18n()
 
 const _pkg = reactive({
-  version: pkg.version
+  version: appVersion
 })
 const osType = ref()
 const osArch = ref()

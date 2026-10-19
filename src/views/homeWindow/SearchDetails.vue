@@ -5,7 +5,7 @@
       <!-- 搜索建议 -->
       <p class="text-(12px #909090)">{{ t('home.search_suggestions') }}</p>
       <n-flex align="center" class="text-(12px #909090)">
-        <p class="p-6px bg-[--search-color] rounded-8px cursor-pointer" @click="applySearchTerm('hula')">hula</p>
+        <p class="p-6px bg-[--search-color] rounded-8px cursor-pointer" @click="applySearchTerm('SMJ')">SMJ</p>
       </n-flex>
 
       <span :class="{ 'mb-10px': historyList.length > 0 }" class="w-full h-1px bg-[--line-color]"></span>
