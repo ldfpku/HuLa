@@ -64,22 +64,6 @@
         <span class="text-[--info-text-color]">{{ t('home.profile_card.labels.location') }}</span>
         <span>{{ currentUserLocation || t('home.profile_card.location_unknown') }}</span>
       </n-flex>
-      <!-- 动态 -->
-      <n-flex :size="40" class="select-none">
-        <span class="text-[--info-text-color]">{{ t('home.profile_card.labels.activities') }}</span>
-        <n-image-group>
-          <n-flex :class="shrinkStatus ? 'overflow-hidden w-180px' : ''" :size="6" :wrap="false">
-            <n-image
-              v-for="n in 4"
-              :key="n"
-              class="rounded-8px"
-              preview-disabled
-              src="https://07akioni.oss-cn-beijing.aliyuncs.com/07akioni.jpeg"
-              width="50" />
-          </n-flex>
-        </n-image-group>
-      </n-flex>
-
       <n-flex :size="40" align="center" justify="center">
         <n-button secondary @click="handleEditing">{{ t('home.profile_card.buttons.edit') }}</n-button>
       </n-flex>

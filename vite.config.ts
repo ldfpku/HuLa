@@ -140,6 +140,20 @@ export default defineConfig(({ mode }: ConfigEnv) => {
       }
     },
     plugins: [
+      {
+        // Vant 图标字体除了内联的 woff2，还带一个 at.alicdn.com 的 woff 备选，浏览器会去下载；去掉外部备选，只用内联字体。
+        // 有组件在 scoped 样式里再次引入了 Vant 的样式，所以在最终产物的 CSS 上处理
+        name: 'smj-strip-external-fonts',
+        generateBundle(_options: unknown, bundle: Record<string, any>) {
+          for (const file of Object.values(bundle)) {
+            if (file.type !== 'asset' || !file.fileName.endsWith('.css')) continue
+            file.source = String(file.source).replace(
+              /,\s*url\(\s*["']?(?:https?:)?\/\/at\.alicdn\.com[^)]*\)\s*format\(["'][a-z0-9]+["']\)/g,
+              ''
+            )
+          }
+        }
+      },
       isWeb && createPublicPathRebase('/im/'),
       isWeb && {
         name: 'smj-web-entry',

@@ -5,6 +5,9 @@ import { MittEnum } from '../enums'
 import { useMitt } from './useMitt'
 import { isMobile } from '@/utils/PlatformConstants'
 
+/** 自建更新渠道前关闭，见 src-tauri/tauri.conf.json 的 updater.endpoints */
+const UPDATE_ENABLED = false
+
 /**
  * 检查更新
  */
@@ -22,15 +25,13 @@ export const useCheckUpdate = () => {
    * @param initialCheck 是否是初始检查，默认为false。初始检查时只显示强制更新提示，不显示普通更新提示
    */
   const checkUpdate = async (closeWin: string, initialCheck: boolean = false) => {
-    if (import.meta.env.DEV) {
+    // SMJ 不使用 HuLa 上游的更新服务（UpgradeLink、Gitee），也就不检查更新
+    if (import.meta.env.DEV || !UPDATE_ENABLED) {
       return
     }
 
     await check({
-      timeout: 5000 /* 接口请求时长 5秒 */,
-      headers: {
-        'X-AccessKey': 'geShj8UB7zd1DyrM_YFNdg' // UpgradeLink的AccessKey
-      }
+      timeout: 5000 /* 接口请求时长 5秒 */
     })
       .then(async (e) => {
         if (!e?.available) {

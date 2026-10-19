@@ -184,7 +184,7 @@ import type { ComponentPublicInstance } from 'vue'
 import { convertFileSrc } from '@tauri-apps/api/core'
 import { appDataDir, join, resourceDir } from '@tauri-apps/api/path'
 import { BaseDirectory, exists, writeFile } from '@tauri-apps/plugin-fs'
-import HulaEmojis from 'hula-emojis'
+import type HulaEmojis from 'hula-emojis'
 import type { ScrollbarInst, VirtualListInst } from 'naive-ui'
 import pLimit from 'p-limit'
 import type { EmojiItem as EmojiListItem } from '@/services/types'
@@ -232,7 +232,8 @@ const emojiStore = useEmojiStore()
 const userStore = useUserStore()
 const { t } = useI18n()
 /** 获取米游社的表情包 */
-const emojisBbs = HulaEmojis.MihoyoBbs
+// 不显示米游社表情包：图片都在 mihoyo / 知乎等外部网站上
+const emojisBbs: { series: typeof HulaEmojis.MihoyoBbs.series } = { series: [] }
 const activeIndex = ref(lastEmojiTabIndex)
 const isFavoritesView = computed(() => activeIndex.value === -1)
 const isSeriesView = computed(() => activeIndex.value > 0)

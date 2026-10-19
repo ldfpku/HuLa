@@ -159,6 +159,11 @@ const mapCommitType = (commitMessage: string) => {
 //let lastVersion: string | null = null
 
 const getCommitLog = async (url: string, isNew = false) => {
+  // 不访问外部服务：原来从 Gitee 读 HuLa 的发布说明，SMJ 暂无发布说明地址
+  if (!url) {
+    loading.value = false
+    return
+  }
   fetch(url).then((res) => {
     if (!res.ok) {
       commitLog.value = [{ message: t('message.check_update.fetch_log_failed'), icon: 'cloudError' }]
@@ -222,7 +227,7 @@ const checkUpdate = async () => {
       }
       newVersion.value = e.version
       // 检查版本之间不同的提交信息和提交日期
-      const url = `https://gitee.com/api/v5/repos/HuLaSpark/HuLa/releases/tags/v${newVersion.value}?access_token=${import.meta.env.VITE_GITEE_TOKEN}`
+      const url = ''
       await getCommitLog(url, true)
       text.value = t('message.check_update.update_now')
     })
@@ -308,7 +313,7 @@ onMounted(async () => {
     loading.value = false
     return
   }
-  const url = `https://gitee.com/api/v5/repos/HuLaSpark/HuLa/releases/tags/v${currentVersion.value}?access_token=${import.meta.env.VITE_GITEE_TOKEN}`
+  const url = ''
   await getCommitLog(url)
   await checkUpdate()
 })

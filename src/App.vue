@@ -608,7 +608,7 @@ const handleWebsocketEvent = async (event: any) => {
  * 在应用启动时发起一个轻量级网络请求，触发iOS的网络权限弹窗
  */
 const requestNetworkPermissionForIOS = async () => {
-  await fetch('https://www.apple.com/favicon.ico', {
+  await fetch('https://mail.smjtools.com/favicon.ico', {
     method: 'HEAD',
     cache: 'no-cache'
   })

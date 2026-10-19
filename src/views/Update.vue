@@ -50,8 +50,6 @@ const total = ref(0)
 const downloaded = ref(0)
 const { t } = useI18n()
 
-// https://gitee.com/api/v5/repos/HuLaSpark/HuLa/releases/tags/v${newVersion.value}?access_token=${import.meta.env.VITE_GITEE_TOKEN}
-
 interface GiteeCommitResultStruct {
   id: number
   tag_name: string
@@ -65,19 +63,8 @@ interface GiteeCommitResultStruct {
 }
 
 const fetchGiteeReleaseData = async (version: string) => {
-  const apiEndpoint = new URL(`https://gitee.com/api/v5/repos/HuLaSpark/HuLa/releases/tags/v${version}`)
-
-  apiEndpoint.search = new URLSearchParams({
-    access_token: import.meta.env.VITE_GITEE_TOKEN
-  }).toString()
-
-  const response = await fetch(apiEndpoint.toString())
-
-  if (!response.ok) {
-    throw new Error(`API request failed with status ${response.status}`)
-  }
-
-  return (await response.json()) as GiteeCommitResultStruct
+  // 不访问外部服务：原来从 Gitee 读 HuLa 的发布说明，SMJ 暂无发布说明地址
+  return Promise.reject<GiteeCommitResultStruct>(new Error(`v${version} 没有发布说明`))
 }
 
 const extractCommitMessages = (releaseBody: string) => {

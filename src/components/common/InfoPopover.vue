@@ -176,22 +176,6 @@
           </template>
         </n-flex>
       </n-flex>
-      <!-- 动态 -->
-      <n-flex :size="40" class="select-none">
-        <span class="text-[--info-text-color]">{{ t('home.profile_card.labels.activities') }}</span>
-        <n-image-group>
-          <n-flex :size="6" :wrap="false">
-            <n-image
-              v-for="n in 4"
-              :key="n"
-              preview-disabled
-              class="rounded-8px"
-              width="50"
-              src="https://07akioni.oss-cn-beijing.aliyuncs.com/07akioni.jpeg" />
-          </n-flex>
-        </n-image-group>
-      </n-flex>
-
       <n-flex justify="center" align="center" :size="40">
         <n-button v-if="isCurrentUserUid" secondary type="info" @click="openEditInfo">
           {{ t('home.profile_card.buttons.edit') }}

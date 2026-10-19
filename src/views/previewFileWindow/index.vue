@@ -7,7 +7,7 @@
       <div class="flex flex-col gap-4 bg-#808080">
         <VueOfficeDocx v-if="isShowWord" :src="resourceSrc" style="height: 100vh" />
 
-        <VueOfficePdf v-else-if="isShowPdf" :src="resourceSrc" style="height: 95vh" />
+        <VueOfficePdf v-else-if="isShowPdf" :src="resourceSrc" :static-file-url="pdfStaticFileUrl" style="height: 95vh" />
 
         <VueOfficeExcel v-else-if="isShowExcel" :src="resourceSrc" style="height: 95vh" />
 
@@ -33,6 +33,9 @@ import { merge } from 'es-toolkit'
 import { useTauriListener } from '@/hooks/useTauriListener'
 import { useWindow } from '@/hooks/useWindow'
 import { getFile } from '@/utils/PathUtil'
+
+// PDF 的字体映射表（cmaps）随应用打包在 public/pdfjs，默认会从 unpkg.com 下载
+const pdfStaticFileUrl = `${import.meta.env.BASE_URL}pdfjs/`
 
 type PayloadData = {
   userId: string
