@@ -5,6 +5,7 @@ pub mod commands;
 pub mod dial;
 pub mod message;
 pub mod proxy;
+pub mod ticket;
 pub mod types;
 
 pub use client::WebSocketClient;
