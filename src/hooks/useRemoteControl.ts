@@ -61,6 +61,8 @@ export const useRemoteControl = (rtc: RemoteControlRtc, peerName: () => string) 
   /** 被控方：已在确认框同意，等本人点“开始共享” */
   const awaitingShare = ref(false)
   let pendingGrant: { granted: boolean; width: number; height: number } | null = null
+  /** 被控方：这路屏幕共享是为远程控制开的，控制结束时一起停掉；本人事先已在共享的不动 */
+  let shareStartedForControl = false
   const cleanups: Array<() => void> = []
 
   const send = (message: SmjControlMessage) => rtc.sendControlMessage(message)
@@ -140,6 +142,13 @@ export const useRemoteControl = (rtc: RemoteControlRtc, peerName: () => string) 
 
   const deny = (reason: DenyReason, detail?: string) => send({ type: 'rc-deny', reason, detail })
 
+  /** 停掉为远程控制开启的屏幕共享 */
+  const stopControlShare = async () => {
+    if (!shareStartedForControl) return
+    shareStartedForControl = false
+    await rtc.stopScreenShare()
+  }
+
   const handleRequest = async () => {
     if (!canBeControlled) {
       deny('web')
@@ -178,6 +187,8 @@ export const useRemoteControl = (rtc: RemoteControlRtc, peerName: () => string) 
       if (rtc.isScreenSharing.value && currentSurface && currentSurface !== 'monitor') {
         await rtc.stopScreenShare()
       }
+      // 换成的整屏共享是为控制开的，控制结束时停掉
+      shareStartedForControl = !rtc.isScreenSharing.value
       pendingGrant = grant
       if (rtc.isScreenSharing.value || navigator.userActivation?.isActive) {
         await shareAndGrant()
@@ -199,6 +210,7 @@ export const useRemoteControl = (rtc: RemoteControlRtc, peerName: () => string) 
     if (!grant) return
     const shared = rtc.isScreenSharing.value || (await rtc.startScreenShare({ monitorOnly: true }))
     if (!shared) {
+      shareStartedForControl = false
       await invoke('remote_control_stop').catch(() => {})
       deny('monitor')
       return
@@ -208,6 +220,7 @@ export const useRemoteControl = (rtc: RemoteControlRtc, peerName: () => string) 
     if (!sameAspect(sharedSize, grant)) {
       // 宽高比和主屏不同，说明共享的是另一块屏幕，点击位置会错，只支持主屏
       await invoke('remote_control_stop').catch(() => {})
+      await stopControlShare()
       window.$message.warning(t('message.call_window.rc_need_primary'))
       deny('not-primary', `${sharedSize.width}x${sharedSize.height} / ${grant.width}x${grant.height}`)
       return
@@ -222,16 +235,18 @@ export const useRemoteControl = (rtc: RemoteControlRtc, peerName: () => string) 
     if (!awaitingShare.value) return
     awaitingShare.value = false
     pendingGrant = null
+    shareStartedForControl = false
     await invoke('remote_control_stop').catch(() => {})
     if (notifyPeer) deny('rejected')
   }
 
-  /** 被控方结束：本机停止注入、通知对方 */
+  /** 被控方结束：本机停止注入、通知对方，停掉为控制开启的共享 */
   const stopBeingControlled = async (notifyPeer = true) => {
     if (!isBeingControlled.value) return
     isBeingControlled.value = false
     if (notifyPeer) send({ type: 'rc-stop' })
     await invoke('remote_control_stop').catch(() => {})
+    await stopControlShare()
     window.$message.info(t('message.call_window.rc_ended'))
   }
 
@@ -334,6 +349,7 @@ export const useRemoteControl = (rtc: RemoteControlRtc, peerName: () => string) 
       isBeingControlled.value = false
       awaitingShare.value = false
       void invoke('remote_control_stop').catch(() => {})
+      void stopControlShare()
     }
     cleanups.splice(0).forEach((fn) => fn())
   })
