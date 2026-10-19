@@ -1,4 +1,5 @@
 import { ImUrlEnum } from '@/enums'
+import type { MessageType } from '@/services/types'
 import { imRequest } from '@/utils/ImRequestUtils'
 
 /** 服务端（mailflare）返回的会议信息 */
@@ -34,6 +35,8 @@ export type MeetingCreateResult = MeetingInfo & {
   /** 已发送邀请邮件的地址 */
   invited: string[]
   mailError: string | null
+  /** 发到会话里的会议链接消息；服务端只推给其他成员，发起人自己的由客户端插入 */
+  message: MessageType | null
 }
 
 export type MeetingJoinResult = MeetingInfo & { authToken: string; host: boolean }

@@ -3,6 +3,7 @@ import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow'
 import { error, info } from '@tauri-apps/plugin-log'
 import { useI18n } from 'vue-i18n'
 import { getRtcIceServers } from '@/utils/MeetingRequestUtils'
+import { applyVideoTier, cameraConstraints, nextTier, readSendStats, type VideoTier } from '@/utils/RtcQualityUtils'
 import { CallTypeEnum, RTCCallStatus } from '@/enums'
 import rustWebSocketClient from '@/services/webSocketRust'
 import { useUserStore } from '@/stores/user'
@@ -168,6 +169,46 @@ export const useWebRtc = (roomId: string, remoteUserId: string, callType: CallTy
   const isScreenShareSupported = typeof navigator !== 'undefined' && !!navigator.mediaDevices?.getDisplayMedia
   let screenMids: ScreenMids = {}
   let screenSenders: { video?: RTCRtpSender; audio?: RTCRtpSender } = {}
+
+  // 摄像头画质：默认 720p，带宽够时升到 1080p（见 RtcQualityUtils）
+  let videoTier: VideoTier = 'hd'
+  let videoQualityTimer: ReturnType<typeof setInterval> | null = null
+  const cameraSender = () =>
+    peerConnection.value
+      ?.getSenders()
+      .find((sender) => sender.track?.kind === 'video' && sender !== screenSenders.video)
+  const applyCameraTier = async () => {
+    const sender = cameraSender()
+    if (!sender) return
+    try {
+      await applyVideoTier(sender, videoTier)
+    } catch (e) {
+      info(`设置视频编码参数失败: ${String(e)}`)
+    }
+  }
+  const startVideoQuality = () => {
+    stopVideoQuality()
+    videoTier = 'hd'
+    void applyCameraTier()
+    let totals: { sent: number; lost: number } | undefined
+    videoQualityTimer = setInterval(async () => {
+      const sender = cameraSender()
+      if (!sender) return
+      const stats = readSendStats(await sender.getStats(), totals)
+      totals = stats.totals
+      const next = nextTier(videoTier, stats.availableBps, stats.lossRate)
+      if (next === videoTier) return
+      info(
+        `视频画质切换: ${videoTier} -> ${next}（可用带宽 ${stats.availableBps ?? '未知'}，丢包 ${stats.lossRate.toFixed(3)}）`
+      )
+      videoTier = next
+      await applyCameraTier()
+    }, 4000)
+  }
+  const stopVideoQuality = () => {
+    if (videoQualityTimer) clearInterval(videoQualityTimer)
+    videoQualityTimer = null
+  }
   // 对方是旧版客户端时退回到替换摄像头画面，停止共享时要换回来
   let replacedCameraTrack: MediaStreamTrack | null = null
   const controlChannel = ref<RTCDataChannel | null>(null)
@@ -429,7 +470,7 @@ export const useWebRtc = (roomId: string, remoteUserId: string, callType: CallTy
         audio: audioDevices.value.length > 0 ? { deviceId: selectedAudioDevice.value || undefined } : false,
         video:
           type === CallTypeEnum.VIDEO && videoDevices.value.length > 0
-            ? { deviceId: selectedVideoDevice.value || undefined }
+            ? cameraConstraints(selectedVideoDevice.value || undefined)
             : false
       }
       if (!constraints.audio && !constraints.video) {
@@ -642,6 +683,7 @@ export const useWebRtc = (roomId: string, remoteUserId: string, callType: CallTy
             info('RTC 连接成功')
             connectionStatus.value = RTCCallStatus.ACCEPT
             startCallTimer() // 开始计时
+            startVideoQuality()
             // 接通后将窗口置顶展示并聚焦
             void focusCurrentWindow()
             break
@@ -809,6 +851,7 @@ export const useWebRtc = (roomId: string, remoteUserId: string, callType: CallTy
       }
       // 停止计时器
       stopCallTimer()
+      stopVideoQuality()
       // 关闭信道
       channel.value?.close?.()
       // 关闭连接
@@ -1051,7 +1094,7 @@ export const useWebRtc = (roomId: string, remoteUserId: string, callType: CallTy
         try {
           const constraints = {
             audio: false,
-            video: videoDevices.value.length > 0 ? { deviceId: selectedVideoDevice.value || undefined } : true
+            video: cameraConstraints(selectedVideoDevice.value || undefined)
           }
 
           const newStream = await navigator.mediaDevices.getUserMedia(constraints)
@@ -1168,7 +1211,7 @@ export const useWebRtc = (roomId: string, remoteUserId: string, callType: CallTy
       if (localStream.value && localStream.value.getVideoTracks().length > 0) {
         const newStream = await navigator.mediaDevices.getUserMedia({
           audio: selectedAudioDevice.value ? { deviceId: { exact: selectedAudioDevice.value || undefined } } : false,
-          video: { deviceId: { exact: deviceId } }
+          video: cameraConstraints(deviceId, true)
         })
 
         // 替换现有轨道
@@ -1183,8 +1226,8 @@ export const useWebRtc = (roomId: string, remoteUserId: string, callType: CallTy
             return
           }
           peerConnection.value?.getSenders().forEach((sender) => {
-            if (sender.track && sender.track.kind === 'video') {
-              sender.replaceTrack(newVideoTrack)
+            if (sender.track && sender.track.kind === 'video' && sender !== screenSenders.video) {
+              void sender.replaceTrack(newVideoTrack).then(applyCameraTier)
             }
           })
           oldVideoTrack && localStream.value.removeTrack(oldVideoTrack)

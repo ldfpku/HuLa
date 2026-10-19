@@ -3,6 +3,8 @@ import { WebviewWindow } from '@tauri-apps/api/webviewWindow'
 import { BaseDirectory, writeTextFile } from '@tauri-apps/plugin-fs'
 import { openPath, openUrl } from '@tauri-apps/plugin-opener'
 import { error, info } from '@tauri-apps/plugin-log'
+import { useMitt } from '@/hooks/useMitt'
+import { WsResponseMessageType } from '@/services/wsType'
 import { isDesktop } from '@/utils/PlatformConstants'
 import {
   cancelMeeting,
@@ -77,6 +79,8 @@ export const useMeeting = () => {
   const startMeeting = async (params: MeetingCreateParams): Promise<MeetingCreateResult> => {
     const created = await createMeeting(params)
     info(`[会议] 已创建 ${created.id}，邮件邀请 ${created.invited.length} 人`)
+    // 和收到的消息走同一条路（去重、显示、存本地），否则发起人要刷新才看到会议卡片
+    if (created.message) useMitt.emit(WsResponseMessageType.RECEIVE_MESSAGE, created.message)
     if (created.mailError) {
       window.$message?.warning?.(`会议已创建，但邀请邮件未发出：${created.mailError}`)
     }
