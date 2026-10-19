@@ -178,6 +178,22 @@
         "my_name": "我本群的昵称",
         "remark": "群备注",
         "remark_desc": "(群备注仅自己可见)",
+        "mailbox": {
+          "title": "群邮箱",
+          "desc": "发到这个地址的邮件会自动发到群里",
+          "off": "未开启",
+          "create": "开启群邮箱",
+          "enable": "重新开启",
+          "disable": "关闭",
+          "copy": "复制地址",
+          "copied": "已复制群邮箱地址",
+          "placeholder": "邮箱名",
+          "no_domain": "你的账号没有可用的邮件域名，无法创建群邮箱",
+          "member_hint": "群主或管理员可以为本群开启邮箱",
+          "disabled_hint": "已关闭，发到这个地址的邮件不会再进群",
+          "confirm_disable": "关闭后发到 {address} 的邮件不会再进群，已收到的邮件仍可在群里查看。确定关闭吗？",
+          "enabled": "群邮箱已开启"
+        },
         "settings": {
           "title": "群设置",
           "pin": "设为置顶",

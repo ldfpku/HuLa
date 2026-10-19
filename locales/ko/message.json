@@ -279,6 +279,7 @@
     "no_subject": "(제목 없음)",
     "attachments": "첨부 파일 {count}개",
     "open": "클릭하여 메일 보기",
-    "open_failed": "메일을 열 수 없습니다"
+    "open_failed": "메일을 열 수 없습니다",
+    "via_mailbox": "그룹 메일"
   }
 }

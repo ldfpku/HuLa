@@ -4,6 +4,7 @@ import { NotificationTypeEnum, RoomActEnum, SessionOperateEnum } from '@/enums'
 import { IsAllUserEnum, type UserItem, type SessionItem } from '@/services/types'
 import { useGroupStore } from '@/stores/group'
 import { AvatarUtils } from '@/utils/AvatarUtils'
+import GroupMailbox from './GroupMailbox.vue'
 
 const { t } = useI18n()
 const groupStore = useGroupStore()
@@ -190,6 +191,9 @@ watch(
     autoCapitalize="off"
     clearable
     @blur.stop="emit('group-info-change')" />
+
+  <!-- 群邮箱：发到群地址的邮件自动发到群里 -->
+  <GroupMailbox v-if="currentSessionRoomId" :room-id="currentSessionRoomId" />
 
   <!-- 群设置选项 -->
   <div class="box-item cursor-default">

@@ -279,6 +279,7 @@
     "no_subject": "(无主题)",
     "attachments": "{count} 个附件",
     "open": "点击查看邮件",
-    "open_failed": "打开邮件失败"
+    "open_failed": "打开邮件失败",
+    "via_mailbox": "群邮箱"
   }
 }

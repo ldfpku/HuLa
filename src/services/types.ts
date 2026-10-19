@@ -495,6 +495,24 @@ export type MailCardBody = {
   attachmentCount: number
   /** 查看邮件的地址 */
   url: string
+  /** 'mailbox' 表示由群邮箱收到，而不是有人转发 */
+  via?: 'mailbox'
+  /** 群邮箱地址（via 为 'mailbox' 时） */
+  mailbox?: string
+}
+
+/** 群邮箱状态 */
+export type RoomMailboxState = {
+  /** 群邮箱地址，未创建过时为 null */
+  address: string | null
+  /** 是否开启 */
+  enabled: boolean
+  /** 当前用户能否开启和关闭（群主、管理员） */
+  canManage: boolean
+  /** 未创建时建议的邮箱名 */
+  suggestedLocalPart: string
+  /** 新地址所在的域名，没有可用域名时为 null */
+  domain: string | null
 }
 
 /**

@@ -4,7 +4,9 @@
       <svg class="size-16px color-#034fbc shrink-0">
         <use href="#mail"></use>
       </svg>
-      <p class="text-12px color-[--text-color] opacity-70">{{ t('message.mail_card.label') }}</p>
+      <p class="text-12px color-[--text-color] opacity-70 truncate" :title="body?.mailbox">
+        {{ body?.via === 'mailbox' ? t('message.mail_card.via_mailbox') : t('message.mail_card.label') }}
+      </p>
       <p v-if="body?.attachmentCount" class="ml-auto text-11px color-[--text-color] opacity-70">
         {{ t('message.mail_card.attachments', { count: body.attachmentCount }) }}
       </p>
