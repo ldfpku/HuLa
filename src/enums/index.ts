@@ -854,6 +854,8 @@ export enum ImUrlEnum {
   MEETING_JOIN = 'meetingJoin',
   MEETING_ICS = 'meetingIcs',
   MEETING_CANCEL = 'meetingCancel',
+  /** 预约会议的日程助手：参会人忙碌时段与推荐空闲时段 */
+  MEETING_AVAILABILITY = 'meetingAvailability',
 
   /** 发送 AI 消息 */
   MESSAGE_SEND_STREAM = 'messageSendStream',
