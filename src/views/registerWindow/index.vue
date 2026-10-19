@@ -524,7 +524,7 @@ onUnmounted(() => {
 @use '@/styles/scss/login';
 
 .textFont {
-  font-family: AliFangYuan, sans-serif !important;
+  font-family: var(--font-family), sans-serif !important;
 }
 
 :deep(.n-form-item.n-form-item--top-labelled) {

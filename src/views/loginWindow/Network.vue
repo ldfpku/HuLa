@@ -243,7 +243,7 @@ const updateTauriSettings = async (proxySettings: ProxySettings) => {
 @use '@/styles/scss/global/login-bg';
 
 .textFont {
-  font-family: AliFangYuan, sans-serif !important;
+  font-family: var(--font-family), sans-serif !important;
 }
 
 :deep(.n-input .n-input__input-el) {
