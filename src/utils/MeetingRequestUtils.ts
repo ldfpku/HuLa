@@ -68,3 +68,53 @@ export async function cancelMeeting(id: string): Promise<{ id: string; mailError
 export async function getMeetingIcs(id: string): Promise<{ filename: string; body: string }> {
   return await imRequest({ url: ImUrlEnum.MEETING_ICS, params: { id } })
 }
+
+/** 忙碌时段来源：会议（系统内视频会议）、日程（邮件日历）、邮件邀请（收到的 .ics） */
+export type MeetingBusySource = 'meeting' | 'calendar' | 'mail'
+
+export type MeetingBusyBlock = {
+  start: number
+  end: number
+  source: MeetingBusySource
+  /** 只有本人或同一会议的参会人才能看到标题 */
+  title?: string
+}
+
+export type MeetingAvailabilityParticipant = {
+  uid: string
+  name: string
+  avatar: string
+  busy: MeetingBusyBlock[]
+}
+
+export type MeetingAvailability = {
+  timeZone: string
+  from: number
+  to: number
+  /** 工作时间，单位为当天零点起的分钟数 */
+  workHours: { start: number; end: number }
+  /** 第一位是自己 */
+  participants: MeetingAvailabilityParticipant[]
+  /** 不是在职公司账号、被略过的 uid */
+  excluded: string[]
+  /** 所有人都空闲的最早几个时段 */
+  suggestions: { start: number; end: number }[]
+}
+
+export type MeetingAvailabilityParams = {
+  /** 不传 userIds 时按会话成员查询（全员群除外） */
+  roomId?: string
+  userIds?: string[]
+  /** 查询起点（毫秒） */
+  from: number
+  /** 查询天数，1 到 14，默认 7 */
+  days?: number
+  durationMinutes: number
+  /** 推荐时段按这个时区的工作时间计算 */
+  timeZone?: string
+}
+
+/** 预约会议的日程助手：参会人的忙碌时段与推荐空闲时段 */
+export async function getMeetingAvailability(body: MeetingAvailabilityParams): Promise<MeetingAvailability> {
+  return await imRequest({ url: ImUrlEnum.MEETING_AVAILABILITY, body }, { showError: false })
+}
