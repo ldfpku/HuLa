@@ -13,7 +13,9 @@ import { type RemoteInput, sameAspect } from '@/utils/RemoteControlUtils'
  * - caps：通道打开时互相告知能否被控制（桌面版 controllable，网页版 controller）
  * - rc-request：控制方请求；rc-grant / rc-deny：被控方答复；rc-stop：任意一方结束
  * - rc-input：控制方的鼠标键盘输入，只有被控方同意后的会话里才会注入
- * 被控方的同意由 Rust 弹出的系统确认框决定，Rust 侧没有同意过的会话时拒绝注入。
+ * 被控方的同意由 Rust 弹出的系统确认框决定，Rust 侧没有同意过的会话时拒绝注入；
+ * 同意后要等整屏共享就绪、核对是主屏，再调用 remote_control_activate 放行输入。
+ * 会话期间每 2 秒给 Rust 发心跳，通话窗口卡住时 Rust 会自己结束会话。
  */
 export type RemoteControlRole = 'idle' | 'requesting' | 'controlling'
 
@@ -34,6 +36,7 @@ type PeerCaps = 'controllable' | 'controller'
 type DenyReason = 'rejected' | 'web' | 'busy' | 'monitor' | 'not-primary' | 'error'
 
 const REQUEST_TIMEOUT = 60 * 1000
+const HEARTBEAT_INTERVAL = 2000
 
 // 只给自动化测试用：带 VITE_SMJ_RC_E2E=1 构建时，网页可以假装成被控端（Rust 命令由测试脚本替身），正式构建里这段会被去掉
 const isE2eControllable = () => {
@@ -63,6 +66,7 @@ export const useRemoteControl = (rtc: RemoteControlRtc, peerName: () => string) 
   let pendingGrant: { granted: boolean; width: number; height: number } | null = null
   /** 被控方：这路屏幕共享是为远程控制开的，控制结束时一起停掉；本人事先已在共享的不动 */
   let shareStartedForControl = false
+  let heartbeatTimer: ReturnType<typeof setInterval> | null = null
   const cleanups: Array<() => void> = []
 
   const send = (message: SmjControlMessage) => rtc.sendControlMessage(message)
@@ -142,6 +146,26 @@ export const useRemoteControl = (rtc: RemoteControlRtc, peerName: () => string) 
 
   const deny = (reason: DenyReason, detail?: string) => send({ type: 'rc-deny', reason, detail })
 
+  const stopHeartbeat = () => {
+    if (heartbeatTimer) clearInterval(heartbeatTimer)
+    heartbeatTimer = null
+  }
+
+  /** 会话期间给 Rust 发心跳；Rust 那边会话已不在（超时、紧急退出）时本地也结束 */
+  const startHeartbeat = () => {
+    stopHeartbeat()
+    heartbeatTimer = setInterval(() => {
+      invoke<boolean>('remote_control_heartbeat')
+        .then((alive) => {
+          if (alive) return
+          stopHeartbeat()
+          if (isBeingControlled.value) void stopBeingControlled()
+          else void cancelPendingShare()
+        })
+        .catch(() => {})
+    }, HEARTBEAT_INTERVAL)
+  }
+
   /** 停掉为远程控制开启的屏幕共享 */
   const stopControlShare = async () => {
     if (!shareStartedForControl) return
@@ -158,6 +182,11 @@ export const useRemoteControl = (rtc: RemoteControlRtc, peerName: () => string) 
       deny('busy')
       return
     }
+    // 通话没接通（或已结束）不弹确认框
+    if (rtc.connectionStatus.value !== RTCCallStatus.ACCEPT) {
+      deny('error', t('message.call_window.rc_after_connected'))
+      return
+    }
     handlingRequest = true
     try {
       let grant: { granted: boolean; width: number; height: number }
@@ -170,14 +199,17 @@ export const useRemoteControl = (rtc: RemoteControlRtc, peerName: () => string) 
         return
       }
       if (!grant?.granted) {
+        info('远程控制：本人在确认框拒绝')
         deny('rejected')
         return
       }
       // 对方可能在确认框弹出期间挂断或取消了
       if (rtc.connectionStatus.value !== RTCCallStatus.ACCEPT) {
+        info('远程控制：同意时通话已结束')
         await invoke('remote_control_stop').catch(() => {})
         return
       }
+      startHeartbeat()
       // 控制要看到整个屏幕：正在共享窗口或标签页时先停掉，再请本人选整个屏幕
       const currentSurface = (
         rtc.localScreenStream.value?.getVideoTracks()[0]?.getSettings() as
@@ -194,6 +226,7 @@ export const useRemoteControl = (rtc: RemoteControlRtc, peerName: () => string) 
         await shareAndGrant()
       } else {
         // 浏览器内核要求共享屏幕由本人点击触发：确认框之后再请本人点一下“开始共享”
+        info('远程控制：已同意，等本人点开始共享')
         awaitingShare.value = true
         send({ type: 'rc-pending' })
       }
@@ -208,9 +241,12 @@ export const useRemoteControl = (rtc: RemoteControlRtc, peerName: () => string) 
     awaitingShare.value = false
     pendingGrant = null
     if (!grant) return
+    info('远程控制：开始共享整个屏幕')
     const shared = rtc.isScreenSharing.value || (await rtc.startScreenShare({ monitorOnly: true }))
     if (!shared) {
+      info('远程控制：没有共享整个屏幕，结束')
       shareStartedForControl = false
+      stopHeartbeat()
       await invoke('remote_control_stop').catch(() => {})
       deny('monitor')
       return
@@ -219,10 +255,21 @@ export const useRemoteControl = (rtc: RemoteControlRtc, peerName: () => string) 
     const sharedSize = { width: settings?.width ?? 0, height: settings?.height ?? 0 }
     if (!sameAspect(sharedSize, grant)) {
       // 宽高比和主屏不同，说明共享的是另一块屏幕，点击位置会错，只支持主屏
+      stopHeartbeat()
       await invoke('remote_control_stop').catch(() => {})
       await stopControlShare()
       window.$message.warning(t('message.call_window.rc_need_primary'))
       deny('not-primary', `${sharedSize.width}x${sharedSize.height} / ${grant.width}x${grant.height}`)
+      return
+    }
+    // 共享就绪：请 Rust 放行输入。等共享期间会话可能已结束（超时、本人停止、挂断）
+    try {
+      await invoke('remote_control_activate')
+    } catch (e) {
+      warn(`远程控制放行失败: ${String(e)}`)
+      stopHeartbeat()
+      await stopControlShare()
+      deny('error', String(e))
       return
     }
     isBeingControlled.value = true
@@ -236,6 +283,7 @@ export const useRemoteControl = (rtc: RemoteControlRtc, peerName: () => string) 
     awaitingShare.value = false
     pendingGrant = null
     shareStartedForControl = false
+    stopHeartbeat()
     await invoke('remote_control_stop').catch(() => {})
     if (notifyPeer) deny('rejected')
   }
@@ -244,6 +292,7 @@ export const useRemoteControl = (rtc: RemoteControlRtc, peerName: () => string) 
   const stopBeingControlled = async (notifyPeer = true) => {
     if (!isBeingControlled.value) return
     isBeingControlled.value = false
+    stopHeartbeat()
     if (notifyPeer) send({ type: 'rc-stop' })
     await invoke('remote_control_stop').catch(() => {})
     await stopControlShare()
@@ -335,9 +384,13 @@ export const useRemoteControl = (rtc: RemoteControlRtc, peerName: () => string) 
 
   // 本人在屏幕顶部提示条上点了“停止控制”，或通话窗口关闭时 Rust 结束了会话
   if (canBeControlled) {
-    listen('remote-control-stopped', () => {
+    listen<string>('remote-control-stopped', (event) => {
+      info(`远程控制已在本机结束: ${event.payload}`)
+      // 本机按住 Esc 紧急退出：本人事先开的共享也一起停
+      if (event.payload === 'escape') shareStartedForControl = true
       if (isBeingControlled.value) void stopBeingControlled()
-      else void cancelPendingShare()
+      else if (awaitingShare.value) void cancelPendingShare()
+      else void stopControlShare()
     })
       .then((unlisten) => cleanups.push(unlisten))
       .catch(() => {})
@@ -345,6 +398,7 @@ export const useRemoteControl = (rtc: RemoteControlRtc, peerName: () => string) 
 
   onUnmounted(() => {
     clearRequestTimer()
+    stopHeartbeat()
     if (isBeingControlled.value || awaitingShare.value) {
       isBeingControlled.value = false
       awaitingShare.value = false

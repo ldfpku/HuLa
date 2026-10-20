@@ -210,6 +210,14 @@ fn pick_monitor(app: &AppHandle, width: Option<u32>, height: Option<u32>) -> Opt
     app.primary_monitor().ok().flatten()
 }
 
+/// 收起共享提示（远程控制紧急退出时调用）
+#[cfg(target_os = "windows")]
+pub fn hide_overlays(app: &AppHandle) {
+    hide(app);
+}
+
+/// 边框窗口盖满整块显示器：先隐藏着创建、设好鼠标穿透再显示，穿透设不上就不显示，
+/// 避免出现一个挡住整块屏幕、本机和远程控制都点不到东西的置顶窗口
 fn show_border(app: &AppHandle, monitor: &Monitor) -> tauri::Result<()> {
     let scale = monitor.scale_factor();
     let size = monitor.size().to_logical::<f64>(scale);
@@ -231,8 +239,14 @@ fn show_border(app: &AppHandle, monitor: &Monitor) -> tauri::Result<()> {
             .minimizable(false)
             .maximizable(false)
             .content_protected(true)
+            .visible(false)
             .build()?;
-    border.set_ignore_cursor_events(true)?;
+    if let Err(e) = border.set_ignore_cursor_events(true) {
+        let _ = border.close();
+        return Err(e);
+    }
+    border.show()?;
+    tracing::info!("共享边框已显示（鼠标穿透）");
     Ok(())
 }
 

@@ -3,14 +3,22 @@
 //! 只操作主显示器；坐标由前端换算成主屏画面里 0 到 1 的比例。
 //!
 //! 安全上的约束都在这里兜底，不依赖前端：
-//! - 没有经确认框同意的会话时，输入一律拒绝；
+//! - 没有经确认框同意的会话时，输入一律拒绝；同意后还要等通话窗口确认整屏共享已就绪
+//!   （[`remote_control_activate`]）才放行；
 //! - 发起会话的通话窗口关闭、提示条上点“停止控制”或前端调用停止，都会结束会话并松开所有按下的键；
+//! - 通话窗口要持续发心跳，卡住或没响应超过 [`HEARTBEAT_TIMEOUT`] 自动结束；同意后迟迟没开始共享也会结束；
+//! - 本机按住 Esc 一秒立即结束（Windows，只认本机键盘，对方发来的按键不算），
+//!   即使应用界面没有响应，也会停止注入并收起置顶的提示窗口；
 //! - 坐标限制在主屏范围内，一次输入的文字长度有上限。
+//!
+//! 输入、心跳、停止都是异步命令，不占主线程：主线程忙或卡住时注入和停止仍能进行。
 
 use std::collections::HashSet;
 use std::sync::Mutex;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::mpsc::{self, Receiver, Sender};
 use std::thread;
+use std::time::{Duration, Instant};
 
 use enigo::{Axis, Button, Coordinate, Direction, Enigo, Key, Keyboard, Mouse, Settings};
 use serde::{Deserialize, Serialize};
@@ -23,6 +31,16 @@ const INDICATOR_LABEL: &str = "rcIndicator";
 const STOPPED_EVENT: &str = "remote-control-stopped";
 /// 单次文字输入的长度上限（字符）
 const MAX_TEXT_CHARS: usize = 2000;
+/// 通话窗口多久没发心跳就结束会话（前端每 2 秒发一次）
+pub const HEARTBEAT_TIMEOUT: Duration = Duration::from_secs(8);
+/// 同意后多久还没开始共享整个屏幕就结束会话
+const ACTIVATE_TIMEOUT: Duration = Duration::from_secs(90);
+/// 本机按住 Esc 多久结束控制
+#[cfg(target_os = "windows")]
+const ESCAPE_HOLD_MS: u32 = 1000;
+/// 结束原因：本机按住 Esc。前端收到后连同屏幕共享一起停掉
+#[cfg(target_os = "windows")]
+const REASON_ESCAPE: &str = "escape";
 
 #[derive(Debug, Deserialize)]
 #[serde(tag = "kind", rename_all = "camelCase")]
@@ -59,12 +77,40 @@ enum Job {
 }
 
 struct Session {
+    id: u64,
     tx: Sender<Job>,
     /// 发起会话的通话窗口
     window_label: String,
+    /// 通话窗口已确认整屏共享就绪，可以注入输入
+    active: bool,
+    started: Instant,
+    last_beat: Instant,
+}
+
+/// 会话检查的结果
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Verdict {
+    Keep,
+    /// 通话窗口没有心跳
+    Silent,
+    /// 同意后一直没开始共享
+    NotShared,
+}
+
+impl Session {
+    fn verdict(&self, now: Instant) -> Verdict {
+        if now.duration_since(self.last_beat) > HEARTBEAT_TIMEOUT {
+            Verdict::Silent
+        } else if !self.active && now.duration_since(self.started) > ACTIVATE_TIMEOUT {
+            Verdict::NotShared
+        } else {
+            Verdict::Keep
+        }
+    }
 }
 
 static SESSION: Mutex<Option<Session>> = Mutex::new(None);
+static NEXT_SESSION_ID: AtomicU64 = AtomicU64::new(1);
 /// 确认框弹出期间不再接受新的请求
 static ASKING: Mutex<bool> = Mutex::new(false);
 
@@ -126,13 +172,25 @@ pub async fn remote_control_request(
         .map_err(|_| "无法启动远程控制".to_string())??;
 
     let window_label = window.label().to_string();
+    let id = NEXT_SESSION_ID.fetch_add(1, Ordering::Relaxed);
     {
         let mut guard = SESSION.lock().map_err(|e| e.to_string())?;
+        let now = Instant::now();
         *guard = Some(Session {
+            id,
             tx,
             window_label: window_label.clone(),
+            active: false,
+            started: now,
+            last_beat: now,
         });
     }
+    #[cfg(target_os = "windows")]
+    escape::start();
+    let watch_app = app.clone();
+    let _ = thread::Builder::new()
+        .name("remote-control-watchdog".into())
+        .spawn(move || watchdog(watch_app, id));
 
     // 通话窗口关闭（挂断、崩溃）时结束会话
     let close_app = app.clone();
@@ -149,8 +207,9 @@ pub async fn remote_control_request(
         }
     });
 
-    if let Err(e) = show_indicator(&app, &peer) {
-        tracing::warn!("远程控制提示条创建失败: {}", e);
+    match show_indicator(&app, &peer) {
+        Ok(()) => tracing::info!("远程控制提示条已创建"),
+        Err(e) => tracing::warn!("远程控制提示条创建失败: {}", e),
     }
     tracing::info!("远程控制已开始，主屏 {}x{}", width, height);
     Ok(RemoteControlGrant {
@@ -160,13 +219,43 @@ pub async fn remote_control_request(
     })
 }
 
-/// 注入一条输入；没有已同意的会话时拒绝
+/// 通话窗口确认整屏共享已就绪、核对过是主屏，此后才注入输入
 #[tauri::command]
-pub fn remote_control_input(input: RemoteInput) -> Result<(), String> {
+pub async fn remote_control_activate() -> Result<(), String> {
+    let mut guard = SESSION.lock().map_err(|e| e.to_string())?;
+    let Some(session) = guard.as_mut() else {
+        return Err("远程控制已结束".into());
+    };
+    session.active = true;
+    session.last_beat = Instant::now();
+    tracing::info!("远程控制已放行输入");
+    Ok(())
+}
+
+/// 通话窗口的心跳；返回会话是否还在
+#[tauri::command]
+pub async fn remote_control_heartbeat() -> bool {
+    SESSION
+        .lock()
+        .ok()
+        .and_then(|mut g| {
+            g.as_mut().map(|s| {
+                s.last_beat = Instant::now();
+            })
+        })
+        .is_some()
+}
+
+/// 注入一条输入；没有已同意并已开始共享的会话时拒绝
+#[tauri::command]
+pub async fn remote_control_input(input: RemoteInput) -> Result<(), String> {
     let guard = SESSION.lock().map_err(|e| e.to_string())?;
     let Some(session) = guard.as_ref() else {
         return Err("远程控制未授权".into());
     };
+    if !session.active {
+        return Err("远程控制尚未开始".into());
+    }
     session
         .tx
         .send(Job::Input(input))
@@ -175,14 +264,84 @@ pub fn remote_control_input(input: RemoteInput) -> Result<(), String> {
 
 /// 结束远程控制（提示条按钮、通话窗口、挂断都会调用）
 #[tauri::command]
-pub fn remote_control_stop(app: AppHandle) -> Result<bool, String> {
+pub async fn remote_control_stop(app: AppHandle) -> Result<bool, String> {
     Ok(stop_session(&app, "stopped"))
 }
 
 /// 当前是否有远程控制会话
 #[tauri::command]
-pub fn remote_control_active() -> bool {
+pub async fn remote_control_active() -> bool {
     SESSION.lock().map(|g| g.is_some()).unwrap_or(false)
+}
+
+/// 每 200 毫秒检查一次会话：本机按住 Esc、心跳超时、迟迟没开始共享都结束会话
+fn watchdog(app: AppHandle, id: u64) {
+    loop {
+        thread::sleep(Duration::from_millis(200));
+        let verdict = {
+            let Ok(guard) = SESSION.lock() else { return };
+            match guard.as_ref() {
+                Some(session) if session.id == id => session.verdict(Instant::now()),
+                // 会话已结束或已被新的会话替换
+                _ => return,
+            }
+        };
+        #[cfg(target_os = "windows")]
+        if escape::take_triggered() {
+            tracing::warn!("本机按住 Esc，结束远程控制");
+            // 界面可能已无响应：先直接收起置顶的提示窗口，保证本机能点到别的东西
+            escape::hide_overlay_windows();
+            exit_if_ui_hung(&app);
+            stop_session_if(&app, id, REASON_ESCAPE);
+            super::share_indicator::hide_overlays(&app);
+            return;
+        }
+        let reason = match verdict {
+            Verdict::Keep => continue,
+            Verdict::Silent => "no-heartbeat",
+            Verdict::NotShared => "not-shared",
+        };
+        tracing::warn!("远程控制自动结束: {}", reason);
+        #[cfg(target_os = "windows")]
+        if verdict == Verdict::Silent {
+            // 通话窗口没响应，界面可能卡住：直接收起置顶的提示窗口
+            escape::hide_overlay_windows();
+        }
+        stop_session_if(&app, id, reason);
+        return;
+    }
+}
+
+/// 本机按住 Esc 后，主线程 3 秒内没响应说明界面已卡死：强制退出应用，免得只能重启电脑
+#[cfg(target_os = "windows")]
+fn exit_if_ui_hung(app: &AppHandle) {
+    let (tx, rx) = mpsc::channel::<()>();
+    if app
+        .run_on_main_thread(move || {
+            let _ = tx.send(());
+        })
+        .is_err()
+    {
+        return;
+    }
+    let _ = thread::Builder::new()
+        .name("remote-control-ui-probe".into())
+        .spawn(move || {
+            if rx.recv_timeout(Duration::from_secs(3)).is_err() {
+                tracing::error!("远程控制紧急退出：界面 3 秒无响应，强制退出应用");
+                std::process::exit(1);
+            }
+        });
+}
+
+/// 只结束指定的会话（检查期间可能已换成新的会话）
+fn stop_session_if(app: &AppHandle, id: u64, reason: &str) -> bool {
+    let current = SESSION
+        .lock()
+        .ok()
+        .and_then(|g| g.as_ref().map(|s| s.id))
+        .unwrap_or(0);
+    current == id && stop_session(app, reason)
 }
 
 fn stop_session(app: &AppHandle, reason: &str) -> bool {
@@ -191,6 +350,13 @@ fn stop_session(app: &AppHandle, reason: &str) -> bool {
         return false;
     };
     let _ = session.tx.send(Job::Stop);
+    #[cfg(target_os = "windows")]
+    escape::stop();
+    tracing::info!(
+        "远程控制结束中: {}（已放行输入: {}）",
+        reason,
+        session.active
+    );
     if let Some(indicator) = app.get_webview_window(INDICATOR_LABEL) {
         let _ = indicator.close();
     }
@@ -217,7 +383,7 @@ fn show_indicator(app: &AppHandle, peer: &str) -> tauri::Result<()> {
         let _ = existing.close();
     }
     let name: String = url::form_urlencoded::byte_serialize(peer.as_bytes()).collect();
-    let width = 420.0;
+    let width = 500.0;
     let height = 48.0;
     let mut builder = WebviewWindowBuilder::new(
         app,
@@ -446,9 +612,189 @@ fn map_key(key: &str) -> Option<Key> {
     Some(named)
 }
 
+/// 本机的紧急退出：按住 Esc 一秒结束控制。
+/// 用低级键盘钩子在独立线程里监听，不依赖应用界面和主线程；钩子只观察、不拦截按键，
+/// 并跳过注入的按键（对方发来的 Esc 不算）。
+#[cfg(target_os = "windows")]
+mod escape {
+    use std::sync::Mutex;
+    use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
+    use std::thread;
+
+    use windows::Win32::Foundation::{HWND, LPARAM, LRESULT, WPARAM};
+    use windows::Win32::System::Threading::{GetCurrentProcessId, GetCurrentThreadId};
+    use windows::Win32::UI::WindowsAndMessaging::{
+        CallNextHookEx, EnumWindows, GetMessageW, GetWindowThreadProcessId, InternalGetWindowText,
+        KBDLLHOOKSTRUCT, LLKHF_INJECTED, MSG, PostThreadMessageW, SW_HIDE, SetWindowsHookExW,
+        ShowWindowAsync, UnhookWindowsHookEx, WH_KEYBOARD_LL, WM_KEYDOWN, WM_KEYUP, WM_QUIT,
+        WM_SYSKEYDOWN, WM_SYSKEYUP,
+    };
+    use windows::core::BOOL;
+
+    const VK_ESCAPE: u32 = 0x1B;
+    /// 紧急退出时直接隐藏的置顶窗口（按窗口标题找，只找本进程的）
+    const OVERLAY_TITLES: [&str; 2] = ["远程控制中", "正在共享屏幕"];
+
+    static TRIGGERED: AtomicBool = AtomicBool::new(false);
+    /// 本机 Esc 按下的时刻（键盘事件时间戳，0 表示没按着）
+    static DOWN_AT: AtomicU32 = AtomicU32::new(0);
+    static HOOK_THREAD: Mutex<Option<u32>> = Mutex::new(None);
+
+    /// 按下时刻和当前时刻（毫秒时间戳，会回绕）判断是否按满一秒
+    pub(super) fn held_long_enough(down_at: u32, now: u32) -> bool {
+        down_at != 0 && now.wrapping_sub(down_at) >= super::ESCAPE_HOLD_MS
+    }
+
+    unsafe extern "system" fn hook(code: i32, wparam: WPARAM, lparam: LPARAM) -> LRESULT {
+        if code >= 0 && lparam.0 != 0 {
+            let kb = unsafe { &*(lparam.0 as *const KBDLLHOOKSTRUCT) };
+            let injected = (kb.flags.0 & LLKHF_INJECTED.0) != 0;
+            if kb.vkCode == VK_ESCAPE && !injected {
+                match wparam.0 as u32 {
+                    WM_KEYDOWN | WM_SYSKEYDOWN => {
+                        let down_at = DOWN_AT.load(Ordering::Relaxed);
+                        if down_at == 0 {
+                            DOWN_AT.store(kb.time.max(1), Ordering::Relaxed);
+                        } else if held_long_enough(down_at, kb.time) {
+                            TRIGGERED.store(true, Ordering::Relaxed);
+                        }
+                    }
+                    WM_KEYUP | WM_SYSKEYUP => DOWN_AT.store(0, Ordering::Relaxed),
+                    _ => {}
+                }
+            }
+        }
+        unsafe { CallNextHookEx(None, code, wparam, lparam) }
+    }
+
+    pub fn start() {
+        stop();
+        TRIGGERED.store(false, Ordering::Relaxed);
+        DOWN_AT.store(0, Ordering::Relaxed);
+        let spawned = thread::Builder::new()
+            .name("remote-control-escape".into())
+            .spawn(|| unsafe {
+                let hook = match SetWindowsHookExW(WH_KEYBOARD_LL, Some(hook), None, 0) {
+                    Ok(hook) => hook,
+                    Err(e) => {
+                        tracing::warn!("远程控制 Esc 退出监听失败: {}", e);
+                        return;
+                    }
+                };
+                if let Ok(mut guard) = HOOK_THREAD.lock() {
+                    *guard = Some(GetCurrentThreadId());
+                }
+                // 低级钩子需要本线程有消息循环
+                let mut msg = MSG::default();
+                while GetMessageW(&mut msg, None, 0, 0).as_bool() {}
+                let _ = UnhookWindowsHookEx(hook);
+            });
+        if let Err(e) = spawned {
+            tracing::warn!("远程控制 Esc 退出监听启动失败: {}", e);
+        }
+    }
+
+    pub fn stop() {
+        let thread_id = HOOK_THREAD.lock().ok().and_then(|mut g| g.take());
+        if let Some(thread_id) = thread_id {
+            unsafe {
+                let _ = PostThreadMessageW(thread_id, WM_QUIT, WPARAM(0), LPARAM(0));
+            }
+        }
+    }
+
+    pub fn take_triggered() -> bool {
+        TRIGGERED.swap(false, Ordering::Relaxed)
+    }
+
+    unsafe extern "system" fn hide_if_overlay(hwnd: HWND, _: LPARAM) -> BOOL {
+        let mut pid = 0u32;
+        unsafe { GetWindowThreadProcessId(hwnd, Some(&mut pid)) };
+        if pid != unsafe { GetCurrentProcessId() } {
+            return true.into();
+        }
+        let mut buf = [0u16; 64];
+        let len = unsafe { InternalGetWindowText(hwnd, &mut buf) };
+        let title = String::from_utf16_lossy(&buf[..len.max(0) as usize]);
+        if OVERLAY_TITLES.contains(&title.as_str()) {
+            // 异步隐藏：窗口所在线程卡住时也不会等它
+            let _ = unsafe { ShowWindowAsync(hwnd, SW_HIDE) };
+        }
+        true.into()
+    }
+
+    /// 直接隐藏本进程的提示条和共享边框，不经过主线程
+    pub fn hide_overlay_windows() {
+        unsafe {
+            let _ = EnumWindows(Some(hide_if_overlay), LPARAM(0));
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn session(active: bool, started_ago: Duration, beat_ago: Duration) -> (Session, Instant) {
+        let now = Instant::now() + Duration::from_secs(3600);
+        let (tx, _rx) = mpsc::channel();
+        (
+            Session {
+                id: 1,
+                tx,
+                window_label: "rtcCall".into(),
+                active,
+                started: now - started_ago,
+                last_beat: now - beat_ago,
+            },
+            now,
+        )
+    }
+
+    #[test]
+    fn watchdog_verdicts() {
+        let (s, now) = session(false, Duration::from_secs(5), Duration::from_secs(1));
+        assert_eq!(s.verdict(now), Verdict::Keep);
+        let (s, now) = session(true, Duration::from_secs(600), Duration::from_secs(2));
+        assert_eq!(s.verdict(now), Verdict::Keep);
+        let (s, now) = session(true, Duration::from_secs(600), Duration::from_secs(9));
+        assert_eq!(s.verdict(now), Verdict::Silent);
+        let (s, now) = session(false, Duration::from_secs(91), Duration::from_secs(1));
+        assert_eq!(s.verdict(now), Verdict::NotShared);
+    }
+
+    #[test]
+    fn input_needs_active_session() {
+        let (tx, rx) = mpsc::channel();
+        let now = Instant::now();
+        *SESSION.lock().unwrap() = Some(Session {
+            id: 7,
+            tx,
+            window_label: "rtcCall".into(),
+            active: false,
+            started: now,
+            last_beat: now,
+        });
+        let input = || RemoteInput::Move { x: 0.5, y: 0.5 };
+        let err = tauri::async_runtime::block_on(remote_control_input(input())).unwrap_err();
+        assert!(err.contains("尚未开始"));
+        assert!(rx.try_recv().is_err());
+        tauri::async_runtime::block_on(remote_control_activate()).unwrap();
+        tauri::async_runtime::block_on(remote_control_input(input())).unwrap();
+        assert!(matches!(rx.try_recv(), Ok(Job::Input(_))));
+        *SESSION.lock().unwrap() = None;
+        assert!(tauri::async_runtime::block_on(remote_control_input(input())).is_err());
+        assert!(!tauri::async_runtime::block_on(remote_control_heartbeat()));
+    }
+
+    #[cfg(target_os = "windows")]
+    #[test]
+    fn escape_hold() {
+        assert!(!escape::held_long_enough(0, 5000));
+        assert!(!escape::held_long_enough(1000, 1999));
+        assert!(escape::held_long_enough(1000, 2000));
+        assert!(escape::held_long_enough(u32::MAX - 100, 900));
+    }
 
     #[test]
     fn maps_ratio_into_screen() {
