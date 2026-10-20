@@ -217,6 +217,8 @@ export const useWebRtc = (roomId: string, remoteUserId: string, callType: CallTy
   let rawCameraTrack: MediaStreamTrack | null = null
   let backgroundRequest = 0
   const isBackgroundLoading = ref(false)
+  // 本机自看用的轨道：背景已左右翻转，界面镜像显示后背景上的文字是正的；没开背景时为 null，自看直接用 localStream
+  const localPreviewTrack = shallowRef<MediaStreamTrack | null>(null)
   const controlChannel = ref<RTCDataChannel | null>(null)
   const isControlChannelOpen = ref(false)
   const inputChannel = ref<RTCDataChannel | null>(null)
@@ -870,6 +872,7 @@ export const useWebRtc = (roomId: string, remoteUserId: string, callType: CallTy
       backgroundRequest++
       backgroundProcessor?.stop()
       backgroundProcessor = null
+      localPreviewTrack.value = null
       rawCameraTrack?.stop()
       rawCameraTrack = null
       controlChannel.value?.close?.()
@@ -1298,6 +1301,7 @@ export const useWebRtc = (roomId: string, remoteUserId: string, callType: CallTy
       const processor = backgroundProcessor
       if (!processor) return true
       backgroundProcessor = null
+      localPreviewTrack.value = null
       if (rawCameraTrack) await swapLocalVideoTrack(rawCameraTrack)
       rawCameraTrack = null
       processor.stop()
@@ -1311,6 +1315,7 @@ export const useWebRtc = (roomId: string, remoteUserId: string, callType: CallTy
     if (!camera) return false
     const processor = new VideoBackgroundProcessor({
       assetsBase: `${import.meta.env.BASE_URL}video-bg/`,
+      preview: true,
       onDegrade: handlers?.onDegrade,
       onOverload: handlers?.onOverload
     })
@@ -1326,6 +1331,7 @@ export const useWebRtc = (roomId: string, remoteUserId: string, callType: CallTy
       backgroundProcessor = processor
       rawCameraTrack = camera
       await swapLocalVideoTrack(output)
+      localPreviewTrack.value = processor.previewTrack
       info(`视频背景板已启用: ${effect.type}`)
       return true
     } catch (e) {
@@ -1585,6 +1591,7 @@ export const useWebRtc = (roomId: string, remoteUserId: string, callType: CallTy
     onControlMessage,
     isControlChannelOpen,
     applyVideoBackground,
+    localPreviewTrack,
     isBackgroundLoading,
     toggleVideo,
     switchVideoDevice,

@@ -8,8 +8,8 @@ const assetsBase = `${import.meta.env.BASE_URL}video-bg/`
 
 /** 随包的 SMJ 品牌背景 */
 export const BRAND_BACKGROUNDS: { id: VideoBackgroundId; src: string }[] = [
-  { id: 'smj-hook', src: `${assetsBase}backgrounds/smj-hook.jpg` },
-  { id: 'smj-split', src: `${assetsBase}backgrounds/smj-split.jpg` },
+  { id: 'smj-hook', src: `${assetsBase}backgrounds/smj-hook.png` },
+  { id: 'smj-split', src: `${assetsBase}backgrounds/smj-split.png` },
   { id: 'smj-wall', src: `${assetsBase}backgrounds/smj-wall.jpg` }
 ]
 

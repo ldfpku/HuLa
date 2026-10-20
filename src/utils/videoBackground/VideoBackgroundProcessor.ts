@@ -17,6 +17,11 @@ export type ProcessorOptions = {
   assetsBase: string
   /** 画到调用方给的画布上（会议页的视频中间件），不给时自己建画布并输出轨道 */
   canvas?: HTMLCanvasElement
+  /**
+   * 另出一条给本机自看的轨道：人像不变、背景左右翻转。自看画面在界面上会镜像显示，
+   * 镜像后人像是镜子里的样子，背景上的文字和标志反而是正的；对方收到的仍是 start() 返回的正常画面
+   */
+  preview?: boolean
   /** 设备较慢，已自动降低处理帧率 */
   onDegrade?: () => void
   /** 降档后仍跟不上，调用方应关掉背景 */
@@ -133,12 +138,15 @@ export class VideoBackgroundProcessor {
   private readonly smoothedMask = new Float32Array(SEG_WIDTH * SEG_HEIGHT)
   private readonly blurCanvas = createCanvas(320, 180)
   private readonly blurCtx = this.blurCanvas.getContext('2d')!
+  private readonly previewCanvas: HTMLCanvasElement | null
+  private readonly previewCtx: CanvasRenderingContext2D | null
   private readonly filterSupported = canvasFilterSupported()
   private segmenter: ImageSegmenter | null = null
   private ticker: Ticker | null = null
   private effect: BackgroundEffect = { type: 'none' }
   private backgroundImage: HTMLImageElement | null = null
   private output: MediaStreamTrack | null = null
+  private preview: MediaStreamTrack | null = null
   private running = false
   private hasMask = false
   private frameIndex = 0
@@ -153,6 +161,8 @@ export class VideoBackgroundProcessor {
     this.options = options
     this.canvas = options.canvas ?? createCanvas(1280, 720)
     this.ctx = this.canvas.getContext('2d')!
+    this.previewCanvas = options.preview ? createCanvas(1280, 720) : null
+    this.previewCtx = this.previewCanvas?.getContext('2d') ?? null
     this.video.muted = true
     this.video.playsInline = true
   }
@@ -181,6 +191,11 @@ export class VideoBackgroundProcessor {
     return this.effect
   }
 
+  /** 本机自看轨道（选项 preview 打开且已 start 时才有） */
+  get previewTrack() {
+    return this.preview
+  }
+
   /** 设置效果；图片在这里预先解码，失败时抛错且效果不变 */
   async setEffect(effect: BackgroundEffect) {
     if (effect.type === 'image') {
@@ -199,6 +214,9 @@ export class VideoBackgroundProcessor {
       const stream = this.canvas.captureStream(TARGET_FPS)
       this.output = stream.getVideoTracks()[0]
       this.output.contentHint = 'motion'
+    }
+    if (this.previewCanvas) {
+      this.preview = this.previewCanvas.captureStream(TARGET_FPS).getVideoTracks()[0]
     }
     this.running = true
     this.ticker = createTicker()
@@ -223,6 +241,8 @@ export class VideoBackgroundProcessor {
     this.ticker = null
     this.output?.stop()
     this.output = null
+    this.preview?.stop()
+    this.preview = null
     this.video.pause()
     this.video.srcObject = null
   }
@@ -245,16 +265,21 @@ export class VideoBackgroundProcessor {
     if (video.readyState < 2 || !video.videoWidth) return
     const width = video.videoWidth
     const height = video.videoHeight
-    if (this.canvas.width !== width || this.canvas.height !== height) {
-      this.canvas.width = width
-      this.canvas.height = height
+    for (const canvas of [this.canvas, this.previewCanvas]) {
+      if (canvas && (canvas.width !== width || canvas.height !== height)) {
+        canvas.width = width
+        canvas.height = height
+      }
     }
     const ctx = this.ctx
+    const previewCtx = this.previewCtx
     if (this.effect.type === 'none' || !this.segmenter) {
       ctx.drawImage(video, 0, 0, width, height)
+      previewCtx?.drawImage(video, 0, 0, width, height)
       return
     }
     if (this.frameIndex++ % this.segmentEvery === 0 || !this.hasMask) this.segment()
+    if (this.effect.type !== 'image' || !this.backgroundImage) this.updateBlur(width, height)
 
     ctx.save()
     // 1. 人像蒙版：在小图上羽化，放大时的插值再柔化一次边缘，比在原尺寸上模糊省得多
@@ -265,9 +290,18 @@ export class VideoBackgroundProcessor {
     // 2. 只留下人像
     ctx.globalCompositeOperation = 'source-in'
     ctx.drawImage(video, 0, 0, width, height)
+    // 自看画面：同一个人像，垫左右翻转的背景
+    if (previewCtx) {
+      previewCtx.save()
+      previewCtx.globalCompositeOperation = 'copy'
+      previewCtx.drawImage(this.canvas, 0, 0)
+      previewCtx.globalCompositeOperation = 'destination-over'
+      this.drawBackground(previewCtx, width, height, true)
+      previewCtx.restore()
+    }
     // 3. 背景垫在后面
     ctx.globalCompositeOperation = 'destination-over'
-    this.drawBackground(width, height)
+    this.drawBackground(ctx, width, height, false)
     ctx.restore()
   }
 
@@ -300,17 +334,27 @@ export class VideoBackgroundProcessor {
     }
   }
 
-  private drawBackground(width: number, height: number) {
-    const ctx = this.ctx
+  private drawBackground(ctx: CanvasRenderingContext2D, width: number, height: number, mirrored: boolean) {
+    ctx.imageSmoothingEnabled = true
+    ctx.imageSmoothingQuality = 'high'
+    if (mirrored) {
+      ctx.translate(width, 0)
+      ctx.scale(-1, 1)
+    }
     if (this.effect.type === 'image' && this.backgroundImage) {
       const image = this.backgroundImage
       const scale = Math.max(width / image.naturalWidth, height / image.naturalHeight)
       const drawWidth = image.naturalWidth * scale
       const drawHeight = image.naturalHeight * scale
       ctx.drawImage(image, (width - drawWidth) / 2, (height - drawHeight) / 2, drawWidth, drawHeight)
-      return
+    } else {
+      ctx.drawImage(this.blurCanvas, 0, 0, width, height)
     }
-    // 模糊：缩小后模糊再放大，比原尺寸模糊省得多；不支持 ctx.filter 的浏览器缩得更小，靠放大插值变柔
+    if (mirrored) ctx.setTransform(1, 0, 0, 1, 0, 0)
+  }
+
+  /** 模糊：缩小后模糊再放大，比原尺寸模糊省得多；不支持 ctx.filter 的浏览器缩得更小，靠放大插值变柔 */
+  private updateBlur(width: number, height: number) {
     const blurWidth = this.filterSupported ? Math.round(width / 4) : Math.round(width / 24)
     const blurHeight = this.filterSupported ? Math.round(height / 4) : Math.round(height / 24)
     if (this.blurCanvas.width !== blurWidth || this.blurCanvas.height !== blurHeight) {
@@ -327,9 +371,6 @@ export class VideoBackgroundProcessor {
     } else {
       blurCtx.drawImage(this.video, 0, 0, blurWidth, blurHeight)
     }
-    ctx.imageSmoothingEnabled = true
-    ctx.imageSmoothingQuality = 'high'
-    ctx.drawImage(this.blurCanvas, 0, 0, width, height)
   }
 
   /** 处理一帧的耗时超过预算时先隔帧分割，再降到 15 帧，还不行就通知调用方关掉 */
