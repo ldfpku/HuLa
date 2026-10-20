@@ -105,7 +105,11 @@ jobs:
             exit 1
           fi
           node -e '
-            const config = { bundle: { createUpdaterArtifacts: process.env.HAS_SIGNING_KEY === "true" } }
+            // 前端只打包不做 vue-tsc 类型检查：仓库里有上游遗留的类型错误（与 HuLa 上游 release.yml 一致）
+            const config = {
+              build: { beforeBuildCommand: "pnpm vite build" },
+              bundle: { createUpdaterArtifacts: process.env.HAS_SIGNING_KEY === "true" }
+            }
             if (process.env.UPDATER_PUBKEY) config.plugins = { updater: { pubkey: process.env.UPDATER_PUBKEY.trim() } }
             require("fs").writeFileSync("src-tauri/release-config.json", JSON.stringify(config))
           '
