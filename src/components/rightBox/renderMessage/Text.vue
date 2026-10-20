@@ -72,14 +72,20 @@
         rel="noopener noreferrer"
         target="_blank"
         class="text-card"
-        @click="openUrl(item)">
+        :class="{ 'text-card--closed': meetingClosed(item) }"
+        @click="openCard(item)">
         <div v-if="urlMap[item].image" class="text-card-image-wrapper">
           <img class="text-card-image" :src="urlMap[item].image" @error="onImageLoadError" />
         </div>
         <div class="text-card-link-content">
-          <span class="text-14px line-clamp-1">{{ urlMap[item].title }}</span>
+          <span class="flex items-center gap-6px min-w-0">
+            <span class="text-14px line-clamp-1">{{ urlMap[item].title }}</span>
+            <span v-if="meetingBadge(item)" class="meeting-badge" :class="`meeting-badge--${meetingStatus(item)}`">
+              {{ meetingBadge(item) }}
+            </span>
+          </span>
           <span class="text-(12px [--chat-text-color]) mt-4px line-clamp-2">
-            {{ cancelledMeetings.has(item) ? '会议已取消' : urlMap[item].description }}
+            {{ meetingDescription(item) ?? urlMap[item].description }}
           </span>
         </div>
         <n-button
@@ -99,6 +105,7 @@
 <script setup lang="ts">
 import { openExternalUrl } from '@/hooks/useLinkSegments'
 import { parseMeetingLink, useMeeting } from '@/hooks/useMeeting'
+import { isMeetingClosed, useMeetingStatusStore, type MeetingStatus } from '@/stores/meetingStatus'
 import { useGroupStore } from '@/stores/group'
 import { useUserStore } from '@/stores/user'
 import type { TextBody } from '@/services/types'
@@ -121,15 +128,46 @@ const props = defineProps<{
 
 const userStore = useUserStore()
 const { confirmCancelMeeting } = useMeeting()
-const cancelledMeetings = reactive(new Set<string>())
+const meetingStatusStore = useMeetingStatusStore()
 const cancellingMeeting = ref<string | null>(null)
-/** 会议链接由发起人发到聊天里，所以发起人在自己发出的会议卡片上随时可以取消 */
-const canCancelMeeting = (url: string) =>
-  !props.historyMode &&
-  !!props.fromUserUid &&
-  userStore.isMe(props.fromUserUid) &&
-  !!parseMeetingLink(url) &&
-  !cancelledMeetings.has(url)
+
+/** 会议卡片的状态以服务端为准：卡片出现时查询，之后按时刷新，取消时服务端推送 */
+const meetingStatus = (url: string): MeetingStatus | undefined => {
+  const id = parseMeetingLink(url)
+  return id ? meetingStatusStore.statusOf(id)?.status : undefined
+}
+const meetingClosed = (url: string) => isMeetingClosed(meetingStatus(url))
+const MEETING_BADGE: Record<MeetingStatus, string> = {
+  upcoming: '待开始',
+  live: '进行中',
+  ended: '已结束',
+  cancelled: '已取消'
+}
+const MEETING_DESCRIPTION: Record<MeetingStatus, string> = {
+  upcoming: '点击加入会议，可提前进入',
+  live: '点击加入会议',
+  ended: '会议已结束，无法加入',
+  cancelled: '会议已取消，无法加入'
+}
+const meetingBadge = (url: string) => {
+  const status = meetingStatus(url)
+  return status ? MEETING_BADGE[status] : null
+}
+const meetingDescription = (url: string) => {
+  const status = meetingStatus(url)
+  return status ? MEETING_DESCRIPTION[status] : null
+}
+
+/** 发起人在自己发出的会议卡片上可以取消，会议结束或已取消后不再显示 */
+const canCancelMeeting = (url: string) => {
+  const status = meetingStatus(url)
+  return (
+    !props.historyMode &&
+    !!props.fromUserUid &&
+    userStore.isMe(props.fromUserUid) &&
+    (status === 'upcoming' || status === 'live')
+  )
+}
 const handleCancelMeeting = (url: string) => {
   const id = parseMeetingLink(url)
   if (!id) return
@@ -137,7 +175,7 @@ const handleCancelMeeting = (url: string) => {
     onStart: () => (cancellingMeeting.value = url),
     onDone: (cancelled) => {
       cancellingMeeting.value = null
-      if (cancelled) cancelledMeetings.add(url)
+      if (cancelled) meetingStatusStore.markCancelled(id)
     }
   })
 }
@@ -209,6 +247,8 @@ const processLongUrls = computed(() => {
         keys.push(match)
       }
     }
+    const meetingId = parseMeetingLink(match)
+    if (meetingId) meetingStatusStore.track(meetingId)
     return match
   })
 })
@@ -294,6 +334,15 @@ const fragments = computed(() => {
 // 打开链接
 const openUrl = (url: string) => openExternalUrl(url)
 
+/** 已结束、已取消的会议卡片点了只提示，不再入会 */
+const openCard = (url: string) => {
+  if (meetingClosed(url)) {
+    window.$message?.info?.(meetingStatus(url) === 'cancelled' ? '会议已取消' : '会议已结束')
+    return
+  }
+  void openUrl(url)
+}
+
 // 处理复制
 const handleCopy = (item: string) => {
   if (item) {
@@ -362,6 +411,50 @@ const onImageLoadError = (e: Event) => {
   height: 100%;
   object-fit: cover;
   transition: opacity 0.2s ease;
+}
+
+.text-card--closed {
+  cursor: default;
+}
+.text-card--closed .text-card-link-content {
+  opacity: 0.7;
+}
+
+/** 会议状态标签：进行中用绿色（和共享屏幕的绿色一致），待开始用斯米伽蓝，结束和取消用灰色；橙色只留给选中态 */
+.meeting-badge {
+  flex-shrink: 0;
+  padding: 0 6px;
+  border-radius: 4px;
+  font-size: 12px;
+  line-height: 18px;
+}
+.meeting-badge--upcoming {
+  color: #034fbc;
+  background-color: rgba(3, 79, 188, 0.1);
+}
+.meeting-badge--live {
+  color: #fff;
+  background-color: #12a150;
+}
+.meeting-badge--ended,
+.meeting-badge--cancelled {
+  color: #5b6b85;
+  background-color: rgba(91, 107, 133, 0.14);
+}
+:global([data-theme='dark'] .meeting-badge--upcoming) {
+  color: #7a9fe2;
+  background-color: rgba(122, 159, 226, 0.16);
+}
+:global([data-theme='dark'] .meeting-badge--ended),
+:global([data-theme='dark'] .meeting-badge--cancelled) {
+  color: #b4bfd0;
+  background-color: rgba(180, 191, 208, 0.16);
+}
+:global(.bubble-oneself .text-card .meeting-badge--upcoming),
+:global(.bubble-oneself .text-card .meeting-badge--ended),
+:global(.bubble-oneself .text-card .meeting-badge--cancelled) {
+  color: #fff;
+  background-color: rgba(255, 255, 255, 0.2);
 }
 
 .text-card-link-content {
