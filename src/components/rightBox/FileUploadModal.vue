@@ -8,6 +8,9 @@
     <div class="bg-[--bg-edit] min-w-320px h-fit box-border flex flex-col select-none cursor-default">
       <n-flex :size="6" vertical>
         <div
+          role="button"
+          :title="t('tooltip.close')"
+          :aria-label="t('tooltip.close')"
           v-if="isMac()"
           @click="visible = false"
           class="mac-close size-13px shadow-inner bg-#ed6a5eff rounded-50% mt-6px select-none absolute left-6px">
@@ -24,6 +27,7 @@
           v-if="isWindows()"
           class="size-14px cursor-pointer pt-6px select-none absolute right-6px"
           @click="visible = false">
+          <title>{{ t('tooltip.close') }}</title>
           <use href="#close"></use>
         </svg>
         <span class="h-1px w-full bg-[--line-color]"></span>
@@ -50,7 +54,12 @@
               <div class="text-(12px [--chat-text-color])">{{ formatFileSize(file.size) }}</div>
             </div>
 
-            <div @click="removeFile(index)" class="flex-shrink-0 pl-20px cursor-pointer">
+            <div
+              role="button"
+              :title="t('tooltip.remove')"
+              :aria-label="t('tooltip.remove')"
+              @click="removeFile(index)"
+              class="flex-shrink-0 pl-20px cursor-pointer">
               <svg class="size-20px hover:color-#909090 transition-colors duration-200 ease-in-out">
                 <use href="#squareClose"></use>
               </svg>

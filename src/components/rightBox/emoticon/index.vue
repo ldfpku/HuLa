@@ -162,6 +162,7 @@
             v-if="item.type === 'icon'"
             :class="{ active: activeIndex === item.id }"
             @click="handleTabChange(item.id)">
+            <title>{{ item.name }}</title>
             <use :href="item.icon"></use>
           </svg>
 

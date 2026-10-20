@@ -62,7 +62,13 @@ watch(
       :size="groupStore.countInfo!.allowScanEnter ? 0 : 12">
       <!-- 群头像 -->
       <div class="relative group">
-        <div v-if="isGroupOwner" class="group/avatar cursor-pointer relative" @click="emit('upload-avatar')">
+        <div
+          role="button"
+          :title="t('tooltip.change_group_avatar')"
+          :aria-label="t('tooltip.change_group_avatar')"
+          v-if="isGroupOwner"
+          class="group/avatar cursor-pointer relative"
+          @click="emit('upload-avatar')">
           <n-avatar round :size="40" :src="AvatarUtils.getAvatarUrl(activeItem?.avatar || '')" />
           <div
             class="absolute size-full rounded-50% flex-center opacity-0 group-hover/avatar:opacity-100 transition-opacity duration-400 ease-in-out backdrop-blur-4px top-0 left-0">

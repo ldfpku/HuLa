@@ -5,6 +5,7 @@ import { useGlobalStore } from '@/stores/global.ts'
 import { useGroupStore } from '@/stores/group.ts'
 import { AvatarUtils } from '@/utils/AvatarUtils'
 import { UserType } from '@/enums'
+import { useI18nGlobal } from '@/services/i18n'
 
 const contactStore = useContactStore()
 const groupStore = useGroupStore()
@@ -232,6 +233,7 @@ export const renderTargetList = (
                     const newCheckedOptions = checkedOptions.filter((o: any) => o.value !== option.value)
                     onCheck(newCheckedOptions.map((o: any) => o.value))
                   }}>
+                  <title>{useI18nGlobal().t('tooltip.remove')}</title>
                   <use href="#close"></use>
                 </svg>
               )}

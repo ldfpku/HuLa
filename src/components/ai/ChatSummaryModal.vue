@@ -5,6 +5,7 @@
       <div class="flex items-center justify-between">
         <span class="text-15px font-600">AI 摘要 · {{ roomName }}</span>
         <svg class="size-12px cursor-pointer select-none" @click="visible = false">
+          <title>{{ t('tooltip.close') }}</title>
           <use href="#close"></use>
         </svg>
       </div>
@@ -47,6 +48,9 @@ import type { ChatSummaryResult } from '@/services/types'
 import { useChatStore } from '@/stores/chat'
 import { summarizeChat } from '@/utils/ImRequestUtils'
 import { formatTimestamp } from '@/utils/ComputedTime.ts'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 const props = defineProps<{ roomId: string; roomName?: string }>()
 const visible = defineModel<boolean>('show', { default: false })

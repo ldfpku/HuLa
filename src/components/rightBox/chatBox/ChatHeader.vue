@@ -165,7 +165,12 @@
         </n-popover>
       </div>
 
-      <div class="options-box" @click="sidebarShow = !sidebarShow">
+      <div
+        role="button"
+        :title="t('tooltip.chat_info')"
+        :aria-label="t('tooltip.chat_info')"
+        class="options-box"
+        @click="sidebarShow = !sidebarShow">
         <svg>
           <use href="#more"></use>
         </svg>
@@ -213,6 +218,9 @@
   <n-modal v-model:show="modalShow" class="w-350px rounded-8px">
     <div class="bg-[--bg-popover] w-360px h-full p-6px box-border flex flex-col">
       <div
+        role="button"
+        :title="t('tooltip.close')"
+        :aria-label="t('tooltip.close')"
         v-if="isMac()"
         @click="modalShow = false"
         class="mac-close z-999 size-13px shadow-inner bg-#ed6a5eff rounded-50% select-none absolute left-6px">
@@ -222,6 +230,7 @@
       </div>
 
       <svg v-if="isWindows()" @click="modalShow = false" class="size-12px ml-a cursor-pointer select-none">
+        <title>{{ t('tooltip.close') }}</title>
         <use href="#close"></use>
       </svg>
       <div class="flex flex-col gap-30px p-[22px_10px_10px_22px] select-none">
@@ -263,6 +272,9 @@
   <n-modal v-model:show="showManageGroupMemberModal" class="w-600px rounded-8px" :mask-closable="false">
     <div class="bg-[--bg-popover] w-600px p-6px box-border flex flex-col">
       <div
+        role="button"
+        :title="t('tooltip.close')"
+        :aria-label="t('tooltip.close')"
         v-if="isMac()"
         @click="showManageGroupMemberModal = false"
         class="mac-close z-999 size-13px shadow-inner bg-#ed6a5eff rounded-50% select-none absolute left-6px">
@@ -275,6 +287,7 @@
         v-if="isWindows()"
         @click="showManageGroupMemberModal = false"
         class="size-12px ml-a cursor-pointer select-none">
+        <title>{{ t('tooltip.close') }}</title>
         <use href="#close"></use>
       </svg>
 

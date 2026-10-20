@@ -1,6 +1,7 @@
 <template>
   <!-- 手机单栏：回到列表（触控区 40px） -->
   <div
+    :title="t('home.chat_header.back')"
     data-testid="phone-back"
     role="button"
     class="flex-center size-40px flex-shrink-0 cursor-pointer color-[--text-color]"

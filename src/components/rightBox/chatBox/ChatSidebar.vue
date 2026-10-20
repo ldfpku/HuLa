@@ -13,6 +13,9 @@
     ]">
     <!-- 收缩按钮 -->
     <div
+      role="button"
+      :title="isCollapsed ? t('tooltip.expand_sidebar') : t('tooltip.collapse_sidebar')"
+      :aria-label="isCollapsed ? t('tooltip.expand_sidebar') : t('tooltip.collapse_sidebar')"
       v-show="isGroup"
       @click.stop="isCollapsed = !isCollapsed"
       style="border-radius: 18px 0 0 18px"
@@ -36,6 +39,9 @@
           <svg
             class="size-16px rotate-270 color-[--text-color] shrink-0"
             @click="handleOpenAnnoun(announNum === 0 && isAddAnnoun)">
+            <title>
+              {{ announNum === 0 && isAddAnnoun ? t('tooltip.add_announcement') : t('tooltip.view_announcement') }}
+            </title>
             <use v-if="announNum === 0 && isAddAnnoun" href="#plus"></use>
             <use v-else href="#down"></use>
           </svg>
@@ -79,6 +85,7 @@
       <n-flex v-if="!isSearch" align="center" justify="space-between" class="pr-8px pl-8px h-42px">
         <span class="text-14px">{{ t('home.chat_sidebar.online_members', { count: onlineCountDisplay }) }}</span>
         <svg @click="handleSelect" class="size-14px">
+          <title>{{ t('tooltip.search_members') }}</title>
           <use href="#search"></use>
         </svg>
       </n-flex>

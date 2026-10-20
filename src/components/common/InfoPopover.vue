@@ -12,7 +12,13 @@
     <div class="h-20px"></div>
     <n-flex vertical :size="20" class="size-full p-10px box-border z-10 relative">
       <n-flex vertical :size="20">
-        <div class="avatar-wrapper relative" :class="{ 'cursor-pointer': isCurrentUserUid }" @click="openEditInfo">
+        <div
+          role="button"
+          :title="isCurrentUserUid ? t('tooltip.edit_profile') : undefined"
+          :aria-label="isCurrentUserUid ? t('tooltip.edit_profile') : undefined"
+          class="avatar-wrapper relative"
+          :class="{ 'cursor-pointer': isCurrentUserUid }"
+          @click="openEditInfo">
           <div v-if="isCurrentUserUid" class="hover-area absolute top-8px left-8px w-80px h-80px rounded-full z-20">
             <div class="avatar-hover absolute inset-0 rounded-full"></div>
           </div>

@@ -54,6 +54,7 @@
                 placement="top">
                 <template #trigger>
                   <svg class="mr-18px">
+                    <title>{{ t('tooltip.emoji') }}</title>
                     <use href="#smiling-face"></use>
                   </svg>
                 </template>
@@ -83,6 +84,7 @@
           <!-- 手机浏览器不能截屏 -->
           <div v-if="!isPhoneLayout" class="flex-center gap-2px mr-12px">
             <svg @click="handleScreenshot()">
+              <title>{{ t('tooltip.screenshot') }}</title>
               <use href="#screenshot"></use>
             </svg>
             <n-popover

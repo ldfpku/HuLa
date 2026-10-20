@@ -126,6 +126,9 @@
   <n-modal v-model:show="modalShow" class="w-350px border-rd-8px">
     <div class="bg-[--bg-popover] w-360px h-full p-6px box-border flex flex-col">
       <div
+        role="button"
+        :title="t('tooltip.close')"
+        :aria-label="t('tooltip.close')"
         v-if="isMac()"
         @click="modalShow = false"
         class="mac-close z-999 size-13px shadow-inner bg-#ed6a5eff rounded-50% select-none absolute left-6px">
@@ -135,6 +138,7 @@
       </div>
 
       <svg v-if="isWindows()" @click="modalShow = false" class="w-12px h-12px ml-a cursor-pointer select-none">
+        <title>{{ t('tooltip.close') }}</title>
         <use href="#close"></use>
       </svg>
       <div class="flex flex-col gap-30px p-[22px_10px_10px_22px] select-none">
@@ -151,6 +155,9 @@
   <n-modal v-model:show="groupNicknameModalVisible" class="w-360px border-rd-8px" :mask-closable="false">
     <div class="bg-[--bg-popover] w-360px h-full p-6px box-border flex flex-col">
       <div
+        role="button"
+        :title="t('tooltip.close')"
+        :aria-label="t('tooltip.close')"
         v-if="isMac()"
         @click="groupNicknameModalVisible = false"
         class="mac-close z-999 size-13px shadow-inner bg-#ed6a5eff rounded-50% select-none absolute left-6px">
@@ -163,6 +170,7 @@
         v-if="isWindows()"
         @click="groupNicknameModalVisible = false"
         class="w-12px h-12px ml-a cursor-pointer select-none">
+        <title>{{ t('tooltip.close') }}</title>
         <use href="#close"></use>
       </svg>
       <div class="flex flex-col gap-20px p-[22px_10px_10px_22px] select-none">

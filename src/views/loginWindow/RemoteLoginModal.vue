@@ -6,6 +6,7 @@
           v-if="!isMac()"
           @click="handleConfirm"
           class="w-12px h-12px ml-a cursor-pointer select-none text-[--text-color]">
+          <title>{{ t('tooltip.close') }}</title>
           <use href="#close"></use>
         </svg>
         <div class="flex flex-col gap-10px p-10px select-none">
@@ -42,6 +43,9 @@ import { AvatarUtils } from '@/utils/AvatarUtils'
 import { useSettingStore } from '@/stores/setting'
 import { useUserStore } from '@/stores/user.ts'
 import { isMac } from '@/utils/PlatformConstants'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 const ip = ref('未知IP')
 const showModal = ref(true)

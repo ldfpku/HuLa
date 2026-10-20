@@ -5,6 +5,7 @@
       <div class="flex items-center justify-between">
         <span class="text-15px font-600">我的待办</span>
         <svg class="size-12px cursor-pointer select-none" @click="todoStore.visible = false">
+          <title>{{ t('tooltip.close') }}</title>
           <use href="#close"></use>
         </svg>
       </div>
@@ -84,7 +85,10 @@
             </template>
           </div>
           <n-flex v-if="editingId !== item.id" :size="10" class="actions pt-2px" :wrap="false">
-            <svg class="size-14px cursor-pointer" @click="startEdit(item)"><use href="#edit"></use></svg>
+            <svg class="size-14px cursor-pointer" @click="startEdit(item)">
+              <title>{{ t('tooltip.edit') }}</title>
+              <use href="#edit"></use>
+            </svg>
             <n-popconfirm @positive-click="todoStore.remove(item.id)">
               <template #trigger>
                 <svg class="size-14px cursor-pointer"><use href="#delete"></use></svg>
@@ -102,6 +106,9 @@
 import type { TodoItem } from '@/services/types'
 import { useMailStore } from '@/stores/mail'
 import { useTodoStore } from '@/stores/todo'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 const todoStore = useTodoStore()
 const mailStore = useMailStore()

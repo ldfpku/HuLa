@@ -37,6 +37,9 @@
     <div class="flex gap-16px mr-8">
       <!-- 拒绝按钮 -->
       <div
+        role="button"
+        :title="t('tooltip.reject_call')"
+        :aria-label="t('tooltip.reject_call')"
         @click="hangUp(CallResponseStatus.REJECTED)"
         class="size-40px rounded-full bg-#d5304f hover:bg-#d5304f flex-center cursor-pointer shadow-lg">
         <svg class="color-#fff size-20px">
@@ -45,6 +48,9 @@
       </div>
       <!-- 接听按钮 -->
       <div
+        role="button"
+        :title="t('tooltip.accept_call')"
+        :aria-label="t('tooltip.accept_call')"
         @click="acceptCall"
         class="size-40px rounded-full bg-#034fbc hover:bg-#034fbc flex-center cursor-pointer shadow-lg">
         <svg class="color-#fff size-20px">
@@ -265,6 +271,9 @@
             <!-- 静音按钮 -->
             <div class="flex-center">
               <div
+                role="button"
+                :title="isMuted ? t('tooltip.unmute') : t('tooltip.mute')"
+                :aria-label="isMuted ? t('tooltip.unmute') : t('tooltip.mute')"
                 @click="toggleMute"
                 class="size-44px rounded-full flex-center cursor-pointer"
                 :class="!isMuted ? 'bg-gray-600 hover:bg-gray-500' : 'bg-#d5304f60 hover:bg-#d5304f80'">
@@ -277,6 +286,9 @@
             <!-- 扬声器按钮 -->
             <div class="flex-center">
               <div
+                role="button"
+                :title="isSpeakerOn ? t('tooltip.speaker_off') : t('tooltip.speaker_on')"
+                :aria-label="isSpeakerOn ? t('tooltip.speaker_off') : t('tooltip.speaker_on')"
                 @click="toggleSpeaker"
                 class="size-44px rounded-full flex-center cursor-pointer"
                 :class="isSpeakerOn ? 'bg-gray-600 hover:bg-gray-500' : 'bg-#d5304f60 hover:bg-#d5304f80'">
@@ -289,6 +301,9 @@
             <!-- 摄像头翻转按钮（仅移动端视频通话显示） -->
             <div v-if="callType === CallTypeEnum.VIDEO" class="flex-center">
               <div
+                role="button"
+                :title="t('tooltip.switch_camera')"
+                :aria-label="t('tooltip.switch_camera')"
                 @click="switchCameraFacing"
                 class="size-44px rounded-full flex-center cursor-pointer bg-gray-600 hover:bg-gray-500">
                 <svg class="size-16px color-#fff">
@@ -303,6 +318,13 @@
             <!-- 摄像头按钮 -->
             <div class="flex-center">
               <div
+                role="button"
+                :title="
+                  isVideoEnabled ? t('message.call_window.camera_disable') : t('message.call_window.camera_enable')
+                "
+                :aria-label="
+                  isVideoEnabled ? t('message.call_window.camera_disable') : t('message.call_window.camera_enable')
+                "
                 @click="toggleVideo"
                 class="size-44px rounded-full flex-center cursor-pointer"
                 :class="isVideoEnabled ? 'bg-gray-600 hover:bg-gray-500' : 'bg-#d5304f60 hover:bg-#d5304f80'">
@@ -315,6 +337,9 @@
             <!-- 挂断按钮 -->
             <div class="flex-center">
               <div
+                role="button"
+                :title="t('message.call_window.hangup')"
+                :aria-label="t('message.call_window.hangup')"
                 @click="hangUp()"
                 class="size-44px rounded-full bg-#d5304f60 hover:bg-#d5304f80 flex-center cursor-pointer">
                 <svg class="size-16px color-#fff">
@@ -362,6 +387,9 @@
         <!-- 静音按钮 -->
         <div class="flex-col-x-center gap-8px w-80px">
           <div
+            role="button"
+            :title="isMuted ? t('tooltip.unmute') : t('tooltip.mute')"
+            :aria-label="isMuted ? t('tooltip.unmute') : t('tooltip.mute')"
             @click="toggleMute"
             class="size-44px rounded-full flex-center cursor-pointer"
             :class="!isMuted ? 'bg-gray-600 hover:bg-gray-500' : 'bg-#d5304f60 hover:bg-#d5304f80'">
@@ -377,6 +405,9 @@
         <!-- 扬声器按钮 -->
         <div class="flex-col-x-center gap-8px w-80px">
           <div
+            role="button"
+            :title="isSpeakerOn ? t('tooltip.speaker_off') : t('tooltip.speaker_on')"
+            :aria-label="isSpeakerOn ? t('tooltip.speaker_off') : t('tooltip.speaker_on')"
             @click="toggleSpeaker"
             class="size-44px rounded-full flex-center cursor-pointer"
             :class="isSpeakerOn ? 'bg-gray-600 hover:bg-gray-500' : 'bg-#d5304f60 hover:bg-#d5304f80'">
@@ -392,6 +423,11 @@
         <!-- 摄像头按钮 -->
         <div class="flex-col-x-center gap-8px w-80px">
           <div
+            role="button"
+            :title="isVideoEnabled ? t('message.call_window.camera_disable') : t('message.call_window.camera_enable')"
+            :aria-label="
+              isVideoEnabled ? t('message.call_window.camera_disable') : t('message.call_window.camera_enable')
+            "
             @click="toggleVideo"
             class="size-44px rounded-full flex-center cursor-pointer"
             :class="isVideoEnabled ? 'bg-gray-600 hover:bg-gray-500' : 'bg-#d5304f60 hover:bg-#d5304f80'">
@@ -410,6 +446,9 @@
         <!-- 共享屏幕按钮 -->
         <div v-if="!compactCall" class="flex-col-x-center gap-8px w-80px">
           <div
+            role="button"
+            :title="isScreenSharing ? t('message.call_window.stop_share') : t('message.call_window.share_screen')"
+            :aria-label="isScreenSharing ? t('message.call_window.stop_share') : t('message.call_window.share_screen')"
             data-testid="screen-share-toggle"
             @click="toggleScreenShare"
             class="size-44px rounded-full flex-center"
@@ -449,6 +488,9 @@
         <!-- 挂断按钮 -->
         <div class="flex-col-x-center gap-8px w-80px">
           <div
+            role="button"
+            :title="t('message.call_window.hangup')"
+            :aria-label="t('message.call_window.hangup')"
             @click="hangUp()"
             class="size-44px rounded-full bg-#d5304f60 hover:bg-#d5304f80 flex-center cursor-pointer">
             <svg class="size-16px color-#fff">
@@ -468,6 +510,9 @@
           <!-- 静音按钮 -->
           <div class="flex-col-x-center gap-8px w-80px">
             <div
+              role="button"
+              :title="isMuted ? t('tooltip.unmute') : t('tooltip.mute')"
+              :aria-label="isMuted ? t('tooltip.unmute') : t('tooltip.mute')"
               @click="toggleMute"
               class="size-44px rounded-full flex-center cursor-pointer"
               :class="!isMuted ? 'bg-gray-600 hover:bg-gray-500' : 'bg-#d5304f60 hover:bg-#d5304f80'">
@@ -483,6 +528,9 @@
           <!-- 扬声器按钮 -->
           <div class="flex-col-x-center gap-8px w-80px">
             <div
+              role="button"
+              :title="isSpeakerOn ? t('tooltip.speaker_off') : t('tooltip.speaker_on')"
+              :aria-label="isSpeakerOn ? t('tooltip.speaker_off') : t('tooltip.speaker_on')"
               @click="toggleSpeaker"
               class="size-44px rounded-full flex-center cursor-pointer"
               :class="isSpeakerOn ? 'bg-gray-600 hover:bg-gray-500' : 'bg-#d5304f60 hover:bg-#d5304f80'">
@@ -498,6 +546,11 @@
           <!-- 共享屏幕按钮 -->
           <div v-if="!compactCall" class="flex-col-x-center gap-8px w-80px">
             <div
+              role="button"
+              :title="isScreenSharing ? t('message.call_window.stop_share') : t('message.call_window.share_screen')"
+              :aria-label="
+                isScreenSharing ? t('message.call_window.stop_share') : t('message.call_window.share_screen')
+              "
               data-testid="screen-share-toggle"
               @click="toggleScreenShare"
               class="size-44px rounded-full flex-center"
@@ -538,6 +591,9 @@
         <!-- 下排按钮：挂断 -->
         <div class="flex-x-center">
           <div
+            role="button"
+            :title="t('message.call_window.hangup')"
+            :aria-label="t('message.call_window.hangup')"
             @click="hangUp()"
             class="size-66px rounded-full bg-#d5304f60 hover:bg-#d5304f80 flex-center cursor-pointer">
             <svg class="size-24px color-#fff">

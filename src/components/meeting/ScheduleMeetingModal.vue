@@ -10,6 +10,7 @@
       <div class="flex items-center justify-between">
         <span class="text-15px font-600">{{ created ? '会议已预约' : '预约视频会议' }}</span>
         <svg class="size-12px cursor-pointer select-none" @click="visible = false">
+          <title>{{ t('tooltip.close') }}</title>
           <use href="#close"></use>
         </svg>
       </div>
@@ -100,6 +101,9 @@ import { useGroupStore } from '@/stores/group'
 import { useUserStore } from '@/stores/user'
 import { getMeetingAvailability, type MeetingAvailability, type MeetingCreateResult } from '@/utils/MeetingRequestUtils'
 import { moveToDay, startOfLocalDay } from '@/utils/MeetingScheduleUtils'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 const props = defineProps<{
   /** 从哪个会话预约；群聊默认邀请全体成员，单聊邀请对方 */
