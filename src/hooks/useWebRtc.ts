@@ -3,6 +3,7 @@ import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow'
 import { error, info } from '@tauri-apps/plugin-log'
 import { useI18n } from 'vue-i18n'
 import { getRtcIceServers } from '@/utils/MeetingRequestUtils'
+import { CALL_ALIVE_INTERVAL_MS, isBusyRejection, isEventForRoom } from '@/utils/RtcCallUtils'
 import { applyVideoTier, cameraConstraints, nextTier, readSendStats, type VideoTier } from '@/utils/RtcQualityUtils'
 import { CallTypeEnum, RTCCallStatus } from '@/enums'
 import rustWebSocketClient from '@/services/webSocketRust'
@@ -209,6 +210,22 @@ export const useWebRtc = (roomId: string, remoteUserId: string, callType: CallTy
   const stopVideoQuality = () => {
     if (videoQualityTimer) clearInterval(videoQualityTimer)
     videoQualityTimer = null
+  }
+
+  // 通话中定时告诉服务端本人在通话中，别人再打来时服务端直接回忙线
+  let callAliveTimer: ReturnType<typeof setInterval> | null = null
+  const sendCallAlive = () =>
+    rustWebSocketClient
+      .sendMessage({ type: WsRequestMsgType.VIDEO_HEARTBEAT, data: { roomId, targetUid: remoteUserId } })
+      .catch(() => undefined)
+  const startCallAlive = () => {
+    stopCallAlive()
+    void sendCallAlive()
+    callAliveTimer = setInterval(sendCallAlive, CALL_ALIVE_INTERVAL_MS)
+  }
+  const stopCallAlive = () => {
+    if (callAliveTimer) clearInterval(callAliveTimer)
+    callAliveTimer = null
   }
   // 对方是旧版客户端时退回到替换摄像头画面，停止共享时要换回来
   let replacedCameraTrack: MediaStreamTrack | null = null
@@ -692,6 +709,7 @@ export const useWebRtc = (roomId: string, remoteUserId: string, callType: CallTy
             connectionStatus.value = RTCCallStatus.ACCEPT
             startCallTimer() // 开始计时
             startVideoQuality()
+            startCallAlive()
             // 接通后将窗口置顶展示并聚焦
             void focusCurrentWindow()
             break
@@ -787,6 +805,8 @@ export const useWebRtc = (roomId: string, remoteUserId: string, callType: CallTy
       callTimer.value = setTimeout(() => {
         if (connectionStatus.value === RTCCallStatus.CALLING) {
           window.$message.warning('通话无人接听，自动挂断')
+          // 告诉对方停止响铃，服务端也就不再把双方算作通话中
+          void sendRtcCall2VideoCallResponse(-1)
           endCall()
         }
       }, MAX_TIME_OUT_SECONDS * 1000)
@@ -860,6 +880,7 @@ export const useWebRtc = (roomId: string, remoteUserId: string, callType: CallTy
       // 停止计时器
       stopCallTimer()
       stopVideoQuality()
+      stopCallAlive()
       // 关闭信道
       channel.value?.close?.()
       // 关闭连接
@@ -1510,6 +1531,7 @@ export const useWebRtc = (roomId: string, remoteUserId: string, callType: CallTy
   void (async () => {
     await addListener(
       listen('ws-webrtc-signal', (event: any) => {
+        if (!isEventForRoom(event.payload, roomId)) return
         info(`收到信令消息: ${JSON.stringify(event.payload)}`)
         handleSignalMessage(event.payload)
       }),
@@ -1517,6 +1539,7 @@ export const useWebRtc = (roomId: string, remoteUserId: string, callType: CallTy
     )
     await addListener(
       listen('ws-call-accepted', (event: any) => {
+        if (!isEventForRoom(event.payload, roomId)) return
         info(`通话被接受: ${JSON.stringify(event.payload)}`)
         // // 接受方，发送是否接受
         // info(`收到 CallAccepted'消息 ${isReceiver}`)
@@ -1530,26 +1553,37 @@ export const useWebRtc = (roomId: string, remoteUserId: string, callType: CallTy
     )
     await addListener(
       listen('ws-room-closed', (event: any) => {
+        if (!isEventForRoom(event.payload, roomId)) return
         info(`房间已关闭: ${JSON.stringify(event.payload)}`)
         endCall()
       }),
       `${roomId}-ws-room-closed`
     )
     await addListener(
-      listen('ws-dropped', (_: any) => {
+      listen('ws-dropped', (event: any) => {
+        if (!isEventForRoom(event.payload, roomId)) return
         endCall()
       }),
       `${roomId}-ws-dropped`
     )
     await addListener(
       listen('ws-call-rejected', (event: any) => {
+        if (!isEventForRoom(event.payload, roomId)) return
         info(`通话被拒绝: ${JSON.stringify(event.payload)}`)
+        if (isBusyRejection(event.payload)) {
+          // 对方正在通话或会议中：停铃，提示留一会儿再关窗口
+          stopBell()
+          window.$message.warning('对方正在通话中，请稍后再拨')
+          setTimeout(() => void endCall(), 2500)
+          return
+        }
         endCall()
       }),
       `${roomId}-ws-call-rejected`
     )
     await addListener(
       listen('ws-cancel', (event: any) => {
+        if (!isEventForRoom(event.payload, roomId)) return
         info(`已取消通话: ${JSON.stringify(event.payload)}`)
         endCall()
       }),
@@ -1557,6 +1591,7 @@ export const useWebRtc = (roomId: string, remoteUserId: string, callType: CallTy
     )
     await addListener(
       listen('ws-timeout', (event: any) => {
+        if (!isEventForRoom(event.payload, roomId)) return
         info(`已取消通话: ${JSON.stringify(event.payload)}`)
         endCall()
       }),
