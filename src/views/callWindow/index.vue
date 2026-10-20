@@ -629,8 +629,13 @@ const {
   sendInputMessage,
   onControlMessage,
   applyVideoBackground,
-  isBackgroundLoading
+  isBackgroundLoading,
+  localPreviewTrack
 } = useWebRtc(roomId, remoteUserId, callType, isReceiver)
+// 自看画面：开了背景板时用背景已翻转的轨道，镜像显示后背景上的文字是正的
+const localViewStream = computed(() =>
+  localPreviewTrack.value ? new MediaStream([localPreviewTrack.value]) : localStream.value
+)
 const remoteAudioRef = ref<HTMLAudioElement>()
 const isMuted = ref(false)
 const isSpeakerOn = ref(true)
@@ -891,7 +896,7 @@ const assignVideoStreams = async () => {
     assignDualVideoStreams()
   } else if (hasLocalVideo.value) {
     // 只有本地视频
-    assignSingleVideoStream(localStream.value, true)
+    assignSingleVideoStream(localViewStream.value, true)
   } else if (hasRemoteVideo.value) {
     // 只有远程视频
     assignSingleVideoStream(remoteStream.value, false)
@@ -908,12 +913,12 @@ const clearVideoElements = () => {
 const assignDualVideoStreams = () => {
   if (isLocalVideoMain.value) {
     // 本地视频作为主视频
-    setVideoElement(mainVideoRef.value, localStream.value, true)
+    setVideoElement(mainVideoRef.value, localViewStream.value, true)
     setVideoElement(pipVideoRef.value, remoteStream.value)
   } else {
     // 远程视频作为主视频
     setVideoElement(mainVideoRef.value, remoteStream.value)
-    setVideoElement(pipVideoRef.value, localStream.value, true)
+    setVideoElement(pipVideoRef.value, localViewStream.value, true)
   }
 }
 
@@ -1059,7 +1064,7 @@ watch(localStream, (stream, previous) => {
 })
 
 // 监听视频状态变化，自动更新视频显示
-watch([hasLocalVideo, hasRemoteVideo, localStream, remoteStream], assignVideoStreams, { deep: true })
+watch([hasLocalVideo, hasRemoteVideo, localViewStream, remoteStream], assignVideoStreams, { deep: true })
 
 watch([showRemoteScreen, remoteScreenStream, remoteStream, hasRemoteVideo, isScreenOnMain], assignScreenVideos)
 
