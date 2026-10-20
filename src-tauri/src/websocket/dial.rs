@@ -6,7 +6,7 @@
 //! 前一个地址不失败就不会试下一个，某一类地址不通时每个都要等系统的 TCP 超时
 //! （Windows 约 21 秒）。这里两类地址交替排列，每隔一小段时间并行发起下一个，用最先连上的那个。
 
-use super::proxy::{system_proxy_for, tunnel};
+use super::proxy::{proxy_reachable, system_proxy_for, tunnel};
 use futures_util::stream::{FuturesUnordered, StreamExt};
 use std::io;
 use std::net::SocketAddr;
@@ -29,7 +29,8 @@ pub struct Dialed {
 
 /// 按 URL 的主机和端口建立 TCP 连接：有系统代理先走代理，不行再直连
 pub async fn dial(url: &Url) -> io::Result<Dialed> {
-    if let Some(proxy) = system_proxy_for(url) {
+    // 代理端口连不上（代理软件已退出）时不必再试，直接直连
+    if let Some(proxy) = system_proxy_for(url).filter(proxy_reachable) {
         let address = proxy.address();
         match timeout(Duration::from_secs(PROXY_TIMEOUT_SECS), tunnel(&proxy, url)).await {
             Ok(Ok(stream)) => {

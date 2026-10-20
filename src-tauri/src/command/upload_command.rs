@@ -271,7 +271,10 @@ async fn upload_put(
         return Err("Upload destination must use https".to_string());
     }
 
-    let client = reqwest::Client::new();
+    let client = reqwest::Client::builder()
+        .proxy(crate::websocket::proxy::reqwest_proxy())
+        .build()
+        .map_err(|e| e.to_string())?;
     if total > MULTIPART_THRESHOLD
         && upload_in_parts(&client, &url, &file_path, total, &on_progress).await?
     {
@@ -403,7 +406,10 @@ async fn qiniu_resumable_upload(
     let mut hasher = should_hash.then(Md5::new);
     let mut contexts: Vec<String> = Vec::new();
 
-    let client = reqwest::Client::new();
+    let client = reqwest::Client::builder()
+        .proxy(crate::websocket::proxy::reqwest_proxy())
+        .build()
+        .map_err(|e| e.to_string())?;
     let mut transferred: u64 = 0;
 
     while transferred < total {
