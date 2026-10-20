@@ -59,7 +59,7 @@
                 <div class="file-meta-info">
                   <div class="flex-center gap-4px">
                     <p>{{ t('fileManager.list.meta.from') }}</p>
-                    <p class="file-sender">{{ getUserDisplayName(file.sender?.id) }}</p>
+                    <p class="file-sender">{{ getUserDisplayName(file.sender) }}</p>
                   </div>
                   <p class="opacity-80">{{ file.uploadTime }}</p>
                 </div>
@@ -234,13 +234,13 @@ const handleFileMenuSelect = async (menuItem: OPT.RightMenu | null, file: any) =
   }
 }
 
-// 根据 uid 获取用户显示名称
-const getUserDisplayName = (uid: string) => {
-  const groupName = groupStore.getUserDisplayName(uid)
+// 获取发送人显示名称：优先群成员信息，网页版新开的窗口里没有群成员数据时用文件记录里的名字
+const getUserDisplayName = (sender?: { id?: string; name?: string }) => {
+  const groupName = sender?.id ? groupStore.getUserDisplayName(sender.id) : ''
   if (groupName) {
     return groupName
   }
-  return t('fileManager.common.unknownUser')
+  return sender?.name || t('fileManager.common.unknownUser')
 }
 
 // 获取文件搜索占位符
