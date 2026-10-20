@@ -36,6 +36,7 @@
   },
   "list": {
     "fileCount": "{count} files",
+    "loadMore": "Load more",
     "meta": {
       "from": "From:"
     }

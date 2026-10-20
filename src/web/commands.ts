@@ -2,7 +2,7 @@
  * 网页版的 Rust 命令实现：前端 invoke 的命令名和参数保持不变，
  * 数据直接从服务端读取，不在本机保存聊天记录
  */
-import { createHistoryPager, fileQuery, navigationItems, toFileResponse } from './history'
+import { createFilePager, createHistoryPager, navigationItems } from './history'
 import { ImRequestError, imRequest, refreshTokens, signOutMail, tokenStore, webConfig } from './imClient'
 import { virtualFs } from './virtualFs'
 import type { WebSocketClient } from './wsClient'
@@ -69,7 +69,9 @@ const relogin = (emit: (event: string, payload?: unknown) => void) => (error: un
 
 export const createCommands = (ws: WebSocketClient, emit: (event: string, payload?: unknown) => void) => {
   const onError = relogin(emit)
-  const chatHistory = createHistoryPager((query) => imRequest<any>('getMsgHistory', undefined, query))
+  const fetchHistory = (query: Record<string, unknown>) => imRequest<any>('getMsgHistory', undefined, query)
+  const chatHistory = createHistoryPager(fetchHistory)
+  const files = createFilePager(fetchHistory)
   const commands: Record<string, Handler> = {
     is_app_state_ready: () => true,
     get_settings: settings,
@@ -171,8 +173,7 @@ export const createCommands = (ws: WebSocketClient, emit: (event: string, payloa
     delete_room_messages: () => null,
     update_message_recall_status: () => null,
     query_chat_history: (args) => chatHistory(args?.param).catch(onError),
-    query_files: async (args) =>
-      toFileResponse(await imRequest<any>('getMsgHistory', undefined, fileQuery(args?.param)).catch(onError)),
+    query_files: (args) => files(args?.param).catch(onError),
     get_navigation_items: navigationItems,
     debug_message_stats: () => null,
     get_files_meta: (args) => (args?.filesPath ?? []).map(fileMeta),

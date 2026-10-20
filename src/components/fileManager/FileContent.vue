@@ -66,6 +66,12 @@
               </ContextMenu>
             </div>
           </div>
+          <!-- 加载更多 -->
+          <div v-if="hasMore" class="flex-center pb-8px">
+            <n-button size="small" secondary :loading="loadingMore" @click="loadMoreFiles">
+              {{ t('fileManager.list.loadMore') }}
+            </n-button>
+          </div>
         </div>
       </n-scrollbar>
 
@@ -109,6 +115,9 @@ type User = {
 type FileManagerState = {
   timeGroupedFiles: Ref<TimeGroup[]>
   loading: Ref<boolean>
+  hasMore: Ref<boolean>
+  loadingMore: Ref<boolean>
+  loadMoreFiles: () => void
   searchKeyword: Ref<string>
   activeNavigation: Ref<string>
   selectedUser: Ref<string>
@@ -120,8 +129,18 @@ type FileManagerState = {
 const groupStore = useGroupStore()
 const { t } = useI18n()
 const fileManagerState = inject<FileManagerState>('fileManagerState')!
-const { timeGroupedFiles, searchKeyword, activeNavigation, selectedUser, userList, setSearchKeyword, setSelectedUser } =
-  fileManagerState
+const {
+  timeGroupedFiles,
+  searchKeyword,
+  activeNavigation,
+  selectedUser,
+  userList,
+  hasMore,
+  loadingMore,
+  loadMoreFiles,
+  setSearchKeyword,
+  setSelectedUser
+} = fileManagerState
 
 const fileSearchKeyword = computed({
   get: () => searchKeyword.value,
@@ -273,7 +292,8 @@ const getContentTitle = () => {
 
 // 获取内容副标题
 const getContentSubtitle = () => {
-  const totalFiles = totalDisplayedFiles.value
+  // 还能继续加载时，数量只是已加载的部分
+  const totalFiles = hasMore.value ? `${totalDisplayedFiles.value}+` : totalDisplayedFiles.value
 
   if (selectedUser.value) {
     const user = userList.value.find((u: User) => u.id === selectedUser.value)
