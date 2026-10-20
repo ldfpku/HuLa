@@ -41,6 +41,7 @@ import { useContactStore } from '@/stores/contacts.ts'
 import { useGroupStore } from '@/stores/group'
 import { useUserStore } from '@/stores/user'
 import { useChatStore } from '@/stores/chat'
+import { useMeetingStatusStore, type MeetingStatusInfo } from '@/stores/meetingStatus'
 import { useAnnouncementStore } from '@/stores/announcement'
 import { useFeedStore } from '@/stores/feed'
 import { useFeedNotificationStore } from '@/stores/feedNotification'
@@ -66,6 +67,7 @@ const feedNotificationStore = useFeedNotificationStore()
 const userUid = computed(() => userStore.userInfo!.uid)
 const groupStore = useGroupStore()
 const chatStore = useChatStore()
+const meetingStatusStore = useMeetingStatusStore()
 const appWindow = WebviewWindow.getCurrent()
 const { createRtcCallWindow, sendWindowPayload } = useWindow()
 const globalStore = useGlobalStore()
@@ -165,6 +167,10 @@ useMitt.on(WsResponseMessageType.MSG_FILE_DELETED, (data: MsgFileDeletedType) =>
 
 useMitt.on(WsResponseMessageType.CHAT_PURGED, () => {
   chatStore.applyChatPurges()
+})
+
+useMitt.on(WsResponseMessageType.MEETING_STATUS, (data: MeetingStatusInfo) => {
+  meetingStatusStore.apply(data)
 })
 
 useMitt.on(WsResponseMessageType.MY_ROOM_INFO_CHANGE, (data: { myName: string; roomId: string; uid: string }) => {

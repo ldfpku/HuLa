@@ -285,6 +285,13 @@ class RustWebSocketClient {
     )
 
     this.listenerController.add(
+      await listen('ws-meeting-status', (event: any) => {
+        info('会议状态变化')
+        useMitt.emit(WsResponseMessageType.MEETING_STATUS, event.payload)
+      })
+    )
+
+    this.listenerController.add(
       await listen('ws-mail-new', (event: any) => {
         info('新邮件')
         useMitt.emit(WsResponseMessageType.MAIL_NEW, event.payload)

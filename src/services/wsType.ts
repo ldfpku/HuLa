@@ -22,6 +22,8 @@ export enum WsResponseMessageType {
   MSG_FILE_DELETED = 'msgFileDeleted',
   /** 管理员清理了聊天数据，本机要删掉对应的旧消息 */
   CHAT_PURGED = 'chatPurged',
+  /** 会议被取消等状态变化，聊天里的会议卡片随之刷新 */
+  MEETING_STATUS = 'meetingStatus',
   /** 新邮件 */
   MAIL_NEW = 'mailNew',
   /** 新好友申请 */

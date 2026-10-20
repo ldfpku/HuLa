@@ -154,6 +154,8 @@ export enum StoresEnum {
   MAIL = 'mail',
   /** 我的待办 */
   TODO = 'todo',
+  /** 聊天里会议卡片的状态 */
+  MEETING_STATUS = 'meetingStatus',
   /** 账号账号历史记录列表 */
   LOGIN_HISTORY = 'loginHistory',
   /** 好友列表 */
@@ -875,6 +877,7 @@ export enum ImUrlEnum {
   MEETING_CANCEL = 'meetingCancel',
   /** 预约会议的日程助手：参会人忙碌时段与推荐空闲时段 */
   MEETING_AVAILABILITY = 'meetingAvailability',
+  MEETING_STATUS = 'meetingStatus',
 
   /** 发送 AI 消息 */
   MESSAGE_SEND_STREAM = 'messageSendStream',

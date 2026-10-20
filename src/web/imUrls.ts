@@ -119,6 +119,7 @@ export const IM_URLS: Record<string, [string, string]> = {
   meetingIcs: ['GET', 'im/meeting/ics'],
   meetingCancel: ['POST', 'im/meeting/cancel'],
   meetingAvailability: ['POST', 'im/meeting/availability'],
+  meetingStatus: ['GET', 'im/meeting/status'],
   generateQRCode: ['GET', 'oauth/anyTenant/qr/generate'],
   checkQRStatus: ['GET', 'oauth/anyTenant/qr/status/query'],
   scanQRCode: ['POST', 'oauth/qrcode/scan'],
