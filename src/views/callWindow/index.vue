@@ -172,18 +172,46 @@
           {{ t('message.call_window.rc_stop_control') }}
         </span>
       </div>
-      <!-- 已在确认框同意远程控制：浏览器内核要求由本人点击开始共享整个屏幕 -->
+      <!-- 对方请求远程控制：盖住通话窗口的确认卡片。点“同意并共享屏幕”直接弹出屏幕选择（页面内的点击才能弹出） -->
       <div
         v-else-if="awaitingShare"
         data-testid="rc-share-prompt"
-        class="absolute top-12px left-1/2 -translate-x-1/2 z-50 flex items-center gap-10px rounded-full bg-#d5304f px-14px py-6px text-13px text-#fff shadow-lg">
-        <span>{{ t('message.call_window.rc_share_prompt', { name: remoteUserInfo?.name || '' }) }}</span>
-        <span class="cursor-pointer rounded-full bg-white px-10px py-2px text-#d5304f" @click="shareAndGrant()">
-          {{ t('message.call_window.rc_share_start') }}
-        </span>
-        <span class="cursor-pointer opacity-80 hover:opacity-100" @click="cancelPendingShare()">
-          {{ t('message.call_window.rc_share_cancel') }}
-        </span>
+        class="absolute inset-0 z-70 flex-center bg-black/60 px-16px">
+        <div class="w-full max-w-360px rounded-12px bg-#fff px-20px py-18px text-#1f2329 shadow-xl">
+          <div class="flex items-center gap-8px text-16px font-semibold">
+            <svg class="size-18px color-#d5304f shrink-0">
+              <use href="#remote-control"></use>
+            </svg>
+            <span class="min-w-0 break-all">
+              {{ t('message.call_window.rc_share_prompt', { name: remoteUserInfo?.name || '' }) }}
+            </span>
+          </div>
+          <div class="mt-10px text-13px leading-20px text-#4e5969">{{ t('message.call_window.rc_share_tip') }}</div>
+          <div
+            v-if="shareError"
+            data-testid="rc-share-error"
+            class="mt-10px rounded-6px bg-#fdecef px-10px py-8px text-13px leading-20px text-#d5304f font-medium">
+            {{ shareError }}
+          </div>
+          <div class="mt-16px flex justify-end gap-10px">
+            <button
+              type="button"
+              data-testid="rc-consent-reject"
+              :disabled="sharing"
+              class="h-34px rounded-6px border border-solid border-#c9cdd4 bg-#fff px-16px text-13px text-#4e5969 cursor-pointer disabled:opacity-50"
+              @click="cancelPendingShare()">
+              {{ t('message.call_window.rc_share_cancel') }}
+            </button>
+            <button
+              type="button"
+              data-testid="rc-consent-accept"
+              :disabled="sharing"
+              class="h-34px rounded-6px border-none bg-#034fbc px-16px text-13px text-#fff cursor-pointer disabled:opacity-60"
+              @click="shareAndGrant($event)">
+              {{ sharing ? t('message.call_window.rc_share_busy') : t('message.call_window.rc_share_start') }}
+            </button>
+          </div>
+        </div>
       </div>
       <!-- 自己正在共享时的提示条 -->
       <div
@@ -720,6 +748,8 @@ const {
   controlRole,
   isBeingControlled,
   awaitingShare,
+  sharing,
+  shareError,
   shareAndGrant,
   cancelPendingShare,
   peerCaps,
@@ -763,12 +793,18 @@ onUnmounted(() => {
   if (autoControlTimer) clearTimeout(autoControlTimer)
 })
 
-// 等本人点“开始共享”时把通话窗口提到前面，免得提示被挡住
+// 对方请求远程控制时把通话窗口提到最前并暂时置顶，免得确认卡片被别的窗口挡住；确认结束后取消置顶
 watch(awaitingShare, (waiting) => {
-  if (!waiting || isMobileDevice) return
+  if (isMobileDevice || !isDesktop()) return
   const win = WebviewWindow.getCurrent()
+  if (!waiting) {
+    void win.setAlwaysOnTop(false).catch(() => {})
+    return
+  }
   void win
     .show()
+    .then(() => win.unminimize())
+    .then(() => win.setAlwaysOnTop(true))
     .then(() => win.setFocus())
     .catch(() => {})
 })

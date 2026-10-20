@@ -13,8 +13,9 @@ import { type RemoteInput, sameAspect } from '@/utils/RemoteControlUtils'
  * - caps：通道打开时互相告知能否被控制（桌面版 controllable，网页版 controller）
  * - rc-request：控制方请求；rc-grant / rc-deny：被控方答复；rc-stop：任意一方结束
  * - rc-input：控制方的鼠标键盘输入，只有被控方同意后的会话里才会注入
- * 被控方的同意由 Rust 弹出的系统确认框决定，Rust 侧没有同意过的会话时拒绝注入；
- * 同意后要等整屏共享就绪、核对是主屏，再调用 remote_control_activate 放行输入。
+ * 被控方在通话窗口的确认卡片上点“同意并共享屏幕”，这一下点击直接弹出屏幕选择；共享了整个主屏后
+ * 才请 Rust 开始会话（remote_control_request，显示红色提示条），核对是主屏再调用 remote_control_activate
+ * 放行输入。Rust 侧没有已放行的会话时拒绝注入，所以同意之前对方无法操作本机。
  * 会话期间每 2 秒给 Rust 发心跳，通话窗口卡住时 Rust 会自己结束会话。
  */
 export type RemoteControlRole = 'idle' | 'requesting' | 'controlling'
@@ -35,7 +36,10 @@ export interface RemoteControlRtc {
 type PeerCaps = 'controllable' | 'controller'
 type DenyReason = 'rejected' | 'web' | 'busy' | 'monitor' | 'not-primary' | 'error'
 
-const REQUEST_TIMEOUT = 60 * 1000
+/** 被控方等本人同意并选好屏幕的时限，超时由被控方取消并通知控制方 */
+const CONSENT_TIMEOUT = 60 * 1000
+/** 控制方的兜底时限：比被控方多留 15 秒，正常情况下总是被控方先超时、两边提示一致 */
+const REQUEST_TIMEOUT = CONSENT_TIMEOUT + 15 * 1000
 const HEARTBEAT_INTERVAL = 2000
 
 // 只给自动化测试用：带 VITE_SMJ_RC_E2E=1 构建时，网页可以假装成被控端（Rust 命令由测试脚本替身），正式构建里这段会被去掉
@@ -60,10 +64,13 @@ export const useRemoteControl = (rtc: RemoteControlRtc, peerName: () => string) 
   /** 对方的能力，undefined 表示对方客户端没有远程控制（旧版） */
   const peerCaps = ref<PeerCaps>()
   let requestTimer: ReturnType<typeof setTimeout> | null = null
-  let handlingRequest = false
-  /** 被控方：已在确认框同意，等本人点“开始共享” */
+  /** 被控方：对方请求了控制，通话窗口显示确认卡片，等本人同意并共享屏幕 */
   const awaitingShare = ref(false)
-  let pendingGrant: { granted: boolean; width: number; height: number } | null = null
+  /** 被控方：正在弹屏幕选择、开始会话 */
+  const sharing = ref(false)
+  /** 确认卡片上的提示（没选整个屏幕、不是主屏），本人可重选 */
+  const shareError = ref('')
+  let consentTimer: ReturnType<typeof setTimeout> | null = null
   /** 被控方：这路屏幕共享是为远程控制开的，控制结束时一起停掉；本人事先已在共享的不动 */
   let shareStartedForControl = false
   let heartbeatTimer: ReturnType<typeof setInterval> | null = null
@@ -173,118 +180,141 @@ export const useRemoteControl = (rtc: RemoteControlRtc, peerName: () => string) 
     await rtc.stopScreenShare()
   }
 
-  const handleRequest = async () => {
+  const clearConsentTimer = () => {
+    if (consentTimer) clearTimeout(consentTimer)
+    consentTimer = null
+  }
+
+  /** 对方请求控制：在通话窗口里显示确认卡片，由本人点“同意并共享屏幕” */
+  const handleRequest = () => {
     if (!canBeControlled) {
       deny('web')
       return
     }
-    if (isBeingControlled.value || awaitingShare.value || handlingRequest || controlRole.value !== 'idle') {
+    if (isBeingControlled.value || awaitingShare.value || controlRole.value !== 'idle') {
       deny('busy')
       return
     }
-    // 通话没接通（或已结束）不弹确认框
+    // 通话没接通（或已结束）不显示确认
     if (rtc.connectionStatus.value !== RTCCallStatus.ACCEPT) {
       deny('error', t('message.call_window.rc_after_connected'))
       return
     }
-    handlingRequest = true
-    try {
-      let grant: { granted: boolean; width: number; height: number }
-      try {
-        grant = await invoke('remote_control_request', { peerName: peerName() })
-      } catch (e) {
-        warn(`远程控制确认失败: ${String(e)}`)
-        window.$message.error(String(e))
-        deny('error', String(e))
-        return
-      }
-      if (!grant?.granted) {
-        info('远程控制：本人在确认框拒绝')
-        deny('rejected')
-        return
-      }
-      // 对方可能在确认框弹出期间挂断或取消了
-      if (rtc.connectionStatus.value !== RTCCallStatus.ACCEPT) {
-        info('远程控制：同意时通话已结束')
-        await invoke('remote_control_stop').catch(() => {})
-        return
-      }
-      startHeartbeat()
-      // 控制要看到整个屏幕：正在共享窗口或标签页时先停掉，再请本人选整个屏幕
-      const currentSurface = (
-        rtc.localScreenStream.value?.getVideoTracks()[0]?.getSettings() as
-          | (MediaTrackSettings & { displaySurface?: string })
-          | undefined
-      )?.displaySurface
-      if (rtc.isScreenSharing.value && currentSurface && currentSurface !== 'monitor') {
-        await rtc.stopScreenShare()
-      }
-      // 换成的整屏共享是为控制开的，控制结束时停掉
-      shareStartedForControl = !rtc.isScreenSharing.value
-      pendingGrant = grant
-      if (rtc.isScreenSharing.value || navigator.userActivation?.isActive) {
-        await shareAndGrant()
-      } else {
-        // 浏览器内核要求共享屏幕由本人点击触发：确认框之后再请本人点一下“开始共享”
-        info('远程控制：已同意，等本人点开始共享')
-        awaitingShare.value = true
-        send({ type: 'rc-pending' })
-      }
-    } finally {
-      handlingRequest = false
-    }
+    info('远程控制：收到请求，等本人在通话窗口同意并共享屏幕')
+    shareError.value = ''
+    awaitingShare.value = true
+    send({ type: 'rc-pending' })
+    // 等待同意期间本机按 Esc 即拒绝：Rust 监听全局按键（窗口没有焦点也有效），通话窗口里的按键另见下方
+    invoke('remote_control_prepare').catch((e) => warn(`远程控制 Esc 监听启动失败: ${String(e)}`))
+    clearConsentTimer()
+    consentTimer = setTimeout(() => {
+      info('远程控制：本人一直没有同意，取消请求')
+      void cancelPendingShare()
+    }, CONSENT_TIMEOUT)
   }
 
-  /** 已经同意：共享整个屏幕（需要时由本人点击触发），核对是主屏后开始接受控制 */
-  const shareAndGrant = async () => {
-    const grant = pendingGrant
-    awaitingShare.value = false
-    pendingGrant = null
-    if (!grant) return
-    info('远程控制：开始共享整个屏幕')
-    const shared = rtc.isScreenSharing.value || (await rtc.startScreenShare({ monitorOnly: true }))
-    if (!shared) {
-      info('远程控制：没有共享整个屏幕，结束')
-      shareStartedForControl = false
-      stopHeartbeat()
-      await invoke('remote_control_stop').catch(() => {})
-      deny('monitor')
+  /** 卡片上选的不是整个主屏：停掉为控制开的共享，留在卡片上请本人重选 */
+  const askAgain = async (message: string) => {
+    await stopControlShare()
+    shareError.value = message
+    sharing.value = false
+  }
+
+  /**
+   * 本人在确认卡片上点“同意并共享屏幕”：这一下点击本身就是页面里的用户操作，直接弹出屏幕选择；
+   * 共享了整个主屏后才请 Rust 开始会话（显示红色提示条）并放行输入
+   */
+  const shareAndGrant = async (event?: Event) => {
+    if (!awaitingShare.value || sharing.value) return
+    // 只认本人真实的点击（对方在同意前无法向本机注入任何输入）
+    if (event && !event.isTrusted) return
+    if (rtc.connectionStatus.value !== RTCCallStatus.ACCEPT) {
+      void cancelPendingShare(false)
       return
     }
+    sharing.value = true
+    shareError.value = ''
+    info('远程控制：本人同意，开始选择要共享的屏幕')
+    // 控制要看到整个屏幕：正在共享窗口或标签页时先停掉，再请本人选整个屏幕
+    const currentSurface = (
+      rtc.localScreenStream.value?.getVideoTracks()[0]?.getSettings() as
+        | (MediaTrackSettings & { displaySurface?: string })
+        | undefined
+    )?.displaySurface
+    if (rtc.isScreenSharing.value && currentSurface && currentSurface !== 'monitor') {
+      await rtc.stopScreenShare()
+    }
+    if (!rtc.isScreenSharing.value) {
+      const shared = await rtc.startScreenShare({ monitorOnly: true })
+      if (!shared) {
+        info('远程控制：没有共享整个屏幕，请本人重选')
+        await askAgain(t('message.call_window.rc_share_retry'))
+        return
+      }
+      // 这路共享是为控制开的，控制结束时停掉
+      shareStartedForControl = true
+    }
+    // 选择屏幕期间对方可能已挂断或取消
+    if (!awaitingShare.value || rtc.connectionStatus.value !== RTCCallStatus.ACCEPT) {
+      sharing.value = false
+      await stopControlShare()
+      return
+    }
+    let grant: { granted: boolean; width: number; height: number }
+    try {
+      grant = await invoke('remote_control_request', { peerName: peerName() })
+    } catch (e) {
+      warn(`远程控制开始失败: ${String(e)}`)
+      sharing.value = false
+      awaitingShare.value = false
+      clearConsentTimer()
+      await stopControlShare()
+      window.$message.error(String(e))
+      deny('error', String(e))
+      return
+    }
+    startHeartbeat()
     const settings = rtc.localScreenStream.value?.getVideoTracks()[0]?.getSettings()
     const sharedSize = { width: settings?.width ?? 0, height: settings?.height ?? 0 }
     if (!sameAspect(sharedSize, grant)) {
       // 宽高比和主屏不同，说明共享的是另一块屏幕，点击位置会错，只支持主屏
+      info(`远程控制：共享的不是主屏 ${sharedSize.width}x${sharedSize.height} / ${grant.width}x${grant.height}`)
       stopHeartbeat()
       await invoke('remote_control_stop').catch(() => {})
-      await stopControlShare()
-      window.$message.warning(t('message.call_window.rc_need_primary'))
-      deny('not-primary', `${sharedSize.width}x${sharedSize.height} / ${grant.width}x${grant.height}`)
+      await askAgain(t('message.call_window.rc_share_not_primary'))
       return
     }
-    // 共享就绪：请 Rust 放行输入。等共享期间会话可能已结束（超时、本人停止、挂断）
+    // 共享就绪：请 Rust 放行输入
     try {
       await invoke('remote_control_activate')
     } catch (e) {
       warn(`远程控制放行失败: ${String(e)}`)
       stopHeartbeat()
+      sharing.value = false
+      awaitingShare.value = false
+      clearConsentTimer()
       await stopControlShare()
       deny('error', String(e))
       return
     }
+    sharing.value = false
+    awaitingShare.value = false
+    clearConsentTimer()
     isBeingControlled.value = true
     send({ type: 'rc-grant', width: sharedSize.width, height: sharedSize.height })
     info(`远程控制开始：共享画面 ${sharedSize.width}x${sharedSize.height}，主屏 ${grant.width}x${grant.height}`)
   }
 
-  /** 被控方在“开始共享”提示上点了取消 */
+  /** 本人在确认卡片上点了拒绝，或一直没同意 */
   const cancelPendingShare = async (notifyPeer = true) => {
     if (!awaitingShare.value) return
     awaitingShare.value = false
-    pendingGrant = null
-    shareStartedForControl = false
+    sharing.value = false
+    shareError.value = ''
+    clearConsentTimer()
     stopHeartbeat()
     await invoke('remote_control_stop').catch(() => {})
+    await stopControlShare()
     if (notifyPeer) deny('rejected')
   }
 
@@ -315,7 +345,7 @@ export const useRemoteControl = (rtc: RemoteControlRtc, peerName: () => string) 
     rtc.onControlMessage('caps', (message) => {
       peerCaps.value = message.remoteControl === 'controllable' ? 'controllable' : 'controller'
     }),
-    rtc.onControlMessage('rc-request', () => void handleRequest()),
+    rtc.onControlMessage('rc-request', handleRequest),
     rtc.onControlMessage('rc-grant', () => {
       if (controlRole.value !== 'requesting') {
         // 已经取消了请求：让对方也结束
@@ -386,18 +416,31 @@ export const useRemoteControl = (rtc: RemoteControlRtc, peerName: () => string) 
   if (canBeControlled) {
     listen<string>('remote-control-stopped', (event) => {
       info(`远程控制已在本机结束: ${event.payload}`)
+      if (event.payload === 'escape' && awaitingShare.value) {
+        // 还在确认卡片阶段：按 Esc 就是拒绝
+        void cancelPendingShare()
+        return
+      }
       // 本机按住 Esc 紧急退出：本人事先开的共享也一起停
       if (event.payload === 'escape') shareStartedForControl = true
       if (isBeingControlled.value) void stopBeingControlled()
-      else if (awaitingShare.value) void cancelPendingShare()
-      else void stopControlShare()
+      else if (!awaitingShare.value) void stopControlShare()
     })
       .then((unlisten) => cleanups.push(unlisten))
       .catch(() => {})
+    // 确认卡片阶段通话窗口有焦点时，按 Esc 直接拒绝（不等全局监听）
+    const onKeydown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape' || !event.isTrusted || !awaitingShare.value) return
+      info('远程控制：确认卡片阶段本机按 Esc，拒绝请求')
+      void cancelPendingShare()
+    }
+    window.addEventListener('keydown', onKeydown)
+    cleanups.push(() => window.removeEventListener('keydown', onKeydown))
   }
 
   onUnmounted(() => {
     clearRequestTimer()
+    clearConsentTimer()
     stopHeartbeat()
     if (isBeingControlled.value || awaitingShare.value) {
       isBeingControlled.value = false
@@ -413,6 +456,8 @@ export const useRemoteControl = (rtc: RemoteControlRtc, peerName: () => string) 
     controlRole,
     isBeingControlled,
     awaitingShare,
+    sharing,
+    shareError,
     shareAndGrant,
     cancelPendingShare,
     peerCaps,
