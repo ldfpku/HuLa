@@ -24,6 +24,15 @@ html[data-theme='dark'] :focus-visible {
   outline-color: #7a9fe2;
 }
 
+/** 搜索命中的关键字：令牌见 --search-hit-*，深浅主题都保证对比度（不用橙色，BIS 规定橙色不作文字） */
+.smj-search-hit {
+  color: var(--search-hit-color);
+  background: var(--search-hit-bg);
+  font-weight: 600;
+  border-radius: 3px;
+  padding: 0 1px;
+}
+
 /** BIS B15：时间、编号、文件大小等数据用等宽字体（压过上面 * 的字体设置） */
 .smj-data {
   font-family: var(--font-mono) !important;
@@ -38,6 +47,9 @@ html[data-theme='dark'] :focus-visible {
   --smj-well-navy: #0a1f54;
   --smj-signal-orange: #fa8c1f; // 只做选中标记与图形，不做文字
   --smj-steel-white: #e9edf5;
+  // 搜索命中高亮：斯米伽蓝字 + BIS 浅蓝底
+  --search-hit-color: #034fbc;
+  --search-hit-bg: #d2dff6;
   --smj-blade-silver: #b7becb;
   --smj-steel-gray: #636c7e;
   --smj-graphite: #2b3752;
@@ -162,6 +174,9 @@ html[data-theme='dark'] :focus-visible {
 }
 
 html[data-theme='dark'] {
+  // 搜索命中高亮：白字 + 图表蓝底，在深井蓝上清楚可读
+  --search-hit-color: #fff;
+  --search-hit-bg: rgba(65, 112, 203, 0.75);
   --app-bg-color: #071539;
   --center-bg-color: #0a1f54; // BIS 深井蓝：深色模式基底
   --right-bg-color: #071539;
