@@ -65,7 +65,17 @@ const send = async (method: string, path: string, body?: unknown, params?: Recor
   }
 }
 
-export const refreshTokens = async (): Promise<Tokens> => {
+let refreshing: Promise<Tokens> | null = null
+
+/** 同一时间只刷新一次：服务端刷新会轮换 refresh token，并发刷新时后到的那次会被拒绝、误退登录 */
+export const refreshTokens = (): Promise<Tokens> => {
+  refreshing ??= doRefreshTokens().finally(() => {
+    refreshing = null
+  })
+  return refreshing
+}
+
+const doRefreshTokens = async (): Promise<Tokens> => {
   const tokens = tokenStore.get()
   if (!tokens?.refreshToken) throw new ImRequestError('请重新登录')
   const result = await fetch(buildUrl(IM_URLS.refreshToken[1]), {
@@ -75,6 +85,7 @@ export const refreshTokens = async (): Promise<Tokens> => {
   })
     .then((res) => res.json())
     .catch(() => null)
+  if (result === null) throw new ImRequestError('network_error: 刷新 token 失败')
   const data = result?.data as { token?: string; refreshToken?: string } | undefined
   if (!result?.success || !data?.token) throw new ImRequestError('请重新登录')
   const next = { uid: tokens.uid, token: data.token, refreshToken: data.refreshToken || tokens.refreshToken }

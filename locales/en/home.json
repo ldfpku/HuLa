@@ -448,7 +448,7 @@
     "network_offline": "Network unavailable, please check your settings",
     "network_connecting": "Connecting to server...",
     "network_ws_offline": "Can't reach the server, retrying…",
-    "network_proxy_hint": "If you use proxy software, make sure it is running, or turn off the system proxy setting.",
+    "network_proxy_hint": "Check your network connection. If you use proxy software, make sure it is running.",
     "copy": {
       "empty": "Nothing to copy",
       "image_processing": "Converting {format} image to PNG...",
