@@ -5,7 +5,14 @@
     <!-- 功能模块 -->
     <div class="flex items-start gap-14px">
       <div class="flex flex-col items-center gap-14px w-64px" v-for="opt in toolOptions">
-        <n-button :disabled="opt.disabled" secondary circle @click="opt.click" class="size-46px mx-auto">
+        <n-button
+          :title="opt.text"
+          :aria-label="opt.text"
+          :disabled="opt.disabled"
+          secondary
+          circle
+          @click="opt.click"
+          class="size-46px mx-auto">
           <template #icon>
             <svg class="size-22px">
               <use :href="opt.icon"></use>
@@ -22,6 +29,9 @@
   <n-modal v-model:show="showModal" class="w-70% rounded-8px">
     <div class="bg-[--bg-popover] h-full p-6px box-border flex flex-col">
       <div
+        role="button"
+        :title="t('tooltip.close')"
+        :aria-label="t('tooltip.close')"
         v-if="isMac()"
         @click="showModal = false"
         class="mac-close z-999 size-13px shadow-inner bg-#ed6a5eff rounded-50% select-none absolute left-6px">
@@ -31,6 +41,7 @@
       </div>
 
       <svg v-if="isWindows()" @click="showModal = false" class="size-12px ml-a cursor-pointer select-none">
+        <title>{{ t('tooltip.close') }}</title>
         <use href="#close"></use>
       </svg>
       <div class="pt-8px flex flex-col select-none">
@@ -73,7 +84,14 @@
                 <n-flex align="center" class="p-8px">
                   <n-avatar class="rounded-8px" :size="30" :src="AvatarUtils.getAvatarUrl(session.avatar)" />
                   <p class="text-(12px [--chat-text-color])">{{ session.remark ? session.remark : session.name }}</p>
-                  <n-button quaternary circle size="small" class="ml-auto" @click="handleRemoveSession(session.roomId)">
+                  <n-button
+                    :title="t('tooltip.remove')"
+                    :aria-label="t('tooltip.remove')"
+                    quaternary
+                    circle
+                    size="small"
+                    class="ml-auto"
+                    @click="handleRemoveSession(session.roomId)">
                     <template #icon>
                       <n-icon size="14">
                         <svg class="w-14px h-14px">
@@ -117,6 +135,9 @@
   <n-modal v-model:show="showDeleteConfirm" class="w-350px border-rd-8px">
     <div class="bg-[--bg-popover] w-360px h-full p-6px box-border flex flex-col">
       <div
+        role="button"
+        :title="t('tooltip.close')"
+        :aria-label="t('tooltip.close')"
         v-if="isMac()"
         @click="showDeleteConfirm = false"
         class="mac-close z-999 size-13px shadow-inner bg-#ed6a5eff rounded-50% select-none absolute left-6px">
@@ -126,6 +147,7 @@
       </div>
 
       <svg v-if="isWindows()" @click="showDeleteConfirm = false" class="w-12px h-12px ml-a cursor-pointer select-none">
+        <title>{{ t('tooltip.close') }}</title>
         <use href="#close"></use>
       </svg>
       <div class="flex flex-col gap-30px p-[22px_10px_10px_22px] select-none">

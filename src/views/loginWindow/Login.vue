@@ -31,7 +31,12 @@
           autoCapitalize="off"
           clearable>
           <template #suffix>
-            <n-flex v-if="loginHistories.length > 0" @click="arrowStatus = !arrowStatus">
+            <n-flex
+              role="button"
+              :title="arrowStatus ? t('tooltip.hide_accounts') : t('tooltip.show_accounts')"
+              :aria-label="arrowStatus ? t('tooltip.hide_accounts') : t('tooltip.show_accounts')"
+              v-if="loginHistories.length > 0"
+              @click="arrowStatus = !arrowStatus">
               <svg v-if="!arrowStatus" class="down w-18px h-18px color-#505050 dark:color-#909090 cursor-pointer">
                 <use href="#down"></use>
               </svg>
@@ -58,6 +63,7 @@
                 <n-avatar :src="AvatarUtils.getAvatarUrl(item.avatar)" color="#fff" class="size-28px rounded-50%" />
                 <p class="text-14px color-#505050 dark:color-#fefefe">{{ item.account }}</p>
                 <svg @click.stop="delAccount(item)" class="w-12px h-12px dark:color-#fefefe">
+                  <title>{{ t('tooltip.remove_account') }}</title>
                   <use href="#close"></use>
                 </svg>
               </div>

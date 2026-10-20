@@ -74,6 +74,9 @@ export const LockScreen = defineComponent(() => {
         {isMac() ? (
           <div
             onClick={() => (modalShow.value = false)}
+            role="button"
+            title={t('tooltip.close')}
+            aria-label={t('tooltip.close')}
             class="mac-close relative size-13px shadow-inner bg-#ed6a5eff rounded-50% select-none">
             <svg class="hidden size-7px color-#000 select-none absolute top-3px left-3px">
               <use href="#close"></use>
@@ -81,6 +84,7 @@ export const LockScreen = defineComponent(() => {
           </div>
         ) : (
           <svg onClick={() => (modalShow.value = false)} class="w-12px h-12px ml-a cursor-pointer select-none">
+            <title>{t('tooltip.close')}</title>
             <use href="#close"></use>
           </svg>
         )}
@@ -288,6 +292,9 @@ export const CheckUpdate = defineComponent(() => {
         {isMac() ? (
           <div
             onClick={() => (modalShow.value = false)}
+            role="button"
+            title={t('tooltip.close')}
+            aria-label={t('tooltip.close')}
             class="mac-close relative size-13px shadow-inner bg-#ed6a5eff rounded-50% select-none">
             <svg class="hidden size-7px color-#000  select-none absolute top-3px left-3px">
               <use href="#close"></use>
@@ -295,6 +302,7 @@ export const CheckUpdate = defineComponent(() => {
           </div>
         ) : (
           <svg onClick={() => (modalShow.value = false)} class="w-12px h-12px ml-a cursor-pointer select-none">
+            <title>{t('tooltip.close')}</title>
             <use href="#close"></use>
           </svg>
         )}

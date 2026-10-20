@@ -3,11 +3,22 @@
     <!-- 日期切换与结论 -->
     <div class="flex items-center justify-between gap-8px">
       <div class="flex items-center gap-6px">
-        <n-button quaternary size="tiny" :disabled="!canGoBack" @click="emit('changeDay', -1)">
+        <n-button
+          :title="t('tooltip.prev_day')"
+          :aria-label="t('tooltip.prev_day')"
+          quaternary
+          size="tiny"
+          :disabled="!canGoBack"
+          @click="emit('changeDay', -1)">
           <svg class="size-12px rotate-180"><use href="#right"></use></svg>
         </n-button>
         <span class="text-13px font-600 min-w-108px text-center">{{ formatDay(day) }}</span>
-        <n-button quaternary size="tiny" @click="emit('changeDay', 1)">
+        <n-button
+          :title="t('tooltip.next_day')"
+          :aria-label="t('tooltip.next_day')"
+          quaternary
+          size="tiny"
+          @click="emit('changeDay', 1)">
           <svg class="size-12px"><use href="#right"></use></svg>
         </n-button>
       </div>
@@ -149,6 +160,9 @@ import {
   pickTime,
   startOfLocalDay
 } from '@/utils/MeetingScheduleUtils'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 const props = defineProps<{
   participants: MeetingAvailabilityParticipant[]

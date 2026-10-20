@@ -14,6 +14,9 @@
           alt="" />
 
         <div
+          role="button"
+          :title="t('tooltip.close')"
+          :aria-label="t('tooltip.close')"
           v-if="isMac()"
           @click="isShow = false"
           class="mac-close z-10 relative size-13px shadow-inner bg-#ed6a5eff rounded-50% select-none">
@@ -26,6 +29,7 @@
           v-if="isWindows()"
           @click="isShow = false"
           class="z-10 color-#333 w-12px h-12px absolute top-6px right-6px cursor-pointer select-none">
+          <title>{{ t('tooltip.close') }}</title>
           <use href="#close"></use>
         </svg>
       </div>

@@ -5,6 +5,7 @@
       <div class="flex items-center justify-between">
         <span class="text-15px font-600">邮件转待办</span>
         <svg class="size-12px cursor-pointer select-none" @click="visible = false">
+          <title>{{ t('tooltip.close') }}</title>
           <use href="#close"></use>
         </svg>
       </div>
@@ -46,6 +47,9 @@
 <script setup lang="ts">
 import { useTodoStore } from '@/stores/todo'
 import { draftMailTodo } from '@/utils/ImRequestUtils'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 /** 邮件卡片或邮件里的“转待办”：AI 生成草稿，确认或修改后存到我的待办 */
 const props = defineProps<{ shareId?: string; mailId?: string; subject?: string }>()

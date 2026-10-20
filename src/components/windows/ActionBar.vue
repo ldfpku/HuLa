@@ -15,6 +15,9 @@
         <div class="flex items-center">
           <!--  登录窗口的代理按钮  -->
           <div
+            role="button"
+            :title="t('tooltip.network_settings')"
+            :aria-label="t('tooltip.network_settings')"
             v-if="proxy && !isWebApp"
             @click="router.push('/network')"
             :class="{ network: isWindows() }"
@@ -47,7 +50,13 @@
             </n-popover>
           </div>
           <!-- 收缩页面 -->
-          <div v-if="shrink" @click="shrinkWindow" class="hover-box">
+          <div
+            role="button"
+            :title="shrinkStatus ? t('tooltip.shrink_window') : t('tooltip.expand_window')"
+            :aria-label="shrinkStatus ? t('tooltip.shrink_window') : t('tooltip.expand_window')"
+            v-if="shrink"
+            @click="shrinkWindow"
+            class="hover-box">
             <svg
               :class="[iconColor !== '' ? `color-${iconColor}` : 'color-[--action-bar-icon-color]']"
               class="size-16px cursor-pointer">
@@ -55,7 +64,13 @@
             </svg>
           </div>
           <!-- 最小化 -->
-          <div v-if="minW && !isWebApp" @click="appWindow.minimize()" class="hover-box">
+          <div
+            role="button"
+            :title="t('tooltip.minimize')"
+            :aria-label="t('tooltip.minimize')"
+            v-if="minW && !isWebApp"
+            @click="appWindow.minimize()"
+            class="hover-box">
             <svg
               :class="[iconColor !== '' ? `color-${iconColor}` : 'color-[--action-bar-icon-color]']"
               class="size-24px opacity-66 cursor-pointer">
@@ -63,7 +78,13 @@
             </svg>
           </div>
           <!-- 最大化 -->
-          <div v-if="maxW && !isWebApp" @click="restoreWindow" class="hover-box">
+          <div
+            role="button"
+            :title="windowMaximized ? t('tooltip.restore') : t('tooltip.maximize')"
+            :aria-label="windowMaximized ? t('tooltip.restore') : t('tooltip.maximize')"
+            v-if="maxW && !isWebApp"
+            @click="restoreWindow"
+            class="hover-box">
             <svg
               v-show="!windowMaximized"
               :class="[iconColor !== '' ? `color-${iconColor}` : 'color-[--action-bar-icon-color]']"
@@ -79,6 +100,9 @@
           </div>
           <!-- 关闭窗口 -->
           <div
+            role="button"
+            :title="t('tooltip.close')"
+            :aria-label="t('tooltip.close')"
             v-if="closeW && !isWebApp"
             @click="handleCloseWin"
             :class="{ windowMaximized: 'rounded-rt-8px' }"
@@ -104,6 +128,7 @@
     <n-modal v-if="!tips.notTips" v-model:show="tipsRef.show" class="rounded-8px">
       <div class="bg-[--bg-popover] w-290px h-full p-6px box-border flex flex-col">
         <svg @click="tipsRef.show = false" class="size-12px ml-a cursor-pointer select-none">
+          <title>{{ t('tooltip.close') }}</title>
           <use href="#close"></use>
         </svg>
         <n-flex vertical :size="20" class="p-[22px_10px_10px_22px] select-none">

@@ -7,7 +7,13 @@
     class="resizable select-none flex flex-col border-r-(1px solid [--right-chat-footer-line-color])"
     :style="centerStyle">
     <!-- 分隔条 -->
-    <div v-show="!shrinkStatus" class="resize-handle transition-all duration-600 ease-in-out" @mousedown="initDrag">
+    <div
+      role="button"
+      :title="t('tooltip.drag_resize')"
+      :aria-label="t('tooltip.drag_resize')"
+      v-show="!shrinkStatus"
+      class="resize-handle transition-all duration-600 ease-in-out"
+      @mousedown="initDrag">
       <div :class="{ 'opacity-100': isDragging }" class="transition-all duration-600 ease-in-out opacity-0 drag-icon">
         <div style="border-radius: 8px 0 0 8px" class="bg-#c8c8c833 h-60px w-14px absolute top-40% right-0 drag-icon">
           <svg class="size-16px absolute top-1/2 right--2px transform -translate-y-1/2 color-#909090">
@@ -55,7 +61,12 @@
           :show-arrow="false"
           trigger="click">
           <template #trigger>
-            <n-button size="small" secondary style="padding: 0 5px">
+            <n-button
+              :title="t('tooltip.create')"
+              :aria-label="t('tooltip.create')"
+              size="small"
+              secondary
+              style="padding: 0 5px">
               <template #icon>
                 <svg class="w-24px h-24px"><use href="#plus"></use></svg>
               </template>
@@ -90,6 +101,9 @@
       <div class="bg-[--bg-edit] w-540px h-fit box-border flex flex-col">
         <n-flex :size="6" vertical>
           <div
+            role="button"
+            :title="t('tooltip.close')"
+            :aria-label="t('tooltip.close')"
             v-if="isMac()"
             @click="resetCreateGroupState"
             class="mac-close size-13px shadow-inner bg-#ed6a5eff rounded-50% mt-6px select-none absolute left-6px">
@@ -106,6 +120,7 @@
             v-if="isWindows()"
             class="size-14px cursor-pointer pt-6px select-none absolute right-6px"
             @click="resetCreateGroupState">
+            <title>{{ t('tooltip.close') }}</title>
             <use href="#close"></use>
           </svg>
 

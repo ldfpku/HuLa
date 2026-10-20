@@ -107,6 +107,7 @@
                 placement="bottom">
                 <template #trigger>
                   <svg @click.stop="isCurrently = index" class="absolute color-#666 right-0 top-0 size-18px rotate-90">
+                    <title>{{ t('tooltip.more') }}</title>
                     <use href="#more"></use>
                   </svg>
                 </template>

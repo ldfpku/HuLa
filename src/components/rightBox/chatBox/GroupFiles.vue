@@ -72,7 +72,11 @@
                   trigger="click"
                   :options="moreOptions(file)"
                   @select="(key: string) => handleMore(key, file)">
-                  <n-button quaternary size="tiny">
+                  <n-button
+                    :title="t('tooltip.more_actions')"
+                    :aria-label="t('tooltip.more_actions')"
+                    quaternary
+                    size="tiny">
                     <svg class="size-14px"><use href="#more"></use></svg>
                   </n-button>
                 </n-dropdown>

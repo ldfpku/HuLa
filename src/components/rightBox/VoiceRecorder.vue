@@ -28,7 +28,11 @@
 
         <div v-if="!isRecording && audioBlob && !isProcessing" class="status-completed">
           <div class="playback-controls">
-            <button @click="togglePlayback" class="play-btn">
+            <button
+              :title="isPlaying ? t('tooltip.pause') : t('tooltip.play')"
+              :aria-label="isPlaying ? t('tooltip.pause') : t('tooltip.play')"
+              @click="togglePlayback"
+              class="play-btn">
               <svg v-if="!isPlaying" viewBox="0 0 24 24">
                 <path fill="currentColor" d="M8,5.14V19.14L19,12.14L8,5.14Z" />
               </svg>
@@ -46,6 +50,9 @@
         <!-- 未录音状态 -->
         <div v-if="!isRecording && !audioBlob && !isProcessing" class="controls-idle">
           <div
+            role="button"
+            :title="t('tooltip.hold_to_record')"
+            :aria-label="t('tooltip.hold_to_record')"
             @mousedown="startRecording"
             @mouseup="stopRecording"
             @mouseleave="stopRecording"
@@ -54,19 +61,34 @@
             class="record-btn">
             <svg><use href="#voice"></use></svg>
           </div>
-          <div @click="handleCancel" class="cancel-btn">
+          <div
+            role="button"
+            :title="t('tooltip.cancel')"
+            :aria-label="t('tooltip.cancel')"
+            @click="handleCancel"
+            class="cancel-btn">
             <svg><use href="#close"></use></svg>
           </div>
         </div>
 
         <!-- 录音中状态 -->
         <div v-if="isRecording" class="controls-recording">
-          <div @click="stopRecording" class="stop-btn">
+          <div
+            role="button"
+            :title="t('tooltip.stop_recording')"
+            :aria-label="t('tooltip.stop_recording')"
+            @click="stopRecording"
+            class="stop-btn">
             <svg viewBox="0 0 24 24">
               <path fill="currentColor" d="M18,18H6V6H18V18Z" />
             </svg>
           </div>
-          <div @click="cancelRecording" class="cancel-record-btn">
+          <div
+            role="button"
+            :title="t('tooltip.cancel_recording')"
+            :aria-label="t('tooltip.cancel_recording')"
+            @click="cancelRecording"
+            class="cancel-record-btn">
             <svg><use href="#close"></use></svg>
           </div>
         </div>
@@ -80,14 +102,30 @@
 
         <!-- 录音完成状态 -->
         <div v-if="!isRecording && audioBlob && !isProcessing" class="controls-completed">
-          <div @click="reRecord" class="refresh-btn">
+          <div
+            role="button"
+            :title="t('tooltip.re_record')"
+            :aria-label="t('tooltip.re_record')"
+            @click="reRecord"
+            class="refresh-btn">
             <svg><use href="#refresh"></use></svg>
           </div>
-          <div @click="handleSend" class="send-btn" :disabled="sending">
+          <div
+            role="button"
+            :title="t('tooltip.send')"
+            :aria-label="t('tooltip.send')"
+            @click="handleSend"
+            class="send-btn"
+            :disabled="sending">
             <svg v-if="!sending"><use href="#send"></use></svg>
             <div v-else class="loading-spinner"></div>
           </div>
-          <div @click="handleCancel" class="cancel-btn">
+          <div
+            role="button"
+            :title="t('tooltip.cancel')"
+            :aria-label="t('tooltip.cancel')"
+            @click="handleCancel"
+            class="cancel-btn">
             <svg><use href="#close"></use></svg>
           </div>
         </div>

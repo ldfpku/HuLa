@@ -172,6 +172,9 @@
     <n-modal v-model:show="emailCodeModal" :mask-closable="false" class="rounded-8px" transform-origin="center">
       <div class="bg-#f0f0f0 dark:bg-#303030 w-380px h-fit box-border flex flex-col">
         <div
+          role="button"
+          :title="t('tooltip.close')"
+          :aria-label="t('tooltip.close')"
           v-if="isMac()"
           @click="emailCodeModal = false"
           class="mac-close z-999 size-13px shadow-inner bg-#ed6a5eff rounded-50% select-none absolute top-3px left-4px">
@@ -184,6 +187,7 @@
           v-if="isWindows()"
           @click="emailCodeModal = false"
           class="w-12px h-12px ml-a mr-4px mt-4px cursor-pointer select-none">
+          <title>{{ t('tooltip.close') }}</title>
           <use href="#close"></use>
         </svg>
         <n-flex vertical class="w-full h-fit">

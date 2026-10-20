@@ -16,6 +16,9 @@
           round />
 
         <div
+          role="button"
+          :title="t('home.profile_card.online_status')"
+          :aria-label="t('home.profile_card.online_status')"
           class="bg-[--left-bg-color] text-10px rounded-50% size-12px absolute bottom--2px right--2px border-(2px solid [--left-bg-color])"
           @click.stop="openContent(t('home.profile_card.online_status'), 'onlineStatus', 320, 480)">
           <img :src="statusIcon" alt="" class="rounded-50% size-full" />

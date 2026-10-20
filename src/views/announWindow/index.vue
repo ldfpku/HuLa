@@ -102,7 +102,14 @@
                 </n-flex>
 
                 <n-flex align="center" :size="6">
-                  <n-button class="rounded-6px" v-if="isAdmin" @click="handleEdit(announcement)" quaternary size="tiny">
+                  <n-button
+                    :title="t('tooltip.edit')"
+                    :aria-label="t('tooltip.edit')"
+                    class="rounded-6px"
+                    v-if="isAdmin"
+                    @click="handleEdit(announcement)"
+                    quaternary
+                    size="tiny">
                     <template #icon>
                       <svg class="size-14px">
                         <use href="#edit"></use>
@@ -129,7 +136,12 @@
                       </n-button>
                     </template>
                     <template #trigger>
-                      <n-button class="rounded-6px" quaternary size="tiny">
+                      <n-button
+                        :title="t('tooltip.delete')"
+                        :aria-label="t('tooltip.delete')"
+                        class="rounded-6px"
+                        quaternary
+                        size="tiny">
                         <template #icon>
                           <svg class="size-14px">
                             <use href="#delete"></use>
