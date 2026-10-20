@@ -3,15 +3,15 @@
 <plist version="1.0">
 <dict>
   <key>NSCameraUsageDescription</key>
-  <string>Request camera access for WebRTC</string>
+  <string>SMJ 需要使用摄像头进行视频通话和会议</string>
   <key>NSMicrophoneUsageDescription</key>
-  <string>Request microphone access for WebRTC</string>
+  <string>SMJ 需要使用麦克风进行语音、视频通话和会议</string>
   <key>NSScreenCaptureUsageDescription</key>
-  <string>HuLa needs screen recording permission to enable screenshot functionality</string>
+  <string>SMJ 需要屏幕录制权限来截图、共享屏幕和接受远程协助</string>
   <key>NSAccessibilityUsageDescription</key>
-  <string>HuLa needs accessibility permission to capture screen content</string>
+  <string>SMJ 需要辅助功能权限，才能在你同意远程协助后由对方操作鼠标键盘</string>
   <key>NSLocalNetworkUsageDescription</key>
-  <string>HuLa needs local network access to reach your development server</string>
+  <string>SMJ 需要访问本地网络以连接开发调试服务</string>
   <key>UISupportedInterfaceOrientations</key>
   <array>
     <string>UIInterfaceOrientationPortrait</string>

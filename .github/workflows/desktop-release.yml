@@ -1,0 +1,184 @@
+name: SMJ 桌面版打包与发布
+
+# 打 Windows（NSIS 安装包）和 macOS（通用 .dmg）两个平台的桌面版。
+# - 推送 desktop-v<版本> 标签，或在 Actions 页手动运行并勾选“发布”：打包后上传到 Cloudflare R2（存储桶 smj-desktop），
+#   邮箱站点的下载页和自动更新（/api/desktop/update）随即看到新版本。
+# - 拉取请求只打包不发布，安装包可在本次运行的 Artifacts 里下载试装。
+# 需要的 Secrets / Variables 见 /mnt/project-files/plans/desktop-release.md（项目文件）或 PR 说明。
+
+on:
+  push:
+    tags:
+      - 'desktop-v*'
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: '上传到 R2 并推送给自动更新'
+        type: boolean
+        default: false
+      notes:
+        description: '更新说明，多条用分号隔开'
+        type: string
+        default: ''
+  pull_request:
+    paths:
+      - '.github/workflows/desktop-release.yml'
+      - '.github/scripts/desktop-manifest.mjs'
+      - 'src-tauri/tauri*.conf.json'
+      - 'src-tauri/template/**'
+      - 'src-tauri/Info.plist'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: desktop-release-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PUBLISH: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.publish) }}
+
+jobs:
+  build:
+    name: 打包 ${{ matrix.name }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: windows
+            os: windows-latest
+            args: --bundles nsis
+            bundle: src-tauri/target/release/bundle
+          - name: macos
+            os: macos-latest
+            args: --target universal-apple-darwin --bundles app,dmg
+            bundle: src-tauri/target/universal-apple-darwin/release/bundle
+    runs-on: ${{ matrix.os }}
+    # macOS 打包失败不挡 Windows 发布
+    continue-on-error: ${{ matrix.name == 'macos' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 核对标签与版本号
+        if: github.event_name == 'push'
+        shell: bash
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          if [[ "${GITHUB_REF_NAME}" != "desktop-v${VERSION}" ]]; then
+            echo "标签 ${GITHUB_REF_NAME} 与 package.json 的版本 ${VERSION} 不一致" >&2
+            exit 1
+          fi
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+          run_install: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'pnpm'
+
+      # 仓库的 .npmrc 指向华为云镜像，CI 在海外，直接用 npm 官方源
+      - name: 安装前端依赖
+        run: pnpm install --frozen-lockfile --registry=https://registry.npmjs.org/
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.name == 'macos' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+          key: ${{ matrix.name }}
+
+      # 更新器公钥来自仓库变量 TAURI_UPDATER_PUBKEY，私钥来自 Secret TAURI_SIGNING_PRIVATE_KEY；
+      # 没配私钥时（比如拉取请求试打包）不生成更新包，只出安装包
+      - name: 生成打包配置
+        shell: bash
+        env:
+          HAS_SIGNING_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY != '' }}
+          UPDATER_PUBKEY: ${{ vars.TAURI_UPDATER_PUBKEY }}
+        run: |
+          if [[ "$PUBLISH" == "true" && ( "$HAS_SIGNING_KEY" != "true" || -z "$UPDATER_PUBKEY" ) ]]; then
+            echo "发布需要 Secret TAURI_SIGNING_PRIVATE_KEY 和变量 TAURI_UPDATER_PUBKEY" >&2
+            exit 1
+          fi
+          node -e '
+            // 前端只打包不做 vue-tsc 类型检查：仓库里有上游遗留的类型错误（与 HuLa 上游 release.yml 一致）
+            const config = {
+              build: { beforeBuildCommand: "pnpm vite build" },
+              bundle: { createUpdaterArtifacts: process.env.HAS_SIGNING_KEY === "true" }
+            }
+            if (process.env.UPDATER_PUBKEY) config.plugins = { updater: { pubkey: process.env.UPDATER_PUBKEY.trim() } }
+            require("fs").writeFileSync("src-tauri/release-config.json", JSON.stringify(config))
+          '
+          cat src-tauri/release-config.json
+
+      - name: 打包
+        env:
+          NODE_OPTIONS: --max-old-space-size=6144
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: pnpm tauri build ${{ matrix.args }} --config src-tauri/release-config.json
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: desktop-${{ matrix.name }}
+          if-no-files-found: error
+          path: |
+            ${{ matrix.bundle }}/nsis/*-setup.exe
+            ${{ matrix.bundle }}/nsis/*-setup.exe.sig
+            ${{ matrix.bundle }}/dmg/*.dmg
+            ${{ matrix.bundle }}/macos/*.app.tar.gz
+            ${{ matrix.bundle }}/macos/*.app.tar.gz.sig
+
+  publish:
+    name: 上传到 R2
+    needs: build
+    if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.publish)
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_R2_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID || '35f7abfbdeb4851714ce57f480531c4a' }}
+      BUCKET: ${{ vars.DESKTOP_BUCKET || 'smj-desktop' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: 生成 latest.json
+        env:
+          INPUT_NOTES: ${{ inputs.notes }}
+        run: |
+          if [[ "$GITHUB_EVENT_NAME" == "push" ]]; then
+            git fetch --force origin "refs/tags/${GITHUB_REF_NAME}:refs/tags/${GITHUB_REF_NAME}"
+            # 标签说明（git tag -a -m）就是更新说明
+            export RELEASE_NOTES="$(git tag -l --format='%(contents)' "$GITHUB_REF_NAME")"
+          else
+            export RELEASE_NOTES="$INPUT_NOTES"
+          fi
+          node .github/scripts/desktop-manifest.mjs artifacts out
+
+      - name: 上传
+        working-directory: out
+        run: |
+          if [[ -z "$CLOUDFLARE_API_TOKEN" ]]; then
+            echo "缺少 Secret CLOUDFLARE_R2_TOKEN" >&2
+            exit 1
+          fi
+          put() {
+            npx --yes cf@1.0.0-beta.18 r2 objects put "$1" --bucket-name "$BUCKET" --file "$2" --content-type "$3" > /dev/null
+            echo "已上传 $1"
+          }
+          while read -r file; do
+            [[ -n "$file" ]] && put "releases/$file" "$file" application/octet-stream
+          done < upload-order.txt
+          # 清单最后上传：客户端看到新版本时文件一定已经在了
+          put latest.json latest.json application/json

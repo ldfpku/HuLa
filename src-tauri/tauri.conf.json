@@ -1,8 +1,9 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "SMJ",
-  "version": "3.0.9",
-  "identifier": "com.hula.pc",
+  "version": "../package.json",
+  "identifier": "com.smjtools.desktop",
+  "mainBinaryName": "SMJ",
   "build": {
     "beforeDevCommand": "pnpm dev",
     "beforeBuildCommand": "pnpm build",
@@ -11,13 +12,11 @@
   },
   "bundle": {
     "category": "SocialNetworking",
-    "copyright": "SMJ",
-    "licenseFile": "./copyright/License.rtf",
+    "copyright": "© 江苏斯米伽石油装备有限公司",
     "resources": [
       "tray",
       "configuration",
-      "draco",
-      "docs"
+      "draco"
     ],
     "createUpdaterArtifacts": true,
     "active": true,
@@ -40,7 +39,9 @@
       "icons/StoreLogo.png"
     ],
     "windows": {},
-    "macOS": {}
+    "macOS": {},
+    "publisher": "江苏斯米伽石油装备有限公司",
+    "shortDescription": "SMJ 即时通讯"
   },
   "app": {
     "withGlobalTauri": true,
@@ -68,7 +69,9 @@
         "installMode": "passive"
       },
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDk1NkNENEZFNzg1MjVFMEEKUldRS1hsSjQvdFJzbGJXcnNPNXBYZ2RlTmlRRFZYYVI3YXhiWGpYZXFwVUtucThZUnJHUGw5dVUK",
-      "endpoints": []
+      "endpoints": [
+        "https://mail.smjtools.com/api/desktop/update/{{target}}/{{arch}}/{{current_version}}"
+      ]
     }
   }
 }
