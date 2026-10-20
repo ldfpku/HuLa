@@ -13,7 +13,7 @@
   <component :is="mobileRtcCallFloatCell" v-if="mobileRtcCallFloatCell" />
 </template>
 <script setup lang="ts">
-import { WebviewWindow } from '@tauri-apps/api/webviewWindow'
+import { WebviewWindow, getAllWebviewWindows } from '@tauri-apps/api/webviewWindow'
 import { info } from '@tauri-apps/plugin-log'
 import { exit } from '@tauri-apps/plugin-process'
 import { loadLanguage } from '@/services/i18n'
@@ -24,16 +24,19 @@ import { useWindow } from '@/hooks/useWindow.ts'
 import { useNetworkStatus } from '@/hooks/useNetworkStatus'
 import { useGlobalStore } from '@/stores/global'
 import { useSettingStore } from '@/stores/setting.ts'
-import { isDesktop, isIOS, isMobile, isWindows10 } from '@/utils/PlatformConstants'
+import { isDesktop, isIOS, isMobile, isWeb, isWindows10 } from '@/utils/PlatformConstants'
 import LockScreen from '@/views/LockScreen.vue'
 import MemoryMonitor from '@/components/common/MemoryMonitor.vue'
 import { unreadCountManager } from '@/utils/UnreadCountManager'
 import {
   type LoginSuccessResType,
   type OnStatusChangeType,
+  WsRequestMsgType,
   WsResponseMessageType,
   type WsTokenExpire
 } from '@/services/wsType.ts'
+import rustWebSocketClient from '@/services/webSocketRust'
+import { isCallOrMeetingWindow } from '@/utils/RtcCallUtils'
 import { useContactStore } from '@/stores/contacts.ts'
 import { useGroupStore } from '@/stores/group'
 import { useUserStore } from '@/stores/user'
@@ -95,10 +98,31 @@ const preventDrag = (e: MouseEvent) => {
 }
 const preventGlobalContextMenu = (event: MouseEvent) => event.preventDefault()
 
-useMitt.on(WsResponseMessageType.VideoCallRequest, (event) => {
+/** 桌面端已开着通话窗口或会议窗口：服务端没拦下的来电（例如它还不知道本机在开会）在这里回忙线，不再弹窗 */
+const inCallOrMeeting = async () => {
+  if (!isDesktop() || isWeb()) return false
+  try {
+    return (await getAllWebviewWindows()).some((win) => isCallOrMeetingWindow(win.label))
+  } catch {
+    return false
+  }
+}
+
+useMitt.on(WsResponseMessageType.VideoCallRequest, async (event) => {
   info(`收到通话请求：${JSON.stringify(event)}`)
   const remoteUid = event.callerUid
   const callType = event.isVideo ? CallTypeEnum.VIDEO : CallTypeEnum.AUDIO
+
+  if (await inCallOrMeeting()) {
+    info('正在通话或会议中，来电回忙线')
+    await rustWebSocketClient
+      .sendMessage({
+        type: WsRequestMsgType.VIDEO_CALL_RESPONSE,
+        data: { callerUid: remoteUid, roomId: event.roomId, accepted: 0, busy: true }
+      })
+      .catch(() => undefined)
+    return
+  }
 
   if (isMobile()) {
     useMitt.emit(MittEnum.MOBILE_RTC_CALL_REQUEST, {
