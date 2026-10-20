@@ -1,9 +1,11 @@
 {
   "search_suggestions": "Suggestions",
-  "search_guide": "Search chats, messages and mail",
+  "search_guide": "Search colleagues, chats, chat history and mail",
   "no_search_results": "No results found",
   "search_result": "Results",
   "search_history": "History",
+  "search_contacts": "Contacts",
+  "search_view_profile": "View profile",
   "search_sessions": "Chats",
   "search_chat_records": "Messages",
   "search_mail": "Mail",

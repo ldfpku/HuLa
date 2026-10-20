@@ -27,11 +27,21 @@ export const options = computed(() => {
       return {
         label: userInfo?.name || item.remark,
         value: item.uid,
+        account: userInfo?.account || '',
         avatar: AvatarUtils.getAvatarUrl(userInfo?.avatar || '/avatar-light.svg')
       }
     })
     .filter(Boolean) as any
 })
+
+/** 穿梭框搜索：姓名或邮箱前缀（姓名拼音，如 gaozq）包含关键词即命中 */
+const matchOption = (option: { label?: string; account?: string }, pattern: string) => {
+  const keyword = pattern.trim().toLowerCase()
+  return (
+    !!option.label?.toLowerCase().includes(keyword) ||
+    (option.account ?? '').toLowerCase().split('@')[0].includes(keyword)
+  )
+}
 
 // 获取已禁用选项的值列表
 export const getDisabledOptions = () => {
@@ -82,9 +92,7 @@ export const renderSourceList = (
     const baseOptions = getFilteredOptions()
 
     // 根据搜索模式进一步过滤
-    const displayOptions = pattern
-      ? baseOptions.filter((option: { label: string }) => option.label?.toLowerCase().includes(pattern.toLowerCase()))
-      : baseOptions
+    const displayOptions = pattern ? baseOptions.filter((option: any) => matchOption(option, pattern)) : baseOptions
 
     return (
       <div class="select-none">
@@ -184,9 +192,7 @@ export const renderTargetList = (
   }) => {
     // 根据搜索模式过滤选项
     const displayOptions = pattern
-      ? checkedOptions.filter((option: { label: string }) =>
-          option.label?.toLowerCase().includes(pattern.toLowerCase())
-        )
+      ? checkedOptions.filter((option: any) => matchOption(option, pattern))
       : checkedOptions
 
     return (

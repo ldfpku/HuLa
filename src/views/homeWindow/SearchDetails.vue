@@ -30,12 +30,46 @@
       </n-scrollbar>
     </template>
 
-    <!-- 搜索结果：会话、聊天记录、邮件 -->
+    <!-- 搜索结果：联系人（全公司）、会话、聊天记录、邮件 -->
     <template v-else-if="hasResults">
       <n-scrollbar style="max-height: calc(100vh / var(--page-scale, 1) - 118px)">
         <div class="pr-10px">
+          <template v-if="peopleResults.length > 0">
+            <p class="text-(12px #909090) mb-6px">{{ t('home.search_contacts') }}</p>
+            <template v-for="person in peopleResults" :key="person.uid">
+              <n-flex
+                align="center"
+                :size="14"
+                :wrap="false"
+                class="person-item p-6px mb-6px cursor-pointer rounded-8px hover:bg-[--list-hover-color]"
+                @click="openPersonChat(person)">
+                <n-avatar :size="38" round bordered class="shrink-0" :src="AvatarUtils.getAvatarUrl(person.avatar)" />
+                <n-flex vertical :size="2" class="flex-1 min-w-0">
+                  <p class="text-(14px [--text-color]) truncate">
+                    <template v-for="(part, index) in highlightParts(person.name)" :key="index">
+                      <span :class="{ 'text-#034fbc': part.hit }">{{ part.text }}</span>
+                    </template>
+                  </p>
+                  <p v-if="personDetail(person)" class="text-(12px #909090) truncate">
+                    <template v-for="(part, index) in highlightParts(personDetail(person))" :key="index">
+                      <span :class="{ 'text-#034fbc': part.hit }">{{ part.text }}</span>
+                    </template>
+                  </p>
+                </n-flex>
+                <div
+                  role="button"
+                  :title="t('home.search_view_profile')"
+                  :aria-label="t('home.search_view_profile')"
+                  class="person-profile shrink-0 size-28px flex-center rounded-6px hover:bg-[--bg-msg-hover]"
+                  @click.stop="openPersonProfile(person)">
+                  <svg class="size-16px color-#909090"><use href="#avatar"></use></svg>
+                </div>
+              </n-flex>
+            </template>
+          </template>
+
           <template v-if="searchResults.length > 0">
-            <p class="text-(12px #909090) mb-6px">{{ t('home.search_sessions') }}</p>
+            <p class="text-(12px #909090) mt-8px mb-6px">{{ t('home.search_sessions') }}</p>
             <template v-for="item in searchResults" :key="item.roomId">
               <n-flex
                 align="center"
@@ -156,12 +190,16 @@ import { MittEnum, RoomTypeEnum } from '@/enums'
 import { useCommon } from '@/hooks/useCommon.ts'
 import { useMessageJump } from '@/hooks/useMessageJump'
 import { useMitt } from '@/hooks/useMitt'
+import { openPhonePane } from '@/hooks/usePhoneLayout'
 import type { ChatSearchHit, MailSearchHit, UnifiedSearchScope } from '@/services/types'
 import { useChatStore } from '@/stores/chat.ts'
+import { useContactStore } from '@/stores/contacts'
+import { useGroupStore } from '@/stores/group'
 import { useMailStore } from '@/stores/mail'
 import { AvatarUtils } from '@/utils/AvatarUtils'
 import { timeToStr } from '@/utils/ComputedTime'
-import { unifiedSearch } from '@/utils/ImRequestUtils'
+import { searchFriend, unifiedSearch } from '@/utils/ImRequestUtils'
+import { matchDirectoryPerson, mergeDirectoryPeople, type DirectoryPerson } from '@/utils/DirectorySearch'
 import { useI18n } from 'vue-i18n'
 
 type SessionItem = {
@@ -189,10 +227,14 @@ const { t } = useI18n()
 const router = useRouter()
 const chatStore = useChatStore()
 const mailStore = useMailStore()
+const contactStore = useContactStore()
+const groupStore = useGroupStore()
 const { openMsgSession } = useCommon()
 const { requestMessageJump } = useMessageJump()
 // 从路由参数或共享状态中获取搜索查询
 const searchQuery = ref('')
+// 全公司通讯录里匹配的人：先按本地通讯录即时匹配，再用服务端结果（含部门、职务）补全
+const peopleResults = ref<DirectoryPerson[]>([])
 // 会话名称匹配的结果（本地）
 const searchResults = ref<SessionItem[]>([])
 // 服务端搜到的聊天记录和邮件
@@ -213,7 +255,9 @@ let searchSeq = 0
 const HISTORY_STORAGE_KEY = 'HULA_SEARCH_HISTORY'
 const historyList = ref<HistoryItem[]>([])
 
-const hasResults = computed(() => searchResults.value.length + chatHits.value.length + mailHits.value.length > 0)
+const hasResults = computed(
+  () => peopleResults.value.length + searchResults.value.length + chatHits.value.length + mailHits.value.length > 0
+)
 
 /** 关键词拆成词（去掉排除词和引号），用于高亮 */
 const highlightTerms = computed(() =>
@@ -254,20 +298,51 @@ const resetRemote = () => {
   searchFailed.value = false
 }
 
-// 处理搜索：会话名在本地匹配，聊天记录和邮件交给服务端
+/** 通讯录（全体在职账号，不含自己）在本地按姓名和邮箱前缀匹配 */
+const searchLocalPeople = (keyword: string) =>
+  contactStore.contactsList.flatMap((item) => {
+    const info = groupStore.getUserInfo(item.uid)
+    const person: DirectoryPerson = {
+      uid: item.uid,
+      name: info?.name || item.remark || '',
+      account: info?.account || '',
+      avatar: info?.avatar || ''
+    }
+    return person.name && matchDirectoryPerson(person, keyword) ? [person] : []
+  })
+
+/** 人员下面一行：部门 · 职务，没有就显示邮箱 */
+const personDetail = (person: DirectoryPerson) =>
+  [person.department, person.title].filter(Boolean).join(' · ') || person.account || ''
+
+// 处理搜索：联系人和会话名在本地匹配，人员再用服务端结果补全，聊天记录和邮件交给服务端
 const handleSearch = (value: string) => {
   searchSeq += 1
   resetRemote()
   if (!value) {
+    peopleResults.value = []
     searchResults.value = []
     searching.value = false
     return
   }
   const keyword = value.toLowerCase()
+  peopleResults.value = searchLocalPeople(keyword)
   searchResults.value = chatStore.sessionList.filter((session) => session.name.toLowerCase().includes(keyword))
   searching.value = true
   searchRemote(value, searchSeq)
+  searchPeople(value, searchSeq)
 }
+
+const searchPeople = useDebounceFn(async (keyword: string, seq: number) => {
+  try {
+    const found = (await searchFriend({ key: keyword })) as DirectoryPerson[] | undefined
+    if (seq !== searchSeq || !Array.isArray(found)) return
+    peopleResults.value = mergeDirectoryPeople(found, peopleResults.value)
+  } catch (error) {
+    // 服务端搜人失败时保留本地匹配结果
+    console.error('搜索联系人失败:', error)
+  }
+}, 300)
 
 const searchRemote = useDebounceFn(async (keyword: string, seq: number) => {
   try {
@@ -403,6 +478,21 @@ const openConversation = async (item: SessionItem | HistoryItem) => {
   nextTick(() => {
     useMitt.emit(MittEnum.LOCATE_SESSION, { roomId: item.roomId })
   })
+}
+
+// 打开和这个人的私聊（没聊过也会新建会话）
+const openPersonChat = async (person: DirectoryPerson) => {
+  router.go(-1)
+  await openMsgSession(person.uid, RoomTypeEnum.SINGLE)
+}
+
+// 在联系人页右侧查看这个人的资料
+const openPersonProfile = async (person: DirectoryPerson) => {
+  await router.replace('/friendsList')
+  useMitt.emit(MittEnum.TO_SEND_MSG, { url: 'friendsList' })
+  await nextTick()
+  useMitt.emit(MittEnum.DETAILS_SHOW, { context: { type: RoomTypeEnum.SINGLE, uid: person.uid }, detailsShow: true })
+  openPhonePane('contact')
 }
 
 // 打开聊天记录：进入会话后滚动到这条消息

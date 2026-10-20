@@ -1,9 +1,11 @@
 {
   "search_suggestions": "建议",
-  "search_guide": "搜索会话、聊天记录和邮件",
+  "search_guide": "搜索同事、会话、聊天记录和邮件",
   "no_search_results": "未找到相关结果",
   "search_result": "搜索结果",
   "search_history": "历史记录",
+  "search_contacts": "联系人",
+  "search_view_profile": "查看资料",
   "search_sessions": "会话",
   "search_chat_records": "聊天记录",
   "search_mail": "邮件",
