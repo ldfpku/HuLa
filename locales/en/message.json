@@ -61,6 +61,8 @@
     "sharing_self": "You are sharing your screen",
     "sharing_window": "You are sharing a window",
     "share_preview": "What others see",
+    "back_to_meeting": "Back to meeting",
+    "share_web_no_border": "The web version cannot frame your screen; use the desktop app for a border",
     "remote_sharing": "{name} is sharing their screen",
     "swap_view": "Swap views",
     "share_unsupported": "Screen sharing is not available here. Open the web app in Chrome or Edge on a computer",

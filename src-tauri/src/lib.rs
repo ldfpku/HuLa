@@ -37,7 +37,8 @@ use desktops::remote_control::{
 };
 #[cfg(desktop)]
 use desktops::share_indicator::{
-    screen_share_indicator_hide, screen_share_indicator_show, screen_share_indicator_stop,
+    meeting_window_open, screen_share_indicator_hide, screen_share_indicator_show,
+    screen_share_indicator_stop,
 };
 #[cfg(desktop)]
 use desktops::tray;
@@ -506,6 +507,8 @@ fn get_invoke_handlers() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Se
         screen_share_indicator_hide,
         #[cfg(desktop)]
         screen_share_indicator_stop,
+        #[cfg(desktop)]
+        meeting_window_open,
         #[cfg(target_os = "windows")]
         get_windows_scale_info,
         // 通用命令（桌面端和移动端都支持）
