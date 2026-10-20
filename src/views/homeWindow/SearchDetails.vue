@@ -47,12 +47,12 @@
                 <n-flex vertical :size="2" class="flex-1 min-w-0">
                   <p class="text-(14px [--text-color]) truncate">
                     <template v-for="(part, index) in highlightParts(person.name)" :key="index">
-                      <span :class="{ 'text-#034fbc': part.hit }">{{ part.text }}</span>
+                      <span :class="{ 'smj-search-hit': part.hit }">{{ part.text }}</span>
                     </template>
                   </p>
                   <p v-if="personDetail(person)" class="text-(12px #909090) truncate">
                     <template v-for="(part, index) in highlightParts(personDetail(person))" :key="index">
-                      <span :class="{ 'text-#034fbc': part.hit }">{{ part.text }}</span>
+                      <span :class="{ 'smj-search-hit': part.hit }">{{ part.text }}</span>
                     </template>
                   </p>
                 </n-flex>
@@ -79,7 +79,7 @@
                 <n-avatar :size="38" round bordered :src="AvatarUtils.getAvatarUrl(item.avatar)" />
                 <p class="text-(14px [--text-color]) flex-1 truncate">
                   <template v-for="(part, index) in highlightParts(item.name)" :key="index">
-                    <span :class="{ 'text-#034fbc': part.hit }">{{ part.text }}</span>
+                    <span :class="{ 'smj-search-hit': part.hit }">{{ part.text }}</span>
                   </template>
                 </p>
               </n-flex>
@@ -103,13 +103,17 @@
                   :src="AvatarUtils.getAvatarUrl(hit.roomAvatar || hit.fromAvatar)" />
                 <n-flex vertical :size="2" class="flex-1 min-w-0">
                   <n-flex align="center" justify="space-between" :wrap="false" :size="6">
-                    <p class="text-(14px [--text-color]) truncate">{{ hit.roomName }}</p>
+                    <p class="text-(14px [--text-color]) truncate">
+                      <template v-for="(part, index) in highlightParts(hit.roomName)" :key="index">
+                        <span :class="{ 'smj-search-hit': part.hit }">{{ part.text }}</span>
+                      </template>
+                    </p>
                     <p class="text-(11px #909090) shrink-0">{{ timeToStr(hit.sendTime) }}</p>
                   </n-flex>
                   <p class="text-(12px [--chat-text-color]) truncate">
                     <span v-if="hit.roomType === RoomTypeEnum.GROUP">{{ hit.fromName }}：</span>
                     <template v-for="(part, index) in highlightParts(hit.text)" :key="index">
-                      <span :class="{ 'text-#034fbc': part.hit }">{{ part.text }}</span>
+                      <span :class="{ 'smj-search-hit': part.hit }">{{ part.text }}</span>
                     </template>
                   </p>
                 </n-flex>
@@ -140,17 +144,23 @@
                       <template
                         v-for="(part, index) in highlightParts(mail.subject || t('home.search_no_subject'))"
                         :key="index">
-                        <span :class="{ 'text-#034fbc': part.hit }">{{ part.text }}</span>
+                        <span :class="{ 'smj-search-hit': part.hit }">{{ part.text }}</span>
                       </template>
                     </p>
                     <p class="text-(11px #909090) shrink-0">{{ timeToStr(mail.date) }}</p>
                   </n-flex>
                   <p class="text-(12px #909090) truncate">
-                    {{ mail.outbound ? t('home.search_mail_to', { to: mail.to }) : mail.fromName || mail.from }}
+                    <template
+                      v-for="(part, index) in highlightParts(
+                        mail.outbound ? t('home.search_mail_to', { to: mail.to }) : mail.fromName || mail.from
+                      )"
+                      :key="index">
+                      <span :class="{ 'smj-search-hit': part.hit }">{{ part.text }}</span>
+                    </template>
                   </p>
                   <p v-if="mail.text" class="text-(12px [--chat-text-color]) truncate">
                     <template v-for="(part, index) in highlightParts(mail.text)" :key="index">
-                      <span :class="{ 'text-#034fbc': part.hit }">{{ part.text }}</span>
+                      <span :class="{ 'smj-search-hit': part.hit }">{{ part.text }}</span>
                     </template>
                   </p>
                 </n-flex>

@@ -43,8 +43,9 @@
                 userSelect: 'text',
                 padding: '2px 4px',
                 borderRadius: '6px',
-                color: '#000',
-                background: '#034fbc'
+                color: 'var(--search-hit-color)',
+                background: 'var(--search-hit-bg)',
+                fontWeight: 600
               }" />
             <p v-else class="smj-link cursor-pointer" style="margin: 0" @click="openUrl(item)">
               {{ item }}
@@ -60,8 +61,9 @@
           userSelect: 'text',
           padding: '2px 4px',
           borderRadius: '6px',
-          color: '#000',
-          background: '#034fbc'
+          color: 'var(--search-hit-color)',
+          background: 'var(--search-hit-bg)',
+          fontWeight: 600
         }" />
       <template v-else>{{ item }}</template>
       <div
