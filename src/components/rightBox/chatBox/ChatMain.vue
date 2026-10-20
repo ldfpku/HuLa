@@ -5,11 +5,15 @@
       v-if="networkBanner"
       align="center"
       justify="center"
-      class="z-999 w-full h-40px rounded-4px text-(12px [--danger-text]) bg-[--danger-bg] flex-shrink-0">
-      <svg class="size-16px">
+      :wrap="false"
+      class="z-999 w-full min-h-40px box-border px-12px py-6px rounded-4px text-(12px [--danger-text]) bg-[--danger-bg] flex-shrink-0">
+      <svg class="size-16px flex-shrink-0">
         <use href="#cloudError"></use>
       </svg>
-      {{ networkBanner.text }}
+      <div class="leading-tight">
+        <div>{{ networkBanner.text }}</div>
+        <div v-if="networkBanner.hint" class="mt-2px">{{ networkBanner.hint }}</div>
+      </div>
     </n-flex>
 
     <!-- 置顶公告提示 -->
@@ -281,12 +285,15 @@ const networkBanner = computed(() => {
     return { text: t('home.chat_main.network_offline') }
   }
 
-  if (networkStatus.isWsConnecting.value) {
-    return { text: t('home.chat_main.network_connecting') }
-  }
-
+  // 还没失败过显示“正在连接”；失败后重试中显示“无法连接，正在重试”，持续约 1 分钟再补代理说明
   if (networkStatus.wsOnline.value === false) {
-    return { text: t('home.chat_main.network_ws_offline') }
+    if (!networkStatus.wsRetrying.value) {
+      return { text: t('home.chat_main.network_connecting') }
+    }
+    return {
+      text: t('home.chat_main.network_ws_offline'),
+      hint: networkStatus.wsOutageLong.value ? t('home.chat_main.network_proxy_hint') : undefined
+    }
   }
 
   return null

@@ -445,7 +445,8 @@
   "chat_main": {
     "network_offline": "네트워크를 사용할 수 없습니다. 설정을 확인해주세요",
     "network_connecting": "서버에 연결하는 중...",
-    "network_ws_offline": "서버 연결이 끊어졌습니다. 재연결 중입니다",
+    "network_ws_offline": "서버에 연결할 수 없습니다. 재시도 중…",
+    "network_proxy_hint": "프록시 프로그램을 사용 중이라면 실행 중인지 확인하거나 시스템 프록시 설정을 끄세요.",
     "copy": {
       "empty": "복사할 내용이 없습니다",
       "image_processing": "{format} 이미지를 PNG로 변환하는 중...",

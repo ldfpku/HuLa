@@ -445,7 +445,8 @@
   "chat_main": {
     "network_offline": "Network unavailable, please check your settings",
     "network_connecting": "Connecting to server...",
-    "network_ws_offline": "Server connection lost, retrying",
+    "network_ws_offline": "Can't reach the server, retrying…",
+    "network_proxy_hint": "If you use proxy software, make sure it is running, or turn off the system proxy setting.",
     "copy": {
       "empty": "Nothing to copy",
       "image_processing": "Converting {format} image to PNG...",

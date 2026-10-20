@@ -13,7 +13,10 @@
       <svg class="size-16px flex-shrink-0">
         <use href="#cloudError"></use>
       </svg>
-      <span class="leading-tight">{{ networkBanner.text }}</span>
+      <div class="leading-tight">
+        <div>{{ networkBanner.text }}</div>
+        <div v-if="networkBanner.hint" class="mt-2px">{{ networkBanner.hint }}</div>
+      </div>
     </div>
     <!--  会话列表  -->
     <div v-if="sessionList.length > 0" class="p-[4px_10px_0px_8px]">
@@ -199,12 +202,15 @@ const networkBanner = computed(() => {
     return { text: t('home.chat_main.network_offline') }
   }
 
-  if (networkStatus.isWsConnecting.value) {
-    return { text: t('home.chat_main.network_connecting') }
-  }
-
+  // 还没失败过显示“正在连接”；失败后重试中显示“无法连接，正在重试”，持续约 1 分钟再补代理说明
   if (networkStatus.wsOnline.value === false) {
-    return { text: t('home.chat_main.network_ws_offline') }
+    if (!networkStatus.wsRetrying.value) {
+      return { text: t('home.chat_main.network_connecting') }
+    }
+    return {
+      text: t('home.chat_main.network_ws_offline'),
+      hint: networkStatus.wsOutageLong.value ? t('home.chat_main.network_proxy_hint') : undefined
+    }
   }
 
   return null
