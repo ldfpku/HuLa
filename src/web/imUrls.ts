@@ -86,6 +86,7 @@ export const IM_URLS: Record<string, [string, string]> = {
   markMsg: ['PUT', 'im/chat/msg/mark'],
   getMsgList: ['POST', 'im/chat/msg/list'],
   getMsgPage: ['GET', 'im/chat/msg/page'],
+  getMsgHistory: ['GET', 'im/chat/msg/history'],
   getMemberStatistic: ['GET', 'im/chat/member/statistic'],
   feedDetail: ['GET', 'im/feed/detail'],
   feedList: ['POST', 'im/feed/list'],
