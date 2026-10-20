@@ -1,9 +1,11 @@
 {
   "search_suggestions": "추천 검색어",
-  "search_guide": "대화, 메시지, 메일 검색",
+  "search_guide": "동료, 대화, 채팅 기록 및 메일 검색",
   "no_search_results": "검색 결과가 없습니다",
   "search_result": "검색 결과",
   "search_history": "검색 기록",
+  "search_contacts": "연락처",
+  "search_view_profile": "프로필 보기",
   "search_sessions": "대화",
   "search_chat_records": "메시지",
   "search_mail": "메일",
