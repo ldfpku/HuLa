@@ -10,7 +10,7 @@
   },
   "input": {
     "account": {
-      "placeholder": "Email"
+      "placeholder": "Username"
     },
     "pass": {
       "placeholder": "Password"

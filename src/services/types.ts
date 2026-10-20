@@ -943,6 +943,8 @@ export type ConfigType = {
   logo: string
   /** 系统名称 */
   name: string
+  /** 登录域名：账号框只需输入 @ 前面的用户名 */
+  loginDomain?: string | null
   /** 七牛 */
   qiNiu: {
     /** oss域名 */

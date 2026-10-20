@@ -31,6 +31,9 @@
           autoCapitalize="off"
           clearable>
           <template #suffix>
+            <span v-if="accountSuffix" class="login-domain-suffix text-13px color-#909090 select-none">
+              {{ accountSuffix }}
+            </span>
             <n-flex
               role="button"
               :title="arrowStatus ? t('tooltip.hide_accounts') : t('tooltip.show_accounts')"
@@ -249,6 +252,15 @@ import { formatBottomText } from '@/utils/Formatting'
 import { ThemeEnum } from '@/enums'
 import ThirdPartyLogin, { type ThirdPartyLoginContext } from './ThirdPartyLogin.vue'
 import { ACCOUNT_FEATURES } from '@/common/backend'
+import { ImUrlEnum } from '@/enums'
+import { imRequestSilent } from '@/utils/ImRequestUtils'
+import {
+  completeLoginAccount,
+  LOGIN_DOMAIN_STORAGE_KEY,
+  loginAccountSuffix,
+  normalizeLoginDomain,
+  shortLoginName
+} from '@/utils/LoginAccountUtils'
 
 const { t } = useI18n()
 
@@ -338,6 +350,29 @@ const cancelAutoLoginAndShowManual = () => {
   loginHistories.length > 0 && giveAccount(loginHistories[0])
 }
 
+/** 登录域名（如 smjtools.com）：账号框只输用户名，域名显示在右侧，服务端补全 */
+const loginDomain = ref(normalizeLoginDomain(localStorage.getItem(LOGIN_DOMAIN_STORAGE_KEY)))
+const accountSuffix = computed(() => loginAccountSuffix(info.value.account || '', loginDomain.value))
+
+const loadLoginDomain = async () => {
+  const config = await imRequestSilent<{ loginDomain?: string | null }>({ url: ImUrlEnum.INIT_CONFIG })
+  if (!config) return
+  const domain = normalizeLoginDomain(config.loginDomain)
+  loginDomain.value = domain
+  if (domain) {
+    localStorage.setItem(LOGIN_DOMAIN_STORAGE_KEY, domain)
+  } else {
+    localStorage.removeItem(LOGIN_DOMAIN_STORAGE_KEY)
+  }
+}
+
+// 域名后到时，把已填入的完整地址收成用户名
+watch(loginDomain, (domain) => {
+  if (info.value.account) {
+    info.value.account = shortLoginName(info.value.account, domain)
+  }
+})
+
 // 输入框占位符
 const accountPH = ref(t('login.input.account.placeholder'))
 const passwordPH = ref(t('login.input.pass.placeholder'))
@@ -421,8 +456,9 @@ watch(
     }
 
     // 在登录历史中查找匹配的账号
+    const fullAccount = completeLoginAccount(newAccount, loginDomain.value)
     const matchedAccount = loginHistories.find(
-      (history) => history.account === newAccount || history.email === newAccount
+      (history) => history.account === fullAccount || history.email === fullAccount
     )
     if (matchedAccount) {
       info.value.avatar = matchedAccount.avatar
@@ -487,7 +523,7 @@ const delAccount = (item: UserInfoType) => {
  * */
 const giveAccount = (item: UserInfoType) => {
   const { account, password, avatar, name, uid } = item
-  info.value.account = account || ''
+  info.value.account = shortLoginName(account || '', loginDomain.value)
   info.value.password = password || ''
   info.value.avatar = avatar
   info.value.name = name
@@ -567,6 +603,7 @@ onMounted(async () => {
     loginHistories.length > 0 && giveAccount(loginHistories[0])
   }
 
+  void loadLoginDomain()
   window.addEventListener('click', closeMenu, true)
   window.addEventListener('keyup', enterKey)
   if (isDesktopClient) {
