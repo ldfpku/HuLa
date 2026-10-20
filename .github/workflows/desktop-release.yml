@@ -98,7 +98,7 @@ jobs:
         shell: bash
         env:
           HAS_SIGNING_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY != '' }}
-          UPDATER_PUBKEY: ${{ vars.TAURI_UPDATER_PUBKEY }}
+          UPDATER_PUBKEY: ${{ vars.TAURI_UPDATER_PUBKEY || secrets.TAURI_UPDATER_PUBKEY }}
         run: |
           if [[ "$PUBLISH" == "true" && ( "$HAS_SIGNING_KEY" != "true" || -z "$UPDATER_PUBKEY" ) ]]; then
             echo "发布需要 Secret TAURI_SIGNING_PRIVATE_KEY 和变量 TAURI_UPDATER_PUBKEY" >&2
@@ -143,7 +143,7 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID || '35f7abfbdeb4851714ce57f480531c4a' }}
       BUCKET: ${{ vars.DESKTOP_BUCKET || 'smj-desktop' }}
       HAS_SIGNING_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY != '' }}
-      UPDATER_PUBKEY: ${{ vars.TAURI_UPDATER_PUBKEY }}
+      UPDATER_PUBKEY: ${{ vars.TAURI_UPDATER_PUBKEY || secrets.TAURI_UPDATER_PUBKEY }}
     steps:
       - uses: actions/setup-node@v4
         with:
@@ -154,14 +154,23 @@ jobs:
           missing=0
           [[ "$HAS_SIGNING_KEY" == "true" ]] || { echo "缺少 Secret TAURI_SIGNING_PRIVATE_KEY" >&2; missing=1; }
           [[ -n "$UPDATER_PUBKEY" ]] || { echo "缺少变量 TAURI_UPDATER_PUBKEY" >&2; missing=1; }
-          [[ -n "$CLOUDFLARE_API_TOKEN" ]] || { echo "缺少 Secret CLOUDFLARE_R2_TOKEN" >&2; missing=1; }
+          if [[ -z "$CLOUDFLARE_API_TOKEN" ]]; then
+            echo "缺少 Secret CLOUDFLARE_R2_TOKEN" >&2
+            missing=1
+          else
+            # 写一个小文件再删掉，证明令牌能写这个桶
+            key="ci-check/${GITHUB_RUN_ID}.txt"
+            echo "ok" > check.txt
+            if npx --yes cf@1.0.0-beta.18 r2 objects put "$key" --bucket-name "$BUCKET" --file check.txt --content-type text/plain > /dev/null \
+              && npx --yes cf@1.0.0-beta.18 r2 objects delete "$key" --bucket-name "$BUCKET" --force > /dev/null; then
+              echo "R2 令牌可写存储桶 $BUCKET"
+            else
+              echo "R2 令牌写不了存储桶 $BUCKET" >&2
+              missing=1
+            fi
+          fi
           [[ "$missing" == 0 ]] || exit 1
-          # 写一个小文件再删掉，证明令牌能写这个桶
-          key="ci-check/${GITHUB_RUN_ID}.txt"
-          echo "ok" > check.txt
-          npx --yes cf@1.0.0-beta.18 r2 objects put "$key" --bucket-name "$BUCKET" --file check.txt --content-type text/plain > /dev/null
-          npx --yes cf@1.0.0-beta.18 r2 objects delete "$key" --bucket-name "$BUCKET" --force > /dev/null
-          echo "签名私钥、更新公钥齐全，R2 令牌可写存储桶 $BUCKET"
+          echo "签名私钥、更新公钥齐全"
 
   publish:
     name: 上传到 R2
