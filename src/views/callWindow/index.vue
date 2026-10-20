@@ -100,7 +100,7 @@
           ref="screenMainVideoRef"
           autoplay
           playsinline
-          :class="isScreenOnMain ? 'object-contain' : 'object-cover scale-x-[-1]'"
+          :class="isScreenOnMain ? 'object-contain' : 'object-cover'"
           class="w-full h-full bg-black"></video>
         <RemoteControlSurface
           v-if="controlRole === 'controlling' && isScreenOnMain"
@@ -127,7 +127,7 @@
             ref="screenPipVideoRef"
             autoplay
             playsinline
-            :class="[pipVideoSizeClass, isScreenOnMain ? 'object-cover scale-x-[-1]' : 'object-contain']"
+            :class="[pipVideoSizeClass, isScreenOnMain ? 'object-cover' : 'object-contain']"
             class="rounded-8px bg-black border-2 border-white cursor-pointer"
             :title="t('message.call_window.swap_view')"
             @click="isScreenOnMain = !isScreenOnMain"></video>
@@ -230,8 +230,9 @@
           autoplay
           playsinline
           :class="[
-            'w-full h-full scale-x-[-1] bg-black object-cover',
-            compactCall ? 'rounded-none' : 'rounded-8px'
+            'w-full h-full bg-black object-cover',
+            compactCall ? 'rounded-none' : 'rounded-8px',
+            { 'scale-x-[-1]': isLocalOnMain }
           ]"></video>
 
         <!-- 画中画视频 -->
@@ -240,8 +241,8 @@
             ref="pipVideoRef"
             autoplay
             playsinline
-            :class="pipVideoSizeClass"
-            class="scale-x-[-1] rounded-8px bg-black object-cover border-2 border-white cursor-pointer"
+            :class="[pipVideoSizeClass, { 'scale-x-[-1]': isLocalOnPip }]"
+            class="rounded-8px bg-black object-cover border-2 border-white cursor-pointer"
             @click="toggleVideoLayout"></video>
           <!-- 切换提示 -->
           <div
@@ -911,6 +912,10 @@ const assignScreenVideos = async () => {
 const hasLocalVideo = computed(() => {
   return isVideoEnabled.value && !!localStream.value
 })
+
+// 只镜像本人的画面（像照镜子）；对方的画面按原样显示，背景板上的文字才是正的。与 assignVideoStreams 的分配一致
+const isLocalOnMain = computed(() => hasLocalVideo.value && (!hasRemoteVideo.value || isLocalVideoMain.value))
+const isLocalOnPip = computed(() => hasLocalVideo.value && hasRemoteVideo.value && !isLocalVideoMain.value)
 
 // 获取窗口最大化状态
 const isWindowMaximized = computed(() => {
