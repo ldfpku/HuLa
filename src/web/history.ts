@@ -28,26 +28,49 @@ export const chatHistoryQuery = (param: any): Record<string, unknown> => ({
   pageSize: param?.pagination?.pageSize
 })
 
+type FetchPage = (query: Record<string, unknown>) => Promise<HistoryPage>
+
 /**
- * 聊天记录窗口按页码翻页，服务端按游标翻页：记下每页结束的游标，
- * 条件变了（回到第 1 页）就重新开始
+ * 两个窗口都按页码翻页，服务端按游标翻页：记下每页结束的游标，
+ * 条件变了（回到第 1 页）就重新开始；没有对应游标的页返回 null
  */
-export const createHistoryPager = (fetchPage: (query: Record<string, unknown>) => Promise<HistoryPage>) => {
+const createCursorPager = (fetchPage: FetchPage) => {
   let key = ''
   const cursors: string[] = []
-  return async (param: any) => {
-    const query = chatHistoryQuery(param)
-    const page = Math.max(Number(param?.pagination?.page) || 1, 1)
+  return async (query: Record<string, unknown>, page: number): Promise<HistoryPage | null> => {
     const nextKey = JSON.stringify(query)
     if (page === 1 || nextKey !== key) {
       key = nextKey
       cursors.length = 0
     }
     const cursor = page > 1 ? cursors[page - 2] : undefined
-    if (page > 1 && !cursor) return { messages: [], hasMore: false, currentPage: page }
+    if (page > 1 && !cursor) return null
     const result = await fetchPage({ ...query, cursor })
     cursors[page - 1] = result.cursor
+    return result
+  }
+}
+
+const pageOf = (value: unknown) => Math.max(Number(value) || 1, 1)
+
+/** 聊天记录窗口：返回 Rust 的 ChatHistoryResponse */
+export const createHistoryPager = (fetchPage: FetchPage) => {
+  const pager = createCursorPager(fetchPage)
+  return async (param: any) => {
+    const page = pageOf(param?.pagination?.page)
+    const result = await pager(chatHistoryQuery(param), page)
+    if (!result) return { messages: [], hasMore: false, currentPage: page }
     return { messages: result.list ?? [], hasMore: !result.isLast, currentPage: page }
+  }
+}
+
+/** 文件窗口：返回 Rust 的 FileQueryResponse */
+export const createFilePager = (fetchPage: FetchPage, now = () => new Date()) => {
+  const pager = createCursorPager(fetchPage)
+  return async (param: any) => {
+    const page = pageOf(param?.page)
+    const result = await pager(fileQuery(param), page)
+    return toFileResponse(result ?? { list: [], cursor: '', isLast: true }, now(), page)
   }
 }
 
@@ -116,7 +139,7 @@ export const toFileInfo = (item: any) => {
 }
 
 /** 服务端一页文件消息 → Rust 的 FileQueryResponse：按天分组（新的在前）并列出发送人 */
-export const toFileResponse = (page: HistoryPage, now = new Date()) => {
+export const toFileResponse = (page: HistoryPage, now = new Date(), currentPage = 1) => {
   const files = (page.list ?? []).map(toFileInfo).filter((file): file is NonNullable<typeof file> => file !== null)
   const groups = new Map<string, { date: string; displayDate: string; files: typeof files }>()
   const users = new Map<string, (typeof files)[number]['sender']>()
@@ -131,7 +154,7 @@ export const toFileResponse = (page: HistoryPage, now = new Date()) => {
     timeGroupedFiles: [...groups.values()],
     userList: [...users.values()],
     hasMore: !page.isLast,
-    currentPage: 1
+    currentPage
   }
 }
 

@@ -36,6 +36,7 @@
   },
   "list": {
     "fileCount": "파일 {count}개",
+    "loadMore": "더 보기",
     "meta": {
       "from": "보낸 사람:"
     }

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { createHistoryPager, displayDate, fileQuery, toFileResponse } from './history'
+import { createFilePager, createHistoryPager, displayDate, fileQuery, toFileResponse } from './history'
 
 const message = (id: string, type: number, body: Record<string, unknown>, sendTime: number, uid = 'u2') => ({
   fromUser: { uid, username: uid === 'u2' ? '时丽燕' : '李尚松', avatar: `/a/${uid}` },
@@ -75,6 +75,27 @@ describe('文件窗口', () => {
     })
     expect(response.userList.map((user) => user.name)).toEqual(['李尚松', '时丽燕'])
     expect(response.hasMore).toBe(false)
+  })
+
+  it('继续加载用上一页的游标，换了条件从头查', async () => {
+    const fetchPage = vi.fn(async (query: Record<string, unknown>) => ({
+      list: [message(String(query.cursor ?? '9'), 4, { fileName: `${query.cursor ?? 'first'}.pdf` }, 1)],
+      cursor: query.cursor ? '' : 'c1',
+      isLast: Boolean(query.cursor)
+    }))
+    const pager = createFilePager(fetchPage, () => new Date(1))
+    const first = await pager({ navigationType: 'myFiles', page: 1 })
+    expect([first.hasMore, first.currentPage]).toEqual([true, 1])
+    const second = await pager({ navigationType: 'myFiles', page: 2 })
+    expect(fetchPage).toHaveBeenLastCalledWith(expect.objectContaining({ kind: 'files', cursor: 'c1' }))
+    expect([second.timeGroupedFiles[0].files[0].fileName, second.hasMore, second.currentPage]).toEqual([
+      'c1.pdf',
+      false,
+      2
+    ])
+    const other = await pager({ navigationType: 'groups', roomId: '9', page: 2 })
+    expect([other.timeGroupedFiles.length, other.hasMore]).toEqual([0, false])
+    expect(fetchPage).toHaveBeenCalledTimes(2)
   })
 
   it('日期显示与桌面版一致', () => {
