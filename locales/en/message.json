@@ -93,6 +93,7 @@
     "rc_controlling": "Controlling {name}'s computer",
     "rc_swap_hint": "(switch back to the screen view to control)",
     "rc_being_controlled": "{name} is controlling your computer",
+    "rc_escape_hint": "Hold Esc to stop",
     "share_prompt": "Connected. Share your screen now?",
     "share_later": "Not now",
     "rc_pending": "Approved, they are choosing the screen to share",

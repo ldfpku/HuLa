@@ -93,6 +93,7 @@
     "rc_controlling": "正在控制 {name} 的电脑",
     "rc_swap_hint": "（切回屏幕画面才能操作）",
     "rc_being_controlled": "{name} 正在远程控制你的电脑",
+    "rc_escape_hint": "按住 Esc 退出",
     "share_prompt": "已接通，开始共享你的屏幕？",
     "share_later": "暂不",
     "rc_pending": "对方已同意，正在选择要共享的屏幕",
