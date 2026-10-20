@@ -35,27 +35,58 @@ pub fn ticket_url(server_url: &Url) -> Option<Url> {
     Some(url)
 }
 
-/// 取一张 ticket；失败（网络、旧版服务端没有这个接口）时返回 None，由调用方退回旧的 Token 参数
-pub async fn fetch_ticket(server_url: &Url, token: &str) -> Option<String> {
-    let url = ticket_url(server_url)?;
-    let client = reqwest::Client::builder()
+pub enum TicketOutcome {
+    Ticket(String),
+    /// 服务端明确拒绝了这个 token（过期或已被刷新轮换掉），换新 token 再试
+    Refused(i64),
+    /// 网络错误、旧版服务端没有这个接口等，由调用方退回旧的 Token 参数
+    Unavailable,
+}
+
+/// 取一张 ticket
+pub async fn fetch_ticket(server_url: &Url, token: &str) -> TicketOutcome {
+    let Some(url) = ticket_url(server_url) else {
+        return TicketOutcome::Unavailable;
+    };
+    let Ok(client) = reqwest::Client::builder()
         .proxy(super::proxy::reqwest_proxy())
         .timeout(Duration::from_secs(TICKET_TIMEOUT_SECS))
         .build()
-        .ok()?;
+    else {
+        return TicketOutcome::Unavailable;
+    };
     let response = match client.post(url).header("token", token).send().await {
         Ok(response) => response,
         Err(e) => {
             warn!("WebSocket ticket request failed: {}", e);
-            return None;
+            return TicketOutcome::Unavailable;
         }
     };
-    let envelope = response.json::<TicketEnvelope>().await.ok()?;
-    if envelope.code != Some(200) {
-        warn!("WebSocket ticket refused: code {:?}", envelope.code);
-        return None;
+    let Ok(envelope) = response.json::<TicketEnvelope>().await else {
+        return TicketOutcome::Unavailable;
+    };
+    classify(envelope)
+}
+
+fn classify(envelope: TicketEnvelope) -> TicketOutcome {
+    match envelope.code {
+        Some(200) => match envelope
+            .data
+            .and_then(|d| d.ticket)
+            .filter(|t| !t.is_empty())
+        {
+            Some(ticket) => TicketOutcome::Ticket(ticket),
+            None => TicketOutcome::Unavailable,
+        },
+        Some(code @ (401 | 406)) => {
+            warn!("WebSocket ticket refused: code {}", code);
+            TicketOutcome::Refused(code)
+        }
+        code => {
+            warn!("WebSocket ticket unavailable: code {:?}", code);
+            TicketOutcome::Unavailable
+        }
     }
-    envelope.data?.ticket.filter(|t| !t.is_empty())
 }
 
 #[cfg(test)]
@@ -75,5 +106,33 @@ mod tests {
             "http://127.0.0.1:3000/api/im/ws/ticket"
         );
         assert!(ticket_url(&Url::parse("https://x/api/im/ws").unwrap()).is_none());
+    }
+
+    fn envelope(json: &str) -> TicketEnvelope {
+        serde_json::from_str(json).unwrap()
+    }
+
+    #[test]
+    fn expired_or_rotated_tokens_are_refused_not_unavailable() {
+        assert!(matches!(
+            classify(envelope(r#"{"code":200,"data":{"ticket":"t1"}}"#)),
+            TicketOutcome::Ticket(t) if t == "t1"
+        ));
+        assert!(matches!(
+            classify(envelope(r#"{"code":401,"data":null}"#)),
+            TicketOutcome::Refused(401)
+        ));
+        assert!(matches!(
+            classify(envelope(r#"{"code":406}"#)),
+            TicketOutcome::Refused(406)
+        ));
+        assert!(matches!(
+            classify(envelope(r#"{"code":404}"#)),
+            TicketOutcome::Unavailable
+        ));
+        assert!(matches!(
+            classify(envelope(r#"{"code":200,"data":{"ticket":""}}"#)),
+            TicketOutcome::Unavailable
+        ));
     }
 }

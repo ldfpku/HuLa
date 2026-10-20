@@ -444,7 +444,7 @@
     "network_offline": "当前网络不可用，请检查你的网络设置",
     "network_connecting": "正在连接服务器...",
     "network_ws_offline": "无法连接服务器，正在重试…",
-    "network_proxy_hint": "如果你在使用代理软件，请确认它在运行，或已关闭系统代理设置。",
+    "network_proxy_hint": "请检查网络连接；如果你在使用代理软件，请确认它在运行。",
     "copy": {
       "empty": "没有可复制的内容",
       "image_processing": "正在将 {format} 格式图片转换为 PNG 并复制...",

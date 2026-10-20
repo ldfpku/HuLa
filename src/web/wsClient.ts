@@ -3,26 +3,36 @@
  * 协议相同：心跳 {"type":"2"}，回包 {"type":"3"}，收到聊天消息回 ACK（type 15），
  * 业务消息按类型转成与 Rust 端同名的 ws-* 事件
  */
-import { refreshTokens, tokenStore, webConfig } from './imClient'
+import { ImRequestError, refreshTokens, tokenStore, webConfig } from './imClient'
 
 /**
  * 连接前用 token 换一张一次性 ticket（60 秒内有效，用一次即作废），
  * 地址里只带 ticket，不再带 token，代理和日志里留下的地址没有用处
  */
+/** 服务端明确拒绝了这个 token（过期，或已被刷新轮换掉） */
+export class TicketRefusedError extends Error {}
+
 const requestSocketTicket = async (token: string): Promise<string> => {
   const response = await fetch(`${webConfig.baseUrl}/ws/ticket`, { method: 'POST', headers: { token } })
-  if (!response.ok) throw new Error(`获取连接凭证失败: HTTP ${response.status}`)
   const result = (await response.json()) as { code?: number; data?: { ticket?: string } }
+  if (result?.code === 401 || result?.code === 406) throw new TicketRefusedError(`连接凭证被拒绝: ${result.code}`)
   if (result?.code !== 200 || !result.data?.ticket) throw new Error(`获取连接凭证失败: ${result?.code}`)
   return result.data.ticket
 }
 
-/** 换不到 ticket 时重试一次；仍失败（例如服务端还没有 ticket 接口）返回 null，与桌面版一样退回 Token 参数 */
-const fetchSocketTicket = async (token: string): Promise<string | null> => {
+/**
+ * 换不到 ticket 时重试一次；仍失败（例如服务端还没有 ticket 接口）返回 null，与桌面版一样退回 Token 参数。
+ * token 被拒绝时不退回 Token 参数（同样会被拒），抛出 TicketRefusedError 让调用方先刷新 token
+ */
+export const fetchSocketTicket = async (
+  token: string,
+  request: (token: string) => Promise<string> = requestSocketTicket
+): Promise<string | null> => {
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
-      return await requestSocketTicket(token)
+      return await request(token)
     } catch (error) {
+      if (error instanceof TicketRefusedError) throw error
       console.warn('[ws] 获取连接凭证失败', error)
     }
   }
@@ -156,11 +166,38 @@ export class WebSocketClient {
       this.scheduleReconnect()
       return
     }
-    void fetchSocketTicket(token).then((ticket) => {
-      if (seq !== this.openSeq || this.manualClose) return
-      if (ticket) this.connect('ticket', ticket, isReconnection)
-      else this.connect('Token', token, isReconnection)
-    })
+    void this.credential(token).then(
+      ([param, value]) => {
+        if (seq !== this.openSeq || this.manualClose) return
+        this.connect(param, value, isReconnection)
+      },
+      (error) => {
+        if (seq !== this.openSeq || this.manualClose) return
+        console.warn('[ws] 连接凭证不可用', error)
+        if (error instanceof ImRequestError && error.message.includes('请重新登录')) {
+          // 登录已失效：退回登录页，不再重连
+          this.emit('relogin')
+          return
+        }
+        this.setState('RECONNECTING', true)
+        this.scheduleReconnect()
+      }
+    )
+  }
+
+  /** 连接地址里带的鉴权参数：ticket，换不到时退回 Token；token 过期或已被轮换时先刷新再换一次 */
+  private async credential(token: string): Promise<['ticket' | 'Token', string]> {
+    try {
+      const ticket = await fetchSocketTicket(token)
+      return ticket ? ['ticket', ticket] : ['Token', token]
+    } catch (error) {
+      if (!(error instanceof TicketRefusedError)) throw error
+    }
+    // 别的请求已经刷新过就直接用新的
+    const current = tokenStore.get()?.token
+    const fresh = current && current !== token ? current : (await refreshTokens()).token
+    const ticket = await fetchSocketTicket(fresh)
+    return ticket ? ['ticket', ticket] : ['Token', fresh]
   }
 
   private connect(param: 'ticket' | 'Token', value: string, isReconnection: boolean) {

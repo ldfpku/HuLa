@@ -18,7 +18,8 @@ use tokio::time::{Duration, interval, sleep, timeout};
 const CONNECT_TIMEOUT_SECS: u64 = 15;
 
 use super::dial::dial;
-use super::ticket::fetch_ticket;
+use super::ticket::{TicketOutcome, fetch_ticket};
+use super::token::{RefreshOutcome, current_token, refresh_after_refusal};
 use tokio_tungstenite::{client_async_tls_with_config, tungstenite::protocol::Message};
 use tracing::{debug, error, info, warn};
 use url::Url;
@@ -392,6 +393,47 @@ impl WebSocketClient {
         info!("Connection state cleaned up");
     }
 
+    /// 连接地址里带的鉴权参数：("ticket", ticket)，或换不到 ticket 时的 ("Token", token)。
+    /// token 每次现取：建连时存下的那份过期或被 HTTP 刷新轮换后就不能用了
+    async fn connect_credential(
+        &self,
+        url: &Url,
+        stored_token: Option<String>,
+    ) -> Result<Option<(&'static str, String)>> {
+        let Some(token) = current_token(&self.app_handle).await.or(stored_token) else {
+            return Ok(None);
+        };
+        match fetch_ticket(url, &token).await {
+            TicketOutcome::Ticket(ticket) => Ok(Some(("ticket", ticket))),
+            TicketOutcome::Unavailable => {
+                warn!("WebSocket ticket unavailable, falling back to the token parameter");
+                Ok(Some(("Token", token)))
+            }
+            // 被拒绝的 token 不能再拿去退回 Token 参数，先换新 token
+            TicketOutcome::Refused(_) => {
+                match refresh_after_refusal(&self.app_handle, &token).await {
+                    RefreshOutcome::Refreshed(fresh) => {
+                        self.config.write().await.token = Some(fresh.clone());
+                        match fetch_ticket(url, &fresh).await {
+                            TicketOutcome::Ticket(ticket) => Ok(Some(("ticket", ticket))),
+                            _ => Err(anyhow::anyhow!(
+                                "WebSocket ticket refused after token refresh"
+                            )),
+                        }
+                    }
+                    RefreshOutcome::Relogin => {
+                        // 登录已失效，前端会退回登录页；不再重连
+                        self.should_stop.store(true, Ordering::SeqCst);
+                        Err(anyhow::anyhow!("WebSocket token refused, sign-in required"))
+                    }
+                    RefreshOutcome::Failed => Err(anyhow::anyhow!(
+                        "WebSocket ticket refused, token refresh failed"
+                    )),
+                }
+            }
+        }
+    }
+
     /// 尝试建立连接
     async fn try_connect(&self) -> Result<()> {
         let config = self.config.read().await.clone();
@@ -405,17 +447,9 @@ impl WebSocketClient {
 
         // 先用 token 换一次性 ticket，地址里只带 ticket；旧版服务端没有 ticket 接口时退回 Token 参数（过渡一个版本）
         let mut auth_param = "ticket";
-        if let Some(ref token) = config.token {
-            match fetch_ticket(&url, token).await {
-                Some(ticket) => {
-                    url.query_pairs_mut().append_pair("ticket", &ticket);
-                }
-                None => {
-                    warn!("WebSocket ticket unavailable, falling back to the token parameter");
-                    auth_param = "Token";
-                    url.query_pairs_mut().append_pair("Token", token);
-                }
-            }
+        if let Some((param, value)) = self.connect_credential(&url, config.token).await? {
+            auth_param = param;
+            url.query_pairs_mut().append_pair(param, &value);
         }
 
         let url_str = url.as_str();
