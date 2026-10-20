@@ -1,14 +1,15 @@
-//! 远程控制的被控端：对方在一对一通话里请求控制本机时，先弹系统确认框，
-//! 本人同意后才开始把对方发来的鼠标键盘事件注入系统，并在屏幕顶部显示常驻提示条。
+//! 远程控制的被控端：对方在一对一通话里请求控制本机时，通话窗口显示确认卡片，本人点“同意并共享屏幕”
+//! 并共享了整个主屏后，通话窗口才调用 [`remote_control_request`] 开始会话、在屏幕顶部显示常驻提示条，
+//! 核对是主屏后再调用 [`remote_control_activate`]，此后才把对方发来的鼠标键盘事件注入系统。
 //! 只操作主显示器；坐标由前端换算成主屏画面里 0 到 1 的比例。
 //!
 //! 安全上的约束都在这里兜底，不依赖前端：
-//! - 没有经确认框同意的会话时，输入一律拒绝；同意后还要等通话窗口确认整屏共享已就绪
-//!   （[`remote_control_activate`]）才放行；
+//! - 没有会话、或会话还没放行（[`remote_control_activate`]）时，输入一律拒绝；
 //! - 发起会话的通话窗口关闭、提示条上点“停止控制”或前端调用停止，都会结束会话并松开所有按下的键；
-//! - 通话窗口要持续发心跳，卡住或没响应超过 [`HEARTBEAT_TIMEOUT`] 自动结束；同意后迟迟没开始共享也会结束；
+//! - 通话窗口要持续发心跳，卡住或没响应超过 [`HEARTBEAT_TIMEOUT`] 自动结束；会话开始后迟迟没放行输入也会结束；
 //! - 本机按住 Esc 一秒立即结束（Windows，只认本机键盘，对方发来的按键不算），
 //!   即使应用界面没有响应，也会停止注入并收起置顶的提示窗口；
+//! - 卡片出现到开始共享之前（[`remote_control_prepare`]），本机短按 Esc 即拒绝请求，不必先共享；
 //! - 坐标限制在主屏范围内，一次输入的文字长度有上限。
 //!
 //! 输入、心跳、停止都是异步命令，不占主线程：主线程忙或卡住时注入和停止仍能进行。
@@ -23,7 +24,6 @@ use std::time::{Duration, Instant};
 use enigo::{Axis, Button, Coordinate, Direction, Enigo, Key, Keyboard, Mouse, Settings};
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter, Manager, WebviewUrl, WebviewWindowBuilder, Window, WindowEvent};
-use tauri_plugin_dialog::{DialogExt, MessageDialogButtons, MessageDialogKind};
 
 /// 屏幕顶部提示条的窗口标签，对应前端路由 /rcIndicator
 const INDICATOR_LABEL: &str = "rcIndicator";
@@ -33,11 +33,14 @@ const STOPPED_EVENT: &str = "remote-control-stopped";
 const MAX_TEXT_CHARS: usize = 2000;
 /// 通话窗口多久没发心跳就结束会话（前端每 2 秒发一次）
 pub const HEARTBEAT_TIMEOUT: Duration = Duration::from_secs(8);
-/// 同意后多久还没开始共享整个屏幕就结束会话
-const ACTIVATE_TIMEOUT: Duration = Duration::from_secs(90);
+/// 会话开始（本人已共享）后多久还没放行输入就结束会话。正常几秒内就会放行，这只是通话窗口出错时的兜底；
+/// 等本人同意的 60 秒由通话窗口计时（双方一致），不在这里
+const ACTIVATE_TIMEOUT: Duration = Duration::from_secs(30);
 /// 本机按住 Esc 多久结束控制
 #[cfg(target_os = "windows")]
 const ESCAPE_HOLD_MS: u32 = 1000;
+/// 等待本人同意的阶段最长多久（前端 60 秒就会自己取消，这里只是兜底收起 Esc 监听）
+const PREPARE_TIMEOUT: Duration = Duration::from_secs(120);
 /// 结束原因：本机按住 Esc。前端收到后连同屏幕共享一起停掉
 #[cfg(target_os = "windows")]
 const REASON_ESCAPE: &str = "escape";
@@ -93,7 +96,7 @@ enum Verdict {
     Keep,
     /// 通话窗口没有心跳
     Silent,
-    /// 同意后一直没开始共享
+    /// 会话开始后一直没放行输入
     NotShared,
 }
 
@@ -111,54 +114,97 @@ impl Session {
 
 static SESSION: Mutex<Option<Session>> = Mutex::new(None);
 static NEXT_SESSION_ID: AtomicU64 = AtomicU64::new(1);
-/// 确认框弹出期间不再接受新的请求
-static ASKING: Mutex<bool> = Mutex::new(false);
+/// 正在等待本人同意的请求编号（0 表示没有）
+static PENDING: AtomicU64 = AtomicU64::new(0);
 
-/// 被控方确认：弹出系统确认框，同意后开始会话并显示提示条
+/// 对方请求控制、通话窗口显示确认卡片时调用：开始监听本机 Esc，短按即拒绝。
+/// 拒绝时发出 [`STOPPED_EVENT`]（"escape"），通话窗口据此收起卡片并通知对方。
+#[tauri::command]
+pub async fn remote_control_prepare(app: AppHandle) -> Result<(), String> {
+    let id = NEXT_SESSION_ID.fetch_add(1, Ordering::Relaxed);
+    PENDING.store(id, Ordering::Relaxed);
+    #[cfg(target_os = "windows")]
+    {
+        escape::start(0);
+        tracing::info!("远程控制等待同意：本机 Esc 监听已开（短按即拒绝）");
+    }
+    thread::Builder::new()
+        .name("remote-control-pending".into())
+        .spawn(move || pending_watch(app, id))
+        .map_err(|e| format!("无法启动远程控制: {e}"))?;
+    Ok(())
+}
+
+/// 等待同意阶段：本机按 Esc 就拒绝；本人同意（开始会话）、拒绝或超时后退出
+fn pending_watch(app: AppHandle, id: u64) {
+    // 只有 Windows 监听 Esc；其他系统靠通话窗口里的 Esc 按键
+    #[cfg(not(target_os = "windows"))]
+    drop(app);
+    let started = Instant::now();
+    loop {
+        thread::sleep(Duration::from_millis(100));
+        if PENDING.load(Ordering::Relaxed) != id {
+            return;
+        }
+        #[cfg(target_os = "windows")]
+        log_escape_presses();
+        #[cfg(target_os = "windows")]
+        if escape::take_triggered() {
+            if clear_pending(id) {
+                tracing::warn!("远程控制等待同意：本机按 Esc，拒绝请求");
+                if let Err(e) = app.emit(STOPPED_EVENT, REASON_ESCAPE) {
+                    tracing::warn!("远程控制结束事件发送失败: {}", e);
+                }
+            }
+            return;
+        }
+        if started.elapsed() > PREPARE_TIMEOUT {
+            if clear_pending(id) {
+                tracing::warn!("远程控制等待同意超时，收起 Esc 监听");
+            }
+            return;
+        }
+    }
+}
+
+/// 记下钩子收到的本机 Esc（排查“按了没反应”时看钩子是否收到按键）
+#[cfg(target_os = "windows")]
+fn log_escape_presses() {
+    let (down, up) = escape::take_presses();
+    if down > 0 || up > 0 {
+        tracing::info!("远程控制：本机 Esc 按下 {} 次、松开 {} 次", down, up);
+    }
+}
+
+/// 结束指定的等待阶段（已被同意、拒绝或新请求替换时返回 false）
+fn clear_pending(id: u64) -> bool {
+    let cleared = PENDING
+        .compare_exchange(id, 0, Ordering::Relaxed, Ordering::Relaxed)
+        .is_ok();
+    #[cfg(target_os = "windows")]
+    if cleared {
+        escape::stop();
+    }
+    cleared
+}
+
+/// 结束任何等待阶段（同意或停止时）
+fn clear_any_pending() -> bool {
+    let id = PENDING.load(Ordering::Relaxed);
+    id != 0 && clear_pending(id)
+}
+
+/// 本人已在通话窗口同意并共享了整个屏幕：开始会话（输入仍待放行）并显示提示条，返回主屏尺寸
 #[tauri::command]
 pub async fn remote_control_request(
     app: AppHandle,
     window: Window,
     peer_name: String,
 ) -> Result<RemoteControlGrant, String> {
-    {
-        let mut asking = ASKING.lock().map_err(|e| e.to_string())?;
-        if *asking {
-            return Err("正在等待确认上一个控制请求".into());
-        }
-        *asking = true;
-    }
     let peer = sanitize_name(&peer_name);
-    let dialog_app = app.clone();
-    let dialog_peer = peer.clone();
-    let agreed = tauri::async_runtime::spawn_blocking(move || {
-        dialog_app
-            .dialog()
-            .message(format!(
-                "{dialog_peer} 请求远程控制你的电脑。\n\n同意后对方可以操作你的鼠标和键盘，并看到你的整个屏幕。你可以随时点屏幕顶部的“停止控制”结束，挂断通话也会自动结束。"
-            ))
-            .title("远程控制请求")
-            .kind(MessageDialogKind::Warning)
-            .buttons(MessageDialogButtons::OkCancelCustom(
-                "同意".into(),
-                "拒绝".into(),
-            ))
-            .blocking_show()
-    })
-    .await
-    .unwrap_or(false);
-    if let Ok(mut asking) = ASKING.lock() {
-        *asking = false;
-    }
-    if !agreed {
-        return Ok(RemoteControlGrant {
-            granted: false,
-            width: 0,
-            height: 0,
-        });
-    }
 
     // 已有会话（例如重复请求）先结束，保证同一时间只有一个
+    clear_any_pending();
     stop_session(&app, "replaced");
 
     let (tx, rx) = mpsc::channel::<Job>();
@@ -186,7 +232,7 @@ pub async fn remote_control_request(
         });
     }
     #[cfg(target_os = "windows")]
-    escape::start();
+    escape::start(ESCAPE_HOLD_MS);
     let watch_app = app.clone();
     let _ = thread::Builder::new()
         .name("remote-control-watchdog".into())
@@ -265,7 +311,8 @@ pub async fn remote_control_input(input: RemoteInput) -> Result<(), String> {
 /// 结束远程控制（提示条按钮、通话窗口、挂断都会调用）
 #[tauri::command]
 pub async fn remote_control_stop(app: AppHandle) -> Result<bool, String> {
-    Ok(stop_session(&app, "stopped"))
+    let was_pending = clear_any_pending();
+    Ok(stop_session(&app, "stopped") || was_pending)
 }
 
 /// 当前是否有远程控制会话
@@ -274,7 +321,7 @@ pub async fn remote_control_active() -> bool {
     SESSION.lock().map(|g| g.is_some()).unwrap_or(false)
 }
 
-/// 每 200 毫秒检查一次会话：本机按住 Esc、心跳超时、迟迟没开始共享都结束会话
+/// 每 200 毫秒检查一次会话：本机按住 Esc、心跳超时、迟迟没放行输入都结束会话
 fn watchdog(app: AppHandle, id: u64) {
     loop {
         thread::sleep(Duration::from_millis(200));
@@ -286,6 +333,8 @@ fn watchdog(app: AppHandle, id: u64) {
                 _ => return,
             }
         };
+        #[cfg(target_os = "windows")]
+        log_escape_presses();
         #[cfg(target_os = "windows")]
         if escape::take_triggered() {
             tracing::warn!("本机按住 Esc，结束远程控制");
@@ -618,7 +667,7 @@ fn map_key(key: &str) -> Option<Key> {
 #[cfg(target_os = "windows")]
 mod escape {
     use std::sync::Mutex;
-    use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
+    use std::sync::atomic::{AtomicBool, AtomicU32, AtomicU64, Ordering};
     use std::thread;
 
     use windows::Win32::Foundation::{HWND, LPARAM, LRESULT, WPARAM};
@@ -636,13 +685,20 @@ mod escape {
     const OVERLAY_TITLES: [&str; 2] = ["远程控制中", "正在共享屏幕"];
 
     static TRIGGERED: AtomicBool = AtomicBool::new(false);
+    /// 要按住多久才算（毫秒）；0 表示按下即算
+    static HOLD_MS: AtomicU32 = AtomicU32::new(super::ESCAPE_HOLD_MS);
     /// 本机 Esc 按下的时刻（键盘事件时间戳，0 表示没按着）
     static DOWN_AT: AtomicU32 = AtomicU32::new(0);
     static HOOK_THREAD: Mutex<Option<u32>> = Mutex::new(None);
+    /// 监听的代数，见 [`start`]
+    static GENERATION: AtomicU64 = AtomicU64::new(0);
+    /// 本机按下、松开 Esc 的次数（不含按住时的自动重复），只用于日志
+    static PRESSES: AtomicU32 = AtomicU32::new(0);
+    static RELEASES: AtomicU32 = AtomicU32::new(0);
 
-    /// 按下时刻和当前时刻（毫秒时间戳，会回绕）判断是否按满一秒
-    pub(super) fn held_long_enough(down_at: u32, now: u32) -> bool {
-        down_at != 0 && now.wrapping_sub(down_at) >= super::ESCAPE_HOLD_MS
+    /// 按下时刻和当前时刻（毫秒时间戳，会回绕）判断是否按满 hold 毫秒
+    pub(super) fn held_long_enough(down_at: u32, now: u32, hold: u32) -> bool {
+        down_at != 0 && now.wrapping_sub(down_at) >= hold
     }
 
     unsafe extern "system" fn hook(code: i32, wparam: WPARAM, lparam: LPARAM) -> LRESULT {
@@ -652,14 +708,21 @@ mod escape {
             if kb.vkCode == VK_ESCAPE && !injected {
                 match wparam.0 as u32 {
                     WM_KEYDOWN | WM_SYSKEYDOWN => {
-                        let down_at = DOWN_AT.load(Ordering::Relaxed);
+                        let hold = HOLD_MS.load(Ordering::Relaxed);
+                        let mut down_at = DOWN_AT.load(Ordering::Relaxed);
                         if down_at == 0 {
-                            DOWN_AT.store(kb.time.max(1), Ordering::Relaxed);
-                        } else if held_long_enough(down_at, kb.time) {
+                            down_at = kb.time.max(1);
+                            DOWN_AT.store(down_at, Ordering::Relaxed);
+                            PRESSES.fetch_add(1, Ordering::Relaxed);
+                        }
+                        if held_long_enough(down_at, kb.time, hold) {
                             TRIGGERED.store(true, Ordering::Relaxed);
                         }
                     }
-                    WM_KEYUP | WM_SYSKEYUP => DOWN_AT.store(0, Ordering::Relaxed),
+                    WM_KEYUP | WM_SYSKEYUP => {
+                        DOWN_AT.store(0, Ordering::Relaxed);
+                        RELEASES.fetch_add(1, Ordering::Relaxed);
+                    }
                     _ => {}
                 }
             }
@@ -667,13 +730,20 @@ mod escape {
         unsafe { CallNextHookEx(None, code, wparam, lparam) }
     }
 
-    pub fn start() {
+    /// 开始监听；hold 为要按住的毫秒数，0 表示按下即算。
+    /// 先结束上一代监听；每一代有自己的编号，钩子线程登记时编号已变（期间被停止或换代）就自行退出，
+    /// 停止时只会结束当前登记的那一代，不会误杀刚启动的新监听。
+    pub fn start(hold: u32) {
         stop();
+        HOLD_MS.store(hold, Ordering::Relaxed);
         TRIGGERED.store(false, Ordering::Relaxed);
+        PRESSES.store(0, Ordering::Relaxed);
+        RELEASES.store(0, Ordering::Relaxed);
         DOWN_AT.store(0, Ordering::Relaxed);
+        let generation = GENERATION.load(Ordering::Relaxed);
         let spawned = thread::Builder::new()
             .name("remote-control-escape".into())
-            .spawn(|| unsafe {
+            .spawn(move || unsafe {
                 let hook = match SetWindowsHookExW(WH_KEYBOARD_LL, Some(hook), None, 0) {
                     Ok(hook) => hook,
                     Err(e) => {
@@ -681,13 +751,30 @@ mod escape {
                         return;
                     }
                 };
-                if let Ok(mut guard) = HOOK_THREAD.lock() {
-                    *guard = Some(GetCurrentThreadId());
+                let thread_id = GetCurrentThreadId();
+                {
+                    let Ok(mut guard) = HOOK_THREAD.lock() else {
+                        let _ = UnhookWindowsHookEx(hook);
+                        return;
+                    };
+                    if GENERATION.load(Ordering::Relaxed) != generation {
+                        // 还没登记就已被停止或换代
+                        let _ = UnhookWindowsHookEx(hook);
+                        return;
+                    }
+                    *guard = Some(thread_id);
                 }
+                tracing::info!(
+                    "远程控制 Esc 监听已安装（第 {} 代，线程 {}，按住 {} 毫秒）",
+                    generation,
+                    thread_id,
+                    hold
+                );
                 // 低级钩子需要本线程有消息循环
                 let mut msg = MSG::default();
                 while GetMessageW(&mut msg, None, 0, 0).as_bool() {}
                 let _ = UnhookWindowsHookEx(hook);
+                tracing::info!("远程控制 Esc 监听已卸载（第 {} 代）", generation);
             });
         if let Err(e) = spawned {
             tracing::warn!("远程控制 Esc 退出监听启动失败: {}", e);
@@ -695,12 +782,27 @@ mod escape {
     }
 
     pub fn stop() {
-        let thread_id = HOOK_THREAD.lock().ok().and_then(|mut g| g.take());
+        let thread_id = {
+            let Ok(mut guard) = HOOK_THREAD.lock() else {
+                return;
+            };
+            // 换代放在锁里：正在启动、还没登记的钩子线程看到编号变了会自己退出
+            GENERATION.fetch_add(1, Ordering::Relaxed);
+            guard.take()
+        };
         if let Some(thread_id) = thread_id {
             unsafe {
                 let _ = PostThreadMessageW(thread_id, WM_QUIT, WPARAM(0), LPARAM(0));
             }
         }
+    }
+
+    /// 自上次查询以来本机按下、松开 Esc 的次数（只用于日志，确认钩子收得到按键）
+    pub fn take_presses() -> (u32, u32) {
+        (
+            PRESSES.swap(0, Ordering::Relaxed),
+            RELEASES.swap(0, Ordering::Relaxed),
+        )
     }
 
     pub fn take_triggered() -> bool {
@@ -759,7 +861,7 @@ mod tests {
         assert_eq!(s.verdict(now), Verdict::Keep);
         let (s, now) = session(true, Duration::from_secs(600), Duration::from_secs(9));
         assert_eq!(s.verdict(now), Verdict::Silent);
-        let (s, now) = session(false, Duration::from_secs(91), Duration::from_secs(1));
+        let (s, now) = session(false, Duration::from_secs(31), Duration::from_secs(1));
         assert_eq!(s.verdict(now), Verdict::NotShared);
     }
 
@@ -790,10 +892,16 @@ mod tests {
     #[cfg(target_os = "windows")]
     #[test]
     fn escape_hold() {
-        assert!(!escape::held_long_enough(0, 5000));
-        assert!(!escape::held_long_enough(1000, 1999));
-        assert!(escape::held_long_enough(1000, 2000));
-        assert!(escape::held_long_enough(u32::MAX - 100, 900));
+        assert!(!escape::held_long_enough(0, 5000, ESCAPE_HOLD_MS));
+        assert!(!escape::held_long_enough(1000, 1999, ESCAPE_HOLD_MS));
+        assert!(escape::held_long_enough(1000, 2000, ESCAPE_HOLD_MS));
+        assert!(escape::held_long_enough(
+            u32::MAX - 100,
+            900,
+            ESCAPE_HOLD_MS
+        ));
+        // 等待同意阶段：按下即算
+        assert!(escape::held_long_enough(1000, 1000, 0));
     }
 
     #[test]

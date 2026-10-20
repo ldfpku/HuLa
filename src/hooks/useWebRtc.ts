@@ -85,17 +85,62 @@ let configuration: RTCConfiguration = {
 }
 
 // 每次通话向服务端要 Cloudflare Realtime TURN 的临时凭证，密钥只在服务端
-const loadIceServers = async () => {
+// 网络抖动时请求会失败：重试几次，仍失败就用上次成功拿到、还没过期的配置（凭证服务端签发 4 小时）
+const ICE_CACHE_KEY = 'smj-rtc-ice-servers'
+const ICE_CACHE_MAX_AGE = 3 * 60 * 60 * 1000
+const ICE_RETRY_DELAYS = [1000, 2000]
+// 单次请求最多等这么久，免得网络卡住时通话窗口迟迟不开始连接
+const ICE_REQUEST_TIMEOUT = 5000
+
+const fetchIceServers = () =>
+  Promise.race([
+    getRtcIceServers(),
+    new Promise<never>((_, reject) => setTimeout(() => reject(new Error('请求超时')), ICE_REQUEST_TIMEOUT))
+  ])
+
+const readIceCache = (): RTCIceServer[] | null => {
   try {
-    const { iceServers } = await getRtcIceServers()
-    if (Array.isArray(iceServers) && iceServers.length > 0) {
-      configuration = { iceServers, iceTransportPolicy: 'all' }
-      info(`ICE 配置已加载，共 ${iceServers.length} 组`)
-    } else {
-      info('ICE 配置为空，使用内置默认配置')
+    const cached = JSON.parse(localStorage.getItem(ICE_CACHE_KEY) ?? 'null')
+    if (!cached || !Array.isArray(cached.iceServers) || cached.iceServers.length === 0) return null
+    if (typeof cached.at !== 'number' || Date.now() - cached.at > ICE_CACHE_MAX_AGE) return null
+    return cached.iceServers
+  } catch {
+    return null
+  }
+}
+
+const writeIceCache = (iceServers: RTCIceServer[]) => {
+  try {
+    localStorage.setItem(ICE_CACHE_KEY, JSON.stringify({ at: Date.now(), iceServers }))
+  } catch {
+    // 存不了缓存不影响本次通话
+  }
+}
+
+const loadIceServers = async () => {
+  for (let attempt = 0; attempt <= ICE_RETRY_DELAYS.length; attempt++) {
+    try {
+      const { iceServers } = await fetchIceServers()
+      if (Array.isArray(iceServers) && iceServers.length > 0) {
+        configuration = { iceServers, iceTransportPolicy: 'all' }
+        writeIceCache(iceServers)
+        info(`ICE 配置已加载，共 ${iceServers.length} 组`)
+      } else {
+        info('ICE 配置为空，使用内置默认配置')
+      }
+      return
+    } catch (e) {
+      error(`加载 ICE 配置失败（第 ${attempt + 1} 次）: ${String(e)}`)
+      const delay = ICE_RETRY_DELAYS[attempt]
+      if (delay) await new Promise((resolve) => setTimeout(resolve, delay))
     }
-  } catch (e) {
-    error(`加载 ICE 配置失败: ${String(e)}`)
+  }
+  const cached = readIceCache()
+  if (cached) {
+    configuration = { iceServers: cached, iceTransportPolicy: 'all' }
+    info(`ICE 配置加载失败，使用上次成功的配置，共 ${cached.length} 组`)
+  } else {
+    info('ICE 配置加载失败且没有可用的缓存，使用内置默认配置')
   }
 }
 

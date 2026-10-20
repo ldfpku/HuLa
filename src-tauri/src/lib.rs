@@ -34,7 +34,7 @@ use desktops::init;
 #[cfg(desktop)]
 use desktops::remote_control::{
     remote_control_activate, remote_control_active, remote_control_heartbeat, remote_control_input,
-    remote_control_request, remote_control_stop,
+    remote_control_prepare, remote_control_request, remote_control_stop,
 };
 #[cfg(desktop)]
 use desktops::share_indicator::{
@@ -494,6 +494,8 @@ fn get_invoke_handlers() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Se
         get_directory_usage_info_with_progress,
         #[cfg(desktop)]
         cancel_directory_scan,
+        #[cfg(desktop)]
+        remote_control_prepare,
         #[cfg(desktop)]
         remote_control_request,
         #[cfg(desktop)]
