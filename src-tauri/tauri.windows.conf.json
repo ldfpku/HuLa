@@ -1,8 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "SMJ",
-  "version": "3.0.9",
-  "identifier": "com.hula.pc",
+  "identifier": "com.smjtools.desktop",
   "build": {
     "beforeDevCommand": "pnpm dev",
     "beforeBuildCommand": "pnpm build",
@@ -13,12 +12,10 @@
     "resources": [
       "tray",
       "configuration",
-      "draco",
-      "docs"
+      "draco"
     ],
     "active": true,
     "targets": [
-      "msi",
       "nsis"
     ],
     "icon": [
@@ -40,13 +37,10 @@
       "icons/StoreLogo.png"
     ],
     "windows": {
-      "wix": {
-        "language": "zh-CN"
-      },
       "nsis": {
-        "installMode": "perMachine",
+        "installMode": "currentUser",
         "installerIcon": "./icons/icon.ico",
-        "displayLanguageSelector": true,
+        "displayLanguageSelector": false,
         "languages": [
           "SimpChinese"
         ],

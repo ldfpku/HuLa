@@ -3,10 +3,7 @@ import { check } from '@tauri-apps/plugin-updater'
 import { useSettingStore } from '@/stores/setting.ts'
 import { MittEnum } from '../enums'
 import { useMitt } from './useMitt'
-import { isMobile } from '@/utils/PlatformConstants'
-
-/** 自建更新渠道前关闭，见 src-tauri/tauri.conf.json 的 updater.endpoints */
-const UPDATE_ENABLED = false
+import { isMobile, isWeb } from '@/utils/PlatformConstants'
 
 /**
  * 检查更新
@@ -25,8 +22,8 @@ export const useCheckUpdate = () => {
    * @param initialCheck 是否是初始检查，默认为false。初始检查时只显示强制更新提示，不显示普通更新提示
    */
   const checkUpdate = async (closeWin: string, initialCheck: boolean = false) => {
-    // SMJ 不使用 HuLa 上游的更新服务（UpgradeLink、Gitee），也就不检查更新
-    if (import.meta.env.DEV || !UPDATE_ENABLED) {
+    // 更新信息由邮箱站点 /api/desktop/update 提供（见 src-tauri/tauri.conf.json 的 updater.endpoints），网页版不需要
+    if (import.meta.env.DEV || isWeb() || isMobile()) {
       return
     }
 
@@ -39,21 +36,12 @@ export const useCheckUpdate = () => {
         }
 
         const newVersion = e.version
-        const newMajorVersion = newVersion.substring(0, newVersion.indexOf('.'))
-        const newMiddleVersion = newVersion.substring(
-          newVersion.indexOf('.') + 1,
-          newVersion.lastIndexOf('.') === -1 ? newVersion.length : newVersion.lastIndexOf('.')
-        )
         const currenVersion = await getVersion()
-        const currentMajorVersion = currenVersion.substring(0, currenVersion.indexOf('.'))
-        const currentMiddleVersion = currenVersion.substring(
-          currenVersion.indexOf('.') + 1,
-          currenVersion.lastIndexOf('.') === -1 ? currenVersion.length : currenVersion.lastIndexOf('.')
-        )
+        // 主版本或次版本升高时强制更新，修订号升高时只提示；按数字比较，避免 "10" < "9"
+        const [newMajor = 0, newMinor = 0] = newVersion.split('.').map(Number)
+        const [currentMajor = 0, currentMinor = 0] = currenVersion.split('.').map(Number)
         const requireForceUpdate =
-          isProduction &&
-          (newMajorVersion > currentMajorVersion ||
-            (newMajorVersion === currentMajorVersion && newMiddleVersion > currentMiddleVersion))
+          isProduction && (newMajor > currentMajor || (newMajor === currentMajor && newMinor > currentMinor))
         if (requireForceUpdate) {
           useMitt.emit(MittEnum.DO_UPDATE, { close: closeWin })
         } else if (newVersion !== currenVersion && settingStore.update.dismiss !== newVersion && !initialCheck) {

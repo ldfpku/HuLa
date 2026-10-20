@@ -155,46 +155,18 @@ const mapCommitType = (commitMessage: string) => {
   }
 }
 
-/* 记录检测更新的版本 */
-//let lastVersion: string | null = null
+/** 发布说明（邮箱站点 latest.json 的 notes）每行一条，去掉行首的 "- " 或 "* " */
+const notesToLogs = (notes?: string) =>
+  (notes ?? '')
+    .split('\n')
+    .map((line) => line.replace(/^\s*[-*]\s*/, '').trim())
+    .filter(Boolean)
+    .map((message) => ({ message, icon: mapCommitType(message) || 'alien-monster' }))
 
-const getCommitLog = async (url: string, isNew = false) => {
-  // 不访问外部服务：原来从 Gitee 读 HuLa 的发布说明，SMJ 暂无发布说明地址
-  if (!url) {
-    loading.value = false
-    return
-  }
-  fetch(url).then((res) => {
-    if (!res.ok) {
-      commitLog.value = [{ message: t('message.check_update.fetch_log_failed'), icon: 'cloudError' }]
-      loading.value = false
-      return
-    }
-    res.json().then(async (data) => {
-      isNew ? (newVersionTime.value = data.created_at) : (versionTime.value = data.created_at)
-      await nextTick(() => {
-        // 使用正则表达式提取 * 号后面的内容
-        const regex = /\* (.+)/g
-        let match
-        const logs = []
-        while ((match = regex.exec(data.body)) !== null) {
-          logs.push(match[1])
-        }
-        const processedLogs = logs.map((commit) => {
-          // 获取最后一个 : 号的位置
-          const lastColonIndex = commit.lastIndexOf(':')
-          // 截取最后一个 : 号后的内容
-          const message = lastColonIndex !== -1 ? commit.substring(lastColonIndex + 1).trim() : commit
-          return {
-            message: message,
-            icon: mapCommitType(commit) || 'alien-monster'
-          }
-        })
-        isNew ? (newCommitLog.value = processedLogs) : (commitLog.value = processedLogs)
-        loading.value = false
-      })
-    })
-  })
+/** 更新器给的发布时间形如 "2026-10-20 1:02:03.0 +00:00:00"（UTC），转成 ISO 才能算相对时间 */
+const toIsoDate = (date?: string) => {
+  const m = date?.match(/^(\d{4}-\d{2}-\d{2})[ T](\d{1,2}):(\d{2}):(\d{2})/)
+  return m ? `${m[1]}T${m[2].padStart(2, '0')}:${m[3]}:${m[4]}Z` : ''
 }
 
 const doUpdate = async () => {
@@ -226,13 +198,15 @@ const checkUpdate = async () => {
         return
       }
       newVersion.value = e.version
-      // 检查版本之间不同的提交信息和提交日期
-      const url = ''
-      await getCommitLog(url, true)
+      newVersionTime.value = toIsoDate(e.date)
+      newCommitLog.value = notesToLogs(e.body)
       text.value = t('message.check_update.update_now')
     })
     .catch(() => {
       window.$message.error(t('message.check_update.update_error'))
+    })
+    .finally(() => {
+      loading.value = false
     })
 }
 
@@ -313,8 +287,6 @@ onMounted(async () => {
     loading.value = false
     return
   }
-  const url = ''
-  await getCommitLog(url)
   await checkUpdate()
 })
 </script>

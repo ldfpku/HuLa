@@ -50,40 +50,12 @@ const total = ref(0)
 const downloaded = ref(0)
 const { t } = useI18n()
 
-interface GiteeCommitResultStruct {
-  id: number
-  tag_name: string
-  target_commitish: string
-  prerelease: boolean
-  name: string
-  body: string
-  author: unknown
-  created_at: string
-  assets: unknown
-}
-
-const fetchGiteeReleaseData = async (version: string) => {
-  // 不访问外部服务：原来从 Gitee 读 HuLa 的发布说明，SMJ 暂无发布说明地址
-  return Promise.reject<GiteeCommitResultStruct>(new Error(`v${version} 没有发布说明`))
-}
-
-const extractCommitMessages = (releaseBody: string) => {
-  const commitmessageRegex = /^\* (.+)/gm
-  const matchs = releaseBody.matchAll(commitmessageRegex)
-  return Array.from(matchs, (match) => match[1])
-}
-
-const setupCommitList = async (version: string) => {
-  try {
-    const releaseData = await fetchGiteeReleaseData(version)
-    list.value = extractCommitMessages(releaseData.body)
-  } catch (err) {
-    console.error(`${t('message.update_window.fetch_commit_failed', { version })}:`, err)
-    list.value =
-      err instanceof Error
-        ? [t('message.update_window.fetch_release_error_with_reason', { reason: err.message })]
-        : [t('message.update_window.fetch_release_error')]
-  }
+/** 发布说明（邮箱站点 latest.json 的 notes）每行一条，去掉行首的 "- " 或 "* " */
+const setupCommitList = (notes?: string) => {
+  list.value = (notes ?? '')
+    .split('\n')
+    .map((line) => line.replace(/^\s*[-*]\s*/, '').trim())
+    .filter(Boolean)
 }
 
 const doUpdate = async () => {
@@ -93,7 +65,7 @@ const doUpdate = async () => {
         return
       }
 
-      await setupCommitList(e.version)
+      setupCommitList(e.body)
 
       await e.downloadAndInstall((event) => {
         switch (event.event) {
