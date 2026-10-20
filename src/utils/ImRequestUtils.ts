@@ -1,6 +1,7 @@
 import { ImUrlEnum, TauriCommand, type NotificationTypeEnum } from '@/enums'
 import type {
   CacheBadgeReq,
+  ChatPurgeChanges,
   ChatSummaryResult,
   DrivePickerListing,
   LoginUserReq,
@@ -293,6 +294,14 @@ export async function deleteMsgFile(body: { msgId: string; roomId: string }) {
   return await imRequest<MessageType>({
     url: ImUrlEnum.DELETE_MSG_FILE,
     body
+  })
+}
+
+/** 管理员清理聊天数据后，`since` 之后本机需要删掉的会话和消息 */
+export async function getChatPurges(params: { since: number }) {
+  return await imRequest<ChatPurgeChanges>({
+    url: ImUrlEnum.CHAT_PURGES,
+    params
   })
 }
 

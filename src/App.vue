@@ -139,6 +139,10 @@ useMitt.on(WsResponseMessageType.MSG_FILE_DELETED, (data: MsgFileDeletedType) =>
   chatStore.applyMsgFileDeleted(data)
 })
 
+useMitt.on(WsResponseMessageType.CHAT_PURGED, () => {
+  chatStore.applyChatPurges()
+})
+
 useMitt.on(WsResponseMessageType.MY_ROOM_INFO_CHANGE, (data: { myName: string; roomId: string; uid: string }) => {
   // 更新用户在群聊中的昵称
   groupStore.updateUserItem(data.uid, { myName: data.myName }, data.roomId)

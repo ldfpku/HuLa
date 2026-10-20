@@ -12,7 +12,8 @@ import { useGlobalStore } from '@/stores/global.ts'
 import { useFeedStore } from '@/stores/feed.ts'
 import { useGroupStore } from '@/stores/group.ts'
 import { useUserStore } from '@/stores/user.ts'
-import { getSessionDetail, markMsgRead } from '@/utils/ImRequestUtils'
+import { getChatPurges, getSessionDetail, markMsgRead } from '@/utils/ImRequestUtils'
+import { chatPurgeSteps, parseChatPurgeEpoch } from '@/utils/ChatPurge'
 import { renderReplyContent } from '@/utils/RenderReplyContent.ts'
 import { invokeWithErrorHandler } from '@/utils/TauriInvokeHandler'
 import { useSessionUnreadStore } from '@/stores/sessionUnread'
@@ -602,6 +603,8 @@ export const useChatStore = defineStore(
         }
         globalStore.unreadReady = true
         unreadCountManager.refreshBadge(globalStore.unReadMark, feedStore.unreadCount)
+        // 不等待：清理过程里会再拉一次会话列表
+        void applyChatPurges(false)
       } catch (e) {
         console.error('获取会话列表失败11:', e)
         sessionOptions.isLoading = false
@@ -1074,6 +1077,49 @@ export const useChatStore = defineStore(
       }
     }
 
+    /** 本机已处理到的那次管理员清理（毫秒），按账号分开记 */
+    const chatPurgeEpochKey = (uid: string) => `smj-chat-purge-epoch:${uid}`
+    let applyingChatPurges: Promise<void> | null = null
+    let lastChatPurgeCheck = 0
+
+    /**
+     * 管理员在后台清理聊天数据后，删掉本机还留着的对应会话和消息，再从服务端重新拉会话列表。
+     * 每次拉会话列表后顺带检查（一分钟最多一次），收到 chatPurged 推送时立即检查；失败时不记进度，下次再试。
+     */
+    const applyChatPurges = (force = true) => {
+      if (!force && Date.now() - lastChatPurgeCheck < 60_000) return applyingChatPurges ?? Promise.resolve()
+      lastChatPurgeCheck = Date.now()
+      applyingChatPurges ??= (async () => {
+        const uid = userStore.userInfo?.uid
+        if (!uid) return
+        const key = chatPurgeEpochKey(uid)
+        const since = parseChatPurgeEpoch(localStorage.getItem(key))
+        const steps = chatPurgeSteps(await getChatPurges({ since }), since)
+        if (!steps) return
+        const quiet = { showError: false, errorType: ErrorType.Client }
+        for (const roomId of steps.rooms) {
+          await invokeWithErrorHandler(TauriCommand.DELETE_ROOM_MESSAGES, { roomId }, quiet)
+          clearRoomMessages(roomId)
+          sessionList.value = sessionList.value.filter((session) => session.roomId !== roomId)
+          delete sessionMap.value[roomId]
+        }
+        const touched = new Set<string>()
+        for (const { roomId, msgId } of steps.messages) {
+          await invokeWithErrorHandler(TauriCommand.DELETE_MESSAGE, { messageId: msgId, roomId }, quiet)
+          if (messageMap[roomId]) delete messageMap[roomId][msgId]
+          touched.add(roomId)
+        }
+        for (const roomId of touched) useMitt.emit(MittEnum.UPDATE_SESSION_LAST_MSG, { roomId })
+        localStorage.setItem(key, String(steps.epoch))
+        if (steps.rooms.length || touched.size) await getSessionList(true)
+      })()
+        .catch((error) => console.error('[聊天清理] 删除本机旧消息失败:', error))
+        .finally(() => {
+          applyingChatPurges = null
+        })
+      return applyingChatPurges
+    }
+
     // 更新消息
     const updateMsg = ({
       msgId,
@@ -1431,6 +1477,7 @@ export const useChatStore = defineStore(
       updateMarkCount,
       updateRecallMsg,
       applyMsgFileDeleted,
+      applyChatPurges,
       recordRecallMsg,
       updateMsg,
       newMsgCount,

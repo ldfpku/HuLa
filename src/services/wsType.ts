@@ -20,6 +20,8 @@ export enum WsResponseMessageType {
   MSG_RECALL = 'msgRecall',
   /** 聊天文件被删除 */
   MSG_FILE_DELETED = 'msgFileDeleted',
+  /** 管理员清理了聊天数据，本机要删掉对应的旧消息 */
+  CHAT_PURGED = 'chatPurged',
   /** 新邮件 */
   MAIL_NEW = 'mailNew',
   /** 新好友申请 */

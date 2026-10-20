@@ -82,6 +82,7 @@ export const IM_URLS: Record<string, [string, string]> = {
   blockUser: ['PUT', 'im/user/black'],
   recallMsg: ['PUT', 'im/chat/msg/recall'],
   deleteMsgFile: ['POST', 'im/chat/msg/file/delete'],
+  chatPurges: ['GET', 'im/chat/purges'],
   markMsg: ['PUT', 'im/chat/msg/mark'],
   getMsgList: ['POST', 'im/chat/msg/list'],
   getMsgPage: ['GET', 'im/chat/msg/page'],
