@@ -507,16 +507,23 @@ pub async fn sync_messages(
         _ => state.user_info.lock().await.uid.clone(),
     };
 
-    let mut client = state.rc.lock().await;
-    check_user_init_and_fetch_messages(
+    // 同步要发好几个请求，用副本发，不占着共享的请求客户端
+    let mut client = state.rc.lock().await.clone();
+    let used_refresh_token = client.refresh_token.clone();
+    let result = check_user_init_and_fetch_messages(
         &mut client,
         &*state.db_conn.read().await,
         &uid,
         async_data,
         full_sync,
     )
-    .await
-    .map_err(|e| e.to_string())?;
+    .await;
+    state
+        .rc
+        .lock()
+        .await
+        .adopt_refreshed_tokens(&used_refresh_token, &client);
+    result.map_err(|e| e.to_string())?;
     Ok(())
 }
 

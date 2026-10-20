@@ -39,6 +39,7 @@ pub fn ticket_url(server_url: &Url) -> Option<Url> {
 pub async fn fetch_ticket(server_url: &Url, token: &str) -> Option<String> {
     let url = ticket_url(server_url)?;
     let client = reqwest::Client::builder()
+        .proxy(super::proxy::reqwest_proxy())
         .timeout(Duration::from_secs(TICKET_TIMEOUT_SECS))
         .build()
         .ok()?;

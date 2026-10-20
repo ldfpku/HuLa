@@ -5,13 +5,27 @@
 //! 用 HTTP CONNECT 建一条到服务器的隧道，TLS 和 WebSocket 升级在隧道里进行。
 
 use base64::Engine;
+use std::collections::HashMap;
 use std::io;
+use std::net::ToSocketAddrs;
+use std::sync::{Mutex, OnceLock};
+use std::time::{Duration, Instant};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
+use tracing::{info, warn};
 use url::{Host, Url};
 
 /// 代理回应 CONNECT 的头部上限
 const MAX_RESPONSE_BYTES: usize = 8 * 1024;
+
+/// 代理连得上的检查结果保留多久：代理软件退出后，请求最多这么久后改为直连
+const REACHABLE_TTL: Duration = Duration::from_secs(3);
+
+/// 代理连不上的检查结果保留多久：代理软件恢复后，最多这么久后改回走代理
+const UNREACHABLE_TTL: Duration = Duration::from_secs(10);
+
+/// 检查代理端口是否连得上的等待时间（代理通常在本机，连不上会立即被拒绝）
+const REACHABILITY_PROBE: Duration = Duration::from_millis(500);
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ProxyConfig {
@@ -21,6 +35,8 @@ pub struct ProxyConfig {
     pub authorization: Option<String>,
     /// 代理设置从哪里读到的，写日志用
     pub source: &'static str,
+    /// 交给 reqwest 的代理地址（含用户名密码）
+    pub url: String,
 }
 
 impl ProxyConfig {
@@ -35,6 +51,14 @@ pub fn system_proxy_for(url: &Url) -> Option<ProxyConfig> {
         .host_str()?
         .trim_start_matches('[')
         .trim_end_matches(']');
+    // 本机地址从不经代理
+    if host.eq_ignore_ascii_case("localhost")
+        || host
+            .parse::<std::net::IpAddr>()
+            .is_ok_and(|ip| ip.is_loopback())
+    {
+        return None;
+    }
     let secure = url.scheme() == "wss" || url.scheme() == "https";
 
     let env_names: &[&str] = if secure {
@@ -58,6 +82,67 @@ pub fn system_proxy_for(url: &Url) -> Option<ProxyConfig> {
     }
 
     windows_proxy(host, secure)
+}
+
+/// 代理端口现在是否连得上（结果按代理地址缓存一小段时间）。
+/// 代理软件退出或换了端口时，系统代理设置往往还留着，照着它连只会一直失败
+pub fn proxy_reachable(proxy: &ProxyConfig) -> bool {
+    static CACHE: OnceLock<Mutex<HashMap<String, (Instant, bool)>>> = OnceLock::new();
+    let cache = CACHE.get_or_init(|| Mutex::new(HashMap::new()));
+    let address = proxy.address();
+    let previous = match cache.lock() {
+        Ok(entries) => entries.get(&address).copied(),
+        Err(_) => None,
+    };
+    if let Some((checked_at, reachable)) = previous {
+        let ttl = if reachable {
+            REACHABLE_TTL
+        } else {
+            UNREACHABLE_TTL
+        };
+        if checked_at.elapsed() < ttl {
+            return reachable;
+        }
+    }
+
+    let reachable = (proxy.host.as_str(), proxy.port)
+        .to_socket_addrs()
+        .map(|addrs| {
+            addrs
+                .into_iter()
+                .any(|addr| std::net::TcpStream::connect_timeout(&addr, REACHABILITY_PROBE).is_ok())
+        })
+        .unwrap_or(false);
+    if previous.map(|(_, was)| was) != Some(reachable) {
+        if reachable {
+            info!(
+                "Proxy {} ({}) is reachable, using it",
+                address, proxy.source
+            );
+        } else {
+            warn!(
+                "Proxy {} ({}) is not reachable, connecting directly",
+                address, proxy.source
+            );
+        }
+    }
+    if let Ok(mut entries) = cache.lock() {
+        entries.insert(address, (Instant::now(), reachable));
+    }
+    reachable
+}
+
+/// 给 reqwest 客户端用的代理规则：与 WebSocket 读同一份系统代理，代理连不上时直连。
+/// 设了这条规则后 reqwest 不再自行读取系统代理
+pub fn reqwest_proxy() -> reqwest::Proxy {
+    reqwest::Proxy::custom(|url| {
+        let proxy = system_proxy_for(url)?;
+        if proxy_reachable(&proxy) {
+            Some(proxy.url)
+        } else {
+            None
+        }
+    })
 }
 
 /// 经代理建一条到 host:port 的隧道
@@ -155,11 +240,16 @@ fn parse_proxy_url(value: &str, source: &'static str) -> Option<ProxyConfig> {
             base64::engine::general_purpose::STANDARD.encode(format!("{user}:{password}"));
         Some(format!("Basic {encoded}"))
     };
+    let mut proxy_url = url.clone();
+    proxy_url.set_path("");
+    proxy_url.set_query(None);
+    proxy_url.set_fragment(None);
     Some(ProxyConfig {
         host,
         port,
         authorization,
         source,
+        url: proxy_url.to_string(),
     })
 }
 
@@ -359,6 +449,17 @@ mod tests {
             "localhost,127.0.0.1"
         ));
         assert!(!bypassed_by_no_proxy("notsmjtools.com", "smjtools.com"));
+    }
+
+    #[test]
+    fn never_proxies_loopback() {
+        for url in [
+            "http://localhost:3000/x",
+            "http://127.0.0.1:6130/",
+            "ws://[::1]:80/",
+        ] {
+            assert_eq!(system_proxy_for(&Url::parse(url).unwrap()), None, "{url}");
+        }
     }
 
     #[test]
