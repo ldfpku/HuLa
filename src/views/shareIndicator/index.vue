@@ -10,7 +10,7 @@
       <span data-tauri-drag-region class="truncate">{{ label }}</span>
     </div>
     <span class="shrink-0 cursor-pointer rounded-full bg-white/20 hover:bg-white/30 px-12px py-3px" @click="stop">
-      {{ t('message.call_window.stop_share') }}
+      {{ isMeeting ? t('message.call_window.back_to_meeting') : t('message.call_window.stop_share') }}
     </span>
   </div>
 </template>
@@ -25,6 +25,9 @@ const route = useRoute()
 const label = computed(() =>
   route.query.surface === 'monitor' ? t('message.call_window.sharing_self') : t('message.call_window.sharing_window')
 )
+
+// 会议页不能从外面停止共享，按钮改为切回会议窗口
+const isMeeting = route.query.meeting === '1'
 
 // 由通话窗口停止共享，它停止后会收起本窗口
 const stop = () => invoke('screen_share_indicator_stop').catch(() => {})

@@ -1,3 +1,4 @@
+import { invoke } from '@tauri-apps/api/core'
 import { join, tempDir } from '@tauri-apps/api/path'
 import { WebviewWindow } from '@tauri-apps/api/webviewWindow'
 import { BaseDirectory, writeTextFile } from '@tauri-apps/plugin-fs'
@@ -5,7 +6,7 @@ import { openPath, openUrl } from '@tauri-apps/plugin-opener'
 import { error, info } from '@tauri-apps/plugin-log'
 import { useMitt } from '@/hooks/useMitt'
 import { WsResponseMessageType } from '@/services/wsType'
-import { isDesktop } from '@/utils/PlatformConstants'
+import { isDesktop, isWeb } from '@/utils/PlatformConstants'
 import {
   cancelMeeting,
   createMeeting,
@@ -42,7 +43,9 @@ export const useMeeting = () => {
       durationMinutes: joined.durationMinutes,
       hostName: joined.hostName,
       // 会议页据此显示“仅主持人可共享屏幕”开关
-      host: joined.host === true
+      host: joined.host === true,
+      // 桌面版自己在被共享的屏幕四周画边框，会议页就不再提示“网页版无法显示边框”
+      desktop: isDesktop() && !isWeb()
     }
     const url = `${joined.url}#t=${encodeURIComponent(joined.authToken)}&m=${encodeURIComponent(JSON.stringify(meta))}`
 
@@ -57,6 +60,15 @@ export const useMeeting = () => {
       await existing.unminimize().catch(() => undefined)
       await existing.setFocus()
       return
+    }
+    // 由 Rust 打开，才能跟随会议页标题在被共享的屏幕四周画边框
+    if (!isWeb()) {
+      try {
+        await invoke('meeting_window_open', { label, url, title: `${joined.title} - 视频会议` })
+        return
+      } catch (e) {
+        error(`[会议] 打开会议窗口失败，改用普通窗口: ${String(e)}`)
+      }
     }
     const meetingWindow = new WebviewWindow(label, {
       url,

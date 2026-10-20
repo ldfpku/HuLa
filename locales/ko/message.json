@@ -61,6 +61,8 @@
     "sharing_self": "화면을 공유하고 있습니다",
     "sharing_window": "창을 공유하고 있습니다",
     "share_preview": "상대방에게 보이는 화면",
+    "back_to_meeting": "회의로 돌아가기",
+    "share_web_no_border": "웹 버전은 화면 테두리를 표시할 수 없습니다. 테두리가 필요하면 데스크톱 앱을 사용하세요",
     "remote_sharing": "{name} 님이 화면을 공유하고 있습니다",
     "swap_view": "화면 전환",
     "share_unsupported": "이 환경에서는 화면 공유를 사용할 수 없습니다. 컴퓨터의 Chrome 또는 Edge에서 웹 앱을 여세요",
