@@ -120,11 +120,14 @@ jobs:
         env:
           NODE_OPTIONS: --max-old-space-size=6144
           SIGNING_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          SIGNING_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: |
           # 从记事本复制的私钥常带换行，base64 解码会失败，先去掉空白
           if [[ -n "$SIGNING_KEY" ]]; then
             export TAURI_SIGNING_PRIVATE_KEY="$(printf '%s' "$SIGNING_KEY" | tr -d '\r\n\t ')"
+            # 无密码的私钥（tauri signer generate --ci）要显式给空密码；Windows 运行器会丢掉值为空的环境变量，
+            # 不设就被当成“没给密码”，签名报 Wrong password for that key
+            export TAURI_SIGNING_PRIVATE_KEY_PASSWORD="${SIGNING_KEY_PASSWORD}"
           fi
           pnpm tauri build ${{ matrix.args }} --config src-tauri/release-config.json
 
