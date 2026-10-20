@@ -139,8 +139,13 @@ jobs:
     if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     env:
-      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_R2_TOKEN }}
-      CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID || '35f7abfbdeb4851714ce57f480531c4a' }}
+      # 只能写 smj-desktop 的 R2 令牌走 S3 接口（Cloudflare REST 接口不认按桶限定的令牌）
+      AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: auto
+      AWS_REQUEST_CHECKSUM_CALCULATION: WHEN_REQUIRED
+      AWS_RESPONSE_CHECKSUM_VALIDATION: WHEN_REQUIRED
+      R2_ENDPOINT: https://${{ vars.CLOUDFLARE_ACCOUNT_ID || '35f7abfbdeb4851714ce57f480531c4a' }}.r2.cloudflarestorage.com
       BUCKET: ${{ vars.DESKTOP_BUCKET || 'smj-desktop' }}
       HAS_SIGNING_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY != '' }}
       UPDATER_PUBKEY: ${{ vars.TAURI_UPDATER_PUBKEY || secrets.TAURI_UPDATER_PUBKEY }}
@@ -154,15 +159,15 @@ jobs:
           missing=0
           [[ "$HAS_SIGNING_KEY" == "true" ]] || { echo "缺少 Secret TAURI_SIGNING_PRIVATE_KEY" >&2; missing=1; }
           [[ -n "$UPDATER_PUBKEY" ]] || { echo "缺少变量 TAURI_UPDATER_PUBKEY" >&2; missing=1; }
-          if [[ -z "$CLOUDFLARE_API_TOKEN" ]]; then
-            echo "缺少 Secret CLOUDFLARE_R2_TOKEN" >&2
+          if [[ -z "$AWS_ACCESS_KEY_ID" || -z "$AWS_SECRET_ACCESS_KEY" ]]; then
+            echo "缺少 Secret R2_ACCESS_KEY_ID 或 R2_SECRET_ACCESS_KEY" >&2
             missing=1
           else
             # 写一个小文件再删掉，证明令牌能写这个桶
             key="ci-check/${GITHUB_RUN_ID}.txt"
             echo "ok" > check.txt
-            if npx --yes cf@1.0.0-beta.18 r2 objects put "$key" --bucket-name "$BUCKET" --file check.txt --content-type text/plain > /dev/null \
-              && npx --yes cf@1.0.0-beta.18 r2 objects delete "$key" --bucket-name "$BUCKET" --force > /dev/null; then
+            if aws s3api put-object --endpoint-url "$R2_ENDPOINT" --bucket "$BUCKET" --key "$key" --body check.txt --content-type text/plain > /dev/null \
+              && aws s3api delete-object --endpoint-url "$R2_ENDPOINT" --bucket "$BUCKET" --key "$key" > /dev/null; then
               echo "R2 令牌可写存储桶 $BUCKET"
             else
               echo "R2 令牌写不了存储桶 $BUCKET" >&2
@@ -178,8 +183,13 @@ jobs:
     if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.publish)
     runs-on: ubuntu-latest
     env:
-      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_R2_TOKEN }}
-      CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID || '35f7abfbdeb4851714ce57f480531c4a' }}
+      # 只能写 smj-desktop 的 R2 令牌走 S3 接口（Cloudflare REST 接口不认按桶限定的令牌）
+      AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: auto
+      AWS_REQUEST_CHECKSUM_CALCULATION: WHEN_REQUIRED
+      AWS_RESPONSE_CHECKSUM_VALIDATION: WHEN_REQUIRED
+      R2_ENDPOINT: https://${{ vars.CLOUDFLARE_ACCOUNT_ID || '35f7abfbdeb4851714ce57f480531c4a' }}.r2.cloudflarestorage.com
       BUCKET: ${{ vars.DESKTOP_BUCKET || 'smj-desktop' }}
     steps:
       - uses: actions/checkout@v4
@@ -208,12 +218,12 @@ jobs:
       - name: 上传
         working-directory: out
         run: |
-          if [[ -z "$CLOUDFLARE_API_TOKEN" ]]; then
-            echo "缺少 Secret CLOUDFLARE_R2_TOKEN" >&2
+          if [[ -z "$AWS_ACCESS_KEY_ID" || -z "$AWS_SECRET_ACCESS_KEY" ]]; then
+            echo "缺少 Secret R2_ACCESS_KEY_ID 或 R2_SECRET_ACCESS_KEY" >&2
             exit 1
           fi
           put() {
-            npx --yes cf@1.0.0-beta.18 r2 objects put "$1" --bucket-name "$BUCKET" --file "$2" --content-type "$3" > /dev/null
+            aws s3api put-object --endpoint-url "$R2_ENDPOINT" --bucket "$BUCKET" --key "$1" --body "$2" --content-type "$3" > /dev/null
             echo "已上传 $1"
           }
           while read -r file; do
