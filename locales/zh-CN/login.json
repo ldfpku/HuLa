@@ -10,7 +10,7 @@
   },
   "input": {
     "account": {
-      "placeholder": "输入邮箱"
+      "placeholder": "输入用户名"
     },
     "pass": {
       "placeholder": "输入密码"

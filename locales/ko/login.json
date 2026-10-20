@@ -10,7 +10,7 @@
   },
   "input": {
     "account": {
-      "placeholder": "이메일"
+      "placeholder": "사용자 이름"
     },
     "pass": {
       "placeholder": "비밀번호"
