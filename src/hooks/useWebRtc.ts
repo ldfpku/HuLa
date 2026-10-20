@@ -4,7 +4,18 @@ import { error, info } from '@tauri-apps/plugin-log'
 import { useI18n } from 'vue-i18n'
 import { getRtcIceServers } from '@/utils/MeetingRequestUtils'
 import { CALL_ALIVE_INTERVAL_MS, isBusyRejection, isEventForRoom } from '@/utils/RtcCallUtils'
-import { applyVideoTier, cameraConstraints, nextTier, readSendStats, type VideoTier } from '@/utils/RtcQualityUtils'
+import {
+  applyScreenSendParams,
+  applyVideoTier,
+  cameraConstraints,
+  formatVideoStreamStats,
+  nextTier,
+  preferScreenCodecs,
+  readSendStats,
+  readVideoStreamStats,
+  screenVideoConstraints,
+  type VideoTier
+} from '@/utils/RtcQualityUtils'
 import { CallTypeEnum, RTCCallStatus } from '@/enums'
 import rustWebSocketClient from '@/services/webSocketRust'
 import { useUserStore } from '@/stores/user'
@@ -226,7 +237,8 @@ export const useWebRtc = (roomId: string, remoteUserId: string, callType: CallTy
       .find((sender) => sender.track?.kind === 'video' && sender !== screenSenders.video)
   const applyCameraTier = async () => {
     const sender = cameraSender()
-    if (!sender) return
+    // 给旧版对方共享屏幕时摄像头发送器里是屏幕画面，按屏幕的参数发，不按摄像头档位缩小
+    if (!sender || replacedCameraTrack) return
     try {
       await applyVideoTier(sender, videoTier)
     } catch (e) {
@@ -238,7 +250,9 @@ export const useWebRtc = (roomId: string, remoteUserId: string, callType: CallTy
     videoTier = 'hd'
     void applyCameraTier()
     let totals: { sent: number; lost: number } | undefined
+    let ticks = 0
     videoQualityTimer = setInterval(async () => {
+      if (++ticks % 5 === 0) void logVideoStats()
       const sender = cameraSender()
       if (!sender) return
       const stats = readSendStats(await sender.getStats(), totals)
@@ -255,6 +269,38 @@ export const useWebRtc = (roomId: string, remoteUserId: string, callType: CallTy
   const stopVideoQuality = () => {
     if (videoQualityTimer) clearInterval(videoQualityTimer)
     videoQualityTimer = null
+    videoStatsBytes = {}
+  }
+  // 每 20 秒把收发两边摄像头和屏幕画面的实际分辨率、帧率、码率、编码、受限原因和连接方式写进日志，画质问题按它排查
+  let videoStatsBytes: Record<string, number> = {}
+  let videoStatsAt = 0
+  const logVideoStats = async () => {
+    const pc = peerConnection.value
+    if (!pc) return
+    try {
+      const report = await pc.getStats()
+      const now = Date.now()
+      const seconds = videoStatsAt ? (now - videoStatsAt) / 1000 : 0
+      videoStatsAt = now
+      const camera = cameraSender()
+      const cameraMid = pc.getTransceivers().find((t) => t.sender === camera)?.mid
+      const lines: string[] = []
+      let route: string | undefined
+      const read = (key: string, label: string, direction: 'outbound' | 'inbound', mid?: string | null) => {
+        if (!mid) return
+        const result = readVideoStreamStats(report, direction, mid, videoStatsBytes[key], seconds)
+        videoStatsBytes[key] = result.bytes
+        route = route ?? result.route
+        if (result.stats.width) lines.push(formatVideoStreamStats(label, result.stats))
+      }
+      read('sendCamera', '发摄像头', 'outbound', cameraMid)
+      read('recvCamera', '收摄像头', 'inbound', cameraMid)
+      read('sendScreen', '发屏幕', 'outbound', screenMids.video)
+      read('recvScreen', '收屏幕', 'inbound', screenMids.video)
+      if (lines.length) info(`通话画质: ${lines.join('；')}；连接 ${route ?? '未知'}`)
+    } catch (e) {
+      info(`读取通话画质统计失败: ${String(e)}`)
+    }
   }
 
   // 通话中定时告诉服务端本人在通话中，别人再打来时服务端直接回忙线
@@ -694,8 +740,10 @@ export const useWebRtc = (roomId: string, remoteUserId: string, callType: CallTy
       if (!transceiver.mid) continue
       if (transceiver.mid === screenMids.video || transceiver.mid === screenMids.audio) {
         transceiver.direction = 'sendrecv'
-        if (transceiver.mid === screenMids.video) screenSenders.video = transceiver.sender
-        else screenSenders.audio = transceiver.sender
+        if (transceiver.mid === screenMids.video) {
+          screenSenders.video = transceiver.sender
+          preferScreenCodecs(transceiver)
+        } else screenSenders.audio = transceiver.sender
       }
     }
   }
@@ -733,6 +781,7 @@ export const useWebRtc = (roomId: string, remoteUserId: string, callType: CallTy
         // 放进本地流：旧版被叫把收到的轨道都当作同一个流，不会因此丢掉通话声音
         const streams = localStream.value ? [localStream.value] : []
         const videoTransceiver = pc.addTransceiver('video', { direction: 'sendrecv', streams })
+        preferScreenCodecs(videoTransceiver)
         const audioTransceiver = pc.addTransceiver('audio', { direction: 'sendrecv', streams })
         screenSenders = { video: videoTransceiver.sender, audio: audioTransceiver.sender }
       }
@@ -1420,6 +1469,7 @@ export const useWebRtc = (roomId: string, remoteUserId: string, callType: CallTy
         const sender = peerConnection.value?.getSenders().find((s) => s.track?.kind === 'video')
         await sender?.replaceTrack(replacedCameraTrack)
         replacedCameraTrack = null
+        void applyCameraTier()
       } else {
         await screenSenders.video?.replaceTrack(null)
         await screenSenders.audio?.replaceTrack(null)
@@ -1456,7 +1506,7 @@ export const useWebRtc = (roomId: string, remoteUserId: string, callType: CallTy
     let screenStream: MediaStream
     try {
       screenStream = await navigator.mediaDevices.getDisplayMedia({
-        video: { frameRate: { ideal: 15, max: 30 }, ...(monitorOnly ? { displaySurface: 'monitor' } : {}) },
+        video: { ...screenVideoConstraints(), ...(monitorOnly ? { displaySurface: 'monitor' } : {}) },
         audio: true,
         // Chromium 系浏览器的扩展选项：允许共享系统声音、可在共享中切换标签页，不列出本页面自己
         systemAudio: 'include',
@@ -1490,11 +1540,13 @@ export const useWebRtc = (roomId: string, remoteUserId: string, callType: CallTy
     try {
       if (canUseScreenTrack) {
         await screenSenders.video!.replaceTrack(videoTrack)
+        await applyScreenSendParams(screenSenders.video!).catch((e) => info(`设置屏幕共享编码参数失败: ${String(e)}`))
         if (audioTrack) await screenSenders.audio?.replaceTrack(audioTrack)
       } else {
         // 对方是旧版客户端：用屏幕画面替换摄像头画面，系统声音无法单独传
         replacedCameraTrack = cameraSender!.track
         await cameraSender!.replaceTrack(videoTrack)
+        await applyScreenSendParams(cameraSender!).catch((e) => info(`设置屏幕共享编码参数失败: ${String(e)}`))
       }
     } catch (e) {
       screenStream.getTracks().forEach((track) => track.stop())
