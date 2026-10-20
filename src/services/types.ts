@@ -322,6 +322,13 @@ export type MsgFileDeletedType = {
   message?: MessageType
 }
 
+/** 管理员清理聊天数据后本机要删掉的内容：整个会话，或留下的会话里的几条消息 */
+export type ChatPurgeChanges = {
+  /** 最近一次清理的时间（毫秒），本机处理完记下，下次只取之后的 */
+  epoch: number
+  rooms: { roomId: string; all: boolean; msgIds: string[] }[]
+}
+
 export type RevokedMsgType = {
   /** 消息ID */
   msgId: string

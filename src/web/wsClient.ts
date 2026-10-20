@@ -43,6 +43,7 @@ const EVENT_BY_TYPE: Record<string, string> = {
   receiveMessage: 'ws-receive-message',
   msgRecall: 'ws-msg-recall',
   msgFileDeleted: 'ws-msg-file-deleted',
+  chatPurged: 'ws-chat-purged',
   mailNew: 'ws-mail-new',
   msgMarkItem: 'ws-msg-mark-item',
   online: 'ws-online',

@@ -795,6 +795,10 @@ impl WebSocketClient {
                 info!("Message file deleted");
                 let _ = app_handle.emit_to("home", "ws-msg-file-deleted", data);
             }
+            "chatPurged" => {
+                info!("Chat history purged by an admin");
+                let _ = app_handle.emit_to("home", "ws-chat-purged", data);
+            }
             "mailNew" => {
                 info!("New mail");
                 let _ = app_handle.emit_to("home", "ws-mail-new", data);

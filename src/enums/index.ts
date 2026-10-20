@@ -804,6 +804,8 @@ export enum ImUrlEnum {
   /** 撤回消息 */
   RECALL_MSG = 'recallMsg',
   DELETE_MSG_FILE = 'deleteMsgFile',
+  /** 管理员清理聊天数据后，本机需要删掉的会话和消息 */
+  CHAT_PURGES = 'chatPurges',
   /** 标记消息 */
   MARK_MSG = 'markMsg',
   /** 获取消息列表 */

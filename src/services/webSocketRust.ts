@@ -278,6 +278,13 @@ class RustWebSocketClient {
     )
 
     this.listenerController.add(
+      await listen('ws-chat-purged', (event: any) => {
+        info('管理员清理了聊天数据')
+        useMitt.emit(WsResponseMessageType.CHAT_PURGED, event.payload)
+      })
+    )
+
+    this.listenerController.add(
       await listen('ws-mail-new', (event: any) => {
         info('新邮件')
         useMitt.emit(WsResponseMessageType.MAIL_NEW, event.payload)
