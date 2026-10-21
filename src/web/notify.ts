@@ -22,6 +22,7 @@ import { useUserStore } from '@/stores/user'
 import { AvatarUtils } from '@/utils/AvatarUtils'
 import { renderReplyContent } from '@/utils/RenderReplyContent'
 import { badgeText, baseTitle, isPageActive, titleWithUnread, withBasePath } from './notifyUtils'
+import { isMentioned } from '@/utils/mention'
 
 const BASE = import.meta.env.BASE_URL
 const LOGO = withBasePath(BASE, '/logo.png')
@@ -102,7 +103,7 @@ const onMessage = (data: MessageType) => {
     return
 
   const session = useChatStore().getSession(roomId)
-  const atMe = Boolean(data.message.body?.atUidList?.includes(myUid))
+  const atMe = isMentioned(data.message.body?.atUidList, myUid, data.fromUser?.uid)
   // 免打扰的会话只在被 @ 时提醒
   if (session?.muteNotification === NotificationTypeEnum.NOT_DISTURB && !atMe) return
 

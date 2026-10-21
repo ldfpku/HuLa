@@ -313,6 +313,9 @@ useMitt.on(WsResponseMessageType.ROOM_INFO_CHANGE, async (data: { roomId: string
     name,
     avatar
   })
+  // 群详情（右侧群信息、群设置里的群名和头像）同步
+  const detail = groupStore.groupDetails.find((item) => item.roomId === roomId)
+  if (detail) Object.assign(detail, { groupName: name, avatar })
 })
 
 useMitt.on(WsResponseMessageType.TOKEN_EXPIRED, async (wsTokenExpire: WsTokenExpire) => {
@@ -510,7 +513,7 @@ useMitt.on(WsResponseMessageType.FEED_NOTIFY, async (data: any) => {
 
 useMitt.on(WsResponseMessageType.GROUP_SET_ADMIN_SUCCESS, (event) => {
   console.log('设置群管理员---> ', event)
-  groupStore.updateAdminStatus(event.roomId, event.uids, event.status)
+  groupStore.updateAdminStatus(event.roomId, event.uids, event.status, event.roles)
 })
 
 useMitt.on(WsResponseMessageType.OFFLINE, async (onStatusChangeType: OnStatusChangeType) => {

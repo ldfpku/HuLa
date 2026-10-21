@@ -394,7 +394,7 @@ async function handleExit() {
               return
             }
 
-            groupStore.exitGroup(currentSessionRoomId.value).then(() => {
+            groupStore.exitGroup(currentSessionRoomId.value, true).then(() => {
               window.$message.success(t('mobile_chat_setting.group_disbanded'))
               // 删除当前的会话
               useMitt.emit(MittEnum.DELETE_SESSION, currentSessionRoomId.value)

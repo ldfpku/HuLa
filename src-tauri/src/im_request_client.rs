@@ -429,6 +429,7 @@ pub enum ImUrl {
     GroupInfo,
     RevokeAdmin,
     AddAdmin,
+    TransferGroupOwner,
     ExitGroup,
     AcceptInvite,
     InviteList,
@@ -705,6 +706,7 @@ impl ImUrl {
             // 群聊管理员
             ImUrl::RevokeAdmin => (http::Method::DELETE, "im/room/group/admin"),
             ImUrl::AddAdmin => (http::Method::PUT, "im/room/group/admin"),
+            ImUrl::TransferGroupOwner => (http::Method::PUT, "im/room/group/owner"),
 
             // 群聊成员管理
             ImUrl::ExitGroup => (http::Method::DELETE, "im/room/group/member/exit"),
@@ -1042,6 +1044,7 @@ impl ImUrl {
             // 群聊管理员
             "revokeAdmin" => Ok(ImUrl::RevokeAdmin),
             "addAdmin" => Ok(ImUrl::AddAdmin),
+            "transferGroupOwner" => Ok(ImUrl::TransferGroupOwner),
 
             // 群聊成员管理
             "exitGroup" => Ok(ImUrl::ExitGroup),

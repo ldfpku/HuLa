@@ -4,6 +4,7 @@ import { useChatStore } from '@/stores/chat'
 import { useGroupStore } from '@/stores/group'
 import { useUserStore } from '@/stores/user'
 import { renderReplyContent } from '@/utils/RenderReplyContent.ts'
+import { isMentioned } from '@/utils/mention'
 
 /**
  * 用于处理消息内容展示的hook，包括@提醒和撤回消息处理
@@ -24,8 +25,7 @@ export const useReplaceMsg = () => {
       return false
     }
 
-    // 确保类型一致的比较
-    return message.message.body.atUidList.some((atUid: string) => String(atUid) === String(currentUid))
+    return isMentioned(message.message.body.atUidList, currentUid, message.fromUser?.uid)
   }
 
   /**

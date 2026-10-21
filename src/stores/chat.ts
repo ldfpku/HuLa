@@ -19,6 +19,7 @@ import { invokeWithErrorHandler } from '@/utils/TauriInvokeHandler'
 import { useSessionUnreadStore } from '@/stores/sessionUnread'
 import { unreadCountManager } from '@/utils/UnreadCountManager'
 import { useMitt } from '@/hooks/useMitt'
+import { isMentioned } from '@/utils/mention'
 
 type RecalledMessage = {
   messageId: string
@@ -779,7 +780,7 @@ export const useChatStore = defineStore(
       }
 
       // 如果收到的消息里面是艾特自己的就发送系统通知
-      if (msg.message.body.atUidList?.includes(userStore.userInfo!.uid) && cacheUser) {
+      if (isMentioned(msg.message.body.atUidList, userStore.userInfo!.uid, msg.fromUser?.uid) && cacheUser) {
         sendNotification({
           title: cacheUser.name as string,
           body: msg.message.body.content,

@@ -19,7 +19,13 @@
           :fallback-src="themes.content === ThemeEnum.DARK ? '/avatar-dark.svg' : '/avatar-light.svg'"
           :src="currentUserAvatar" />
         <label class="flex-y-center gap-6px min-w-0">
-          <p class="text-(16px [--text-color]) truncate">{{ groupStore.countInfo?.remark || activeItem?.name }}</p>
+          <p
+            class="text-(16px [--text-color]) truncate"
+            :class="{ 'cursor-pointer hover:color-#034fbc': canManageGroup }"
+            :title="canManageGroup ? '点击修改群名称' : undefined"
+            @click="canManageGroup && openRenameGroupDialog(currentSessionRoomId, activeItem?.name || '')">
+            {{ groupStore.countInfo?.remark || activeItem?.name }}
+          </p>
           <p
             v-if="activeItem?.type === RoomTypeEnum.GROUP && groupStore.countInfo?.memberNum"
             class="text-(11px #808080)">
@@ -191,7 +197,7 @@
         v-else
         :active-item="activeItem"
         :user-list="userList"
-        :is-group-owner="isGroupOwner"
+        :can-manage="canManageGroup"
         :is-editing-group-name="isEditingGroupName"
         v-model:editing-group-name="editingGroupName"
         v-model:local-my-name="localMyName"
@@ -209,8 +215,7 @@
         @start-edit-group-name="startEditGroupName"
         @group-info-change="handleGroupInfoChange"
         @manage-group-member="handleManageGroupMember"
-        @show-qr-code="showQRCodeModal = true"
-        @update-room-info="updateRoomInfo" />
+        @show-qr-code="showQRCodeModal = true" />
     </ChatInnerDrawer>
   </main>
 
@@ -346,6 +351,7 @@ import { isMac, isWindows } from '@/utils/PlatformConstants'
 import ChatInnerDrawer from '../../chat-inner-drawer.vue'
 import SingleChatSidebar from './SingleChatSidebar.vue'
 import GroupChatSidebar from './GroupChatSidebar.vue'
+import { GROUP_NAME_MAX_LENGTH, openRenameGroupDialog } from '@/utils/groupDialogs'
 import GroupQrCodeModal from './GroupQrCodeModal.vue'
 import ScheduleMeetingModal from '@/components/meeting/ScheduleMeetingModal.vue'
 import ChatSummaryModal from '@/components/ai/ChatSummaryModal.vue'
@@ -377,8 +383,8 @@ const { persistMyRoomInfo, resolveMyRoomNickname } = useMyRoomInfoUpdater()
 const isChannel = computed(() => activeItem.value?.hotFlag === IsAllUserEnum.Yes || currentSessionRoomId.value === '1')
 // 是否为bot用户
 const isBotUser = computed(() => activeItem.value?.account === UserType.BOT)
-// 是否为群主
-const isGroupOwner = computed(() => {
+// 是否可管理群资料（群主或管理员可改群名、群头像）
+const canManageGroup = computed(() => {
   const session = activeItem.value
   if (!session || currentSessionRoomId.value === '1' || session.hotFlag === IsAllUserEnum.Yes) {
     return false
@@ -386,7 +392,7 @@ const isGroupOwner = computed(() => {
 
   // 检查groupStore.userList中当前用户的角色
   const currentUser = groupStore.userList.find((user) => user.uid === userStore.userInfo!.uid)
-  return currentUser!.roleId === RoleEnum.LORD
+  return currentUser?.roleId === RoleEnum.LORD || currentUser?.roleId === RoleEnum.ADMIN
 })
 
 // 是否正在编辑群名称
@@ -708,7 +714,7 @@ const handleGroupNameChange = () => {
       window.$message.warning(t('home.chat_header.toast.group_name_empty'))
       return
     }
-    if (trimmedName.length > 12) {
+    if (trimmedName.length > GROUP_NAME_MAX_LENGTH) {
       window.$message.warning(t('home.chat_header.toast.group_name_too_long'))
       return
     }
@@ -806,7 +812,7 @@ const handleConfirm = async () => {
     }
 
     try {
-      await groupStore.exitGroup(targetRoomId)
+      await groupStore.exitGroup(targetRoomId, true)
       window.$message.success(t('home.chat_header.toast.dissolve_success'))
       // 删除当前的会话
       useMitt.emit(MittEnum.DELETE_SESSION, targetRoomId)
@@ -865,7 +871,7 @@ const handleCancel = () => {
 
 // 开始编辑群名称
 const startEditGroupName = () => {
-  if (!isGroupOwner.value) return
+  if (!canManageGroup.value) return
 
   editingGroupName.value = activeItem.value?.name || ''
   isEditingGroupName.value = true
@@ -873,7 +879,7 @@ const startEditGroupName = () => {
 
 // 保存群名称
 const saveGroupName = async () => {
-  if (!isGroupOwner.value || !currentSessionRoomId.value) return
+  if (!canManageGroup.value || !currentSessionRoomId.value) return
 
   isEditingGroupName.value = false
 
@@ -897,7 +903,7 @@ const saveGroupName = async () => {
 
 // 处理上传头像
 const handleUploadAvatar = () => {
-  if (!isGroupOwner.value || !currentSessionRoomId.value) return
+  if (!canManageGroup.value || !currentSessionRoomId.value) return
 
   openFileSelector()
 }

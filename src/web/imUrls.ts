@@ -46,6 +46,7 @@ export const IM_URLS: Record<string, [string, string]> = {
   groupInfo: ['GET', 'im/room/group/info'],
   revokeAdmin: ['DELETE', 'im/room/group/admin'],
   addAdmin: ['PUT', 'im/room/group/admin'],
+  transferGroupOwner: ['PUT', 'im/room/group/owner'],
   exitGroup: ['DELETE', 'im/room/group/member/exit'],
   acceptInvite: ['POST', 'im/room/group/invite/accept'],
   inviteList: ['GET', 'im/room/group/invite/list'],

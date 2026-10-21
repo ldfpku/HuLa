@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { OnlineEnum, RoleEnum, RoomTypeEnum, StoresEnum } from '@/enums'
+import { OnlineEnum, RoleEnum, RoomTypeEnum, SessionOperateEnum, StoresEnum } from '@/enums'
 import type { GroupDetailReq, UserItem } from '@/services/types'
 import { useGlobalStore } from '@/stores/global'
 import { useUserStore } from '@/stores/user'
@@ -323,7 +323,15 @@ export const useGroupStore = defineStore(
      * @param uids 被设置、取消管理员的用户ID列表
      * @param isAdmin 是否为管理员
      */
-    const updateAdminStatus = (roomId: string, uids: string[], isAdmin: boolean) => {
+    const updateAdminStatus = (roomId: string, uids: string[], isAdmin: boolean, roles?: Record<string, number>) => {
+      // 转让群主时服务端在 roles 里给出确切角色，自己的会话随之切换“解散/退出”
+      const myUid = userStore.userInfo?.uid
+      if (myUid && roles?.[myUid] !== undefined) {
+        chatStore.updateSession(roomId, {
+          operate: roles[myUid] === RoleEnum.LORD ? SessionOperateEnum.DISSOLUTION_GROUP : SessionOperateEnum.EXIT_GROUP
+        })
+      }
+
       const currentUserList = userListMap[roomId]
       if (!currentUserList) {
         console.warn(`未找到房间 ${roomId} 的用户列表`)
@@ -332,13 +340,9 @@ export const useGroupStore = defineStore(
 
       // 更新用户角色
       const updatedUserList = currentUserList.map((user) => {
-        if (uids.includes(user.uid)) {
-          return {
-            ...user,
-            roleId: isAdmin ? RoleEnum.ADMIN : RoleEnum.NORMAL
-          }
-        }
-        return user
+        const roleId =
+          roles?.[user.uid] ?? (uids.includes(user.uid) ? (isAdmin ? RoleEnum.ADMIN : RoleEnum.NORMAL) : undefined)
+        return roleId === undefined ? user : { ...user, roleId }
       })
 
       // 更新用户列表
@@ -726,13 +730,33 @@ export const useGroupStore = defineStore(
     }
 
     /**
+     * 转让群主：自己变为普通成员
+     */
+    const transferOwner = async (roomId: string, uid: string) => {
+      await ImRequestUtils.transferGroupOwner({ roomId, uid })
+      const myUid = userStore.userInfo!.uid
+      updateAdminStatus(roomId, [], false, { [uid]: RoleEnum.LORD, [myUid]: RoleEnum.NORMAL })
+    }
+
+    /**
+     * 修改群名称（不带头像等其他资料，可在会话列表里改非当前群）
+     */
+    const renameGroup = async (roomId: string, name: string) => {
+      await ImRequestUtils.renameRoom({ id: roomId, name })
+      chatStore.updateSession(roomId, { name })
+      const detail = groupDetails.value.find((item) => item.roomId === roomId)
+      if (detail) detail.groupName = name
+    }
+
+    /**
      * 退出群聊 / 解散群聊
      * @param roomId 要退出的群聊ID
+     * @param dissolve 群主解散群聊
      */
-    const exitGroup = async (roomId: string) => {
+    const exitGroup = async (roomId: string, dissolve = false) => {
       if (!roomId) return
 
-      await ImRequestUtils.exitGroup({ roomId })
+      await ImRequestUtils.exitGroup(dissolve ? { roomId, dissolve: true } : { roomId })
 
       // 更新群成员缓存，移除自己
       const currentUserList = userListMap[roomId] || []
@@ -834,6 +858,8 @@ export const useGroupStore = defineStore(
       revokeAdmin,
       removeGroupMembers,
       exitGroup,
+      transferOwner,
+      renameGroup,
       refreshGroupMembers,
       resetGroupData,
       getUserListByRoomId,
