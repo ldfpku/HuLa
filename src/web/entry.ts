@@ -14,6 +14,8 @@ registerServiceWorker()
 captureInstallPrompt()
 
 await import('../main')
+// 应用已挂载，告诉启动看门狗（src/web/bootGuard.js）入口跑完了
+;(window as any).__smjBootOk = true
 const { tryWebSignIn } = await import('./sharedLogin')
 void tryWebSignIn(currentLabel)
 const { startWebNotify } = await import('./notify')
