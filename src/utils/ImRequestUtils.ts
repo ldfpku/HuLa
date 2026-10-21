@@ -546,11 +546,17 @@ export async function applyGroup(body: { account: string; msg: string; type: num
   })
 }
 
-export async function pushAnnouncement(body: { roomId: string; content: string; top: boolean }) {
-  return await imRequest({
-    url: ImUrlEnum.PUSH_ANNOUNCEMENT,
-    body
-  })
+export async function pushAnnouncement(
+  body: { roomId: string; content: string; top: boolean },
+  options?: Omit<ImRequestOptions, 'silent'>
+) {
+  return await imRequest(
+    {
+      url: ImUrlEnum.PUSH_ANNOUNCEMENT,
+      body
+    },
+    options
+  )
 }
 
 export async function deleteAnnouncement(params: { id: string }) {
@@ -560,11 +566,17 @@ export async function deleteAnnouncement(params: { id: string }) {
   })
 }
 
-export async function editAnnouncement(body: { id: string; roomId: string; content: string; top: boolean }) {
-  return await imRequest({
-    url: ImUrlEnum.EDIT_ANNOUNCEMENT,
-    body
-  })
+export async function editAnnouncement(
+  body: { id: string; roomId: string; content: string; top: boolean },
+  options?: Omit<ImRequestOptions, 'silent'>
+) {
+  return await imRequest(
+    {
+      url: ImUrlEnum.EDIT_ANNOUNCEMENT,
+      body
+    },
+    options
+  )
 }
 
 export async function getAnnouncementDetail(params: { roomId: string; announcementId: string }) {

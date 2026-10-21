@@ -39,6 +39,8 @@
             type="primary"
             size="small"
             class="bg-[--button-bg] ml-5px"
+            :disabled="!announContent.trim()"
+            :loading="isSubmitting"
             @click="handlePushAnnouncement">
             {{ t('announcement.form.actions.publish') }}
           </n-button>
@@ -221,6 +223,7 @@ const announList = ref<any[]>([])
 const isBack = ref(false)
 const isTop = ref(false)
 const isEdit = ref(false)
+const isSubmitting = ref(false)
 const editAnnoouncement = ref<any>({})
 const announcementAutosize = { minRows: 20 }
 // 分页参数
@@ -450,7 +453,7 @@ const handleEdit = (announcement: any) => {
 
 // 验证公告内容
 const validateAnnouncement = (content: string) => {
-  if (content.length < 1) {
+  if (!content.trim()) {
     window.$message.error(t('announcement.toast.contentRequired'))
     return false
   }
@@ -463,28 +466,38 @@ const validateAnnouncement = (content: string) => {
 
 // 发布公告
 const handlePushAnnouncement = async () => {
-  if (!validateAnnouncement(announContent.value)) {
+  if (isSubmitting.value || !validateAnnouncement(announContent.value)) {
     return
   }
+  const content = announContent.value.trim()
+  // 失败原因由本窗口统一提示，不让请求层再弹一次
+  const requestOptions = { showError: false }
 
   const apiCall = isEdit.value
     ? () =>
-        editAnnouncement({
-          id: editAnnoouncement.value.id,
-          roomId: roomId.value,
-          content: announContent.value,
-          top: isTop.value
-        })
+        editAnnouncement(
+          {
+            id: editAnnoouncement.value.id,
+            roomId: roomId.value,
+            content,
+            top: isTop.value
+          },
+          requestOptions
+        )
     : () =>
-        pushAnnouncement({
-          roomId: roomId.value,
-          content: announContent.value,
-          top: isTop.value
-        })
+        pushAnnouncement(
+          {
+            roomId: roomId.value,
+            content,
+            top: isTop.value
+          },
+          requestOptions
+        )
 
   const successMessage = isEdit.value ? t('announcement.toast.editSuccess') : t('announcement.toast.createSuccess')
   const errorMessage = isEdit.value ? t('announcement.toast.editFail') : t('announcement.toast.createFail')
 
+  isSubmitting.value = true
   try {
     await apiCall()
     window.$message.success(successMessage)
@@ -515,7 +528,10 @@ const handlePushAnnouncement = async () => {
     }
   } catch (error) {
     console.error(errorMessage, error)
-    window.$message.error(errorMessage)
+    const reason = error instanceof Error ? error.message.replace(/^network_error:\s*/, '') : ''
+    window.$message.error(reason ? `${errorMessage}：${reason}` : errorMessage)
+  } finally {
+    isSubmitting.value = false
   }
 }
 
@@ -542,7 +558,8 @@ onMounted(async () => {
       const currentWindow = getCurrentWebviewWindow()
       await currentWindow.show()
       await currentWindow.setFocus()
-      title.value = await currentWindow.title()
+      // 网页版窗口替身的标题是应用名，标题按当前视图取
+      title.value = viewType.value === '0' ? t('announcement.title.create') : t('announcement.title.view')
     }, 200)
   } catch (error) {
     console.error('组件挂载初始化失败:', error)
