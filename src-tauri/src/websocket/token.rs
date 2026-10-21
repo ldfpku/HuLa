@@ -31,10 +31,11 @@ pub async fn refresh_after_refusal(app: &AppHandle, refused: &str) -> RefreshOut
     // 在锁里取副本就放开锁，刷新请求慢时不挡住其他请求
     let mut rc = {
         let guard = state.rc.lock().await;
-        if let Some(token) = guard.token.as_deref() {
-            if !token.is_empty() && token != refused {
-                return RefreshOutcome::Refreshed(token.to_owned());
-            }
+        if let Some(token) = guard.token.as_deref()
+            && !token.is_empty()
+            && token != refused
+        {
+            return RefreshOutcome::Refreshed(token.to_owned());
         }
         guard.clone()
     };
