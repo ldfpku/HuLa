@@ -126,18 +126,20 @@
   "permission": {
     "mic": {
       "title": "麦克风权限",
-      "denied": "麦克风权限被拒绝，请在系统设置中开启后重试",
+      "denied": "SMJ 没有获得麦克风权限，请按提示开启后重新拨打",
       "unavailable": "未检测到麦克风设备"
     },
     "camera": {
       "title": "摄像头权限",
-      "denied": "摄像头权限被拒绝，请在系统设置中开启后重试",
+      "denied": "SMJ 没有获得摄像头权限，请按提示开启后重新拨打",
       "unavailable": "未检测到摄像头设备"
     },
     "open_settings": "打开系统设置",
     "retry": "重试",
     "hangup": "挂断",
-    "requesting": "正在请求设备权限..."
+    "requesting": "正在请求设备权限...",
+    "reauthorize": "重新授权",
+    "got_it": "知道了"
   },
   "friend_verify": {
     "title": "申请加好友",

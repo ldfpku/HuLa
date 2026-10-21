@@ -53,6 +53,7 @@
           "width": 660
         }
       },
+      "entitlements": "./Entitlements.plist",
       "files": {},
       "hardenedRuntime": true,
       "minimumSystemVersion": "10.13",

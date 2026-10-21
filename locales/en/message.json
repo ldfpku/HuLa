@@ -137,7 +137,9 @@
     "open_settings": "Open system settings",
     "retry": "Retry",
     "hangup": "Hang up",
-    "requesting": "Requesting device permission..."
+    "requesting": "Requesting device permission...",
+    "reauthorize": "Re-authorize",
+    "got_it": "Got it"
   },
   "friend_verify": {
     "title": "Add friend request",
