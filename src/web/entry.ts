@@ -6,13 +6,16 @@
 import './devProxy'
 import { currentLabel } from './tauriShim'
 import { startPhoneSupport } from './phone'
+import { captureInstallPrompt, startInstallHint } from './installHint'
 import { registerServiceWorker } from './pwa'
 
 startPhoneSupport()
 registerServiceWorker()
+captureInstallPrompt()
 
 await import('../main')
 const { tryWebSignIn } = await import('./sharedLogin')
 void tryWebSignIn(currentLabel)
 const { startWebNotify } = await import('./notify')
 startWebNotify(currentLabel)
+startInstallHint(currentLabel)
