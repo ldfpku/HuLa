@@ -51,7 +51,7 @@
                       :class="{ 'grayscale-0': item.activeStatus === OnlineEnum.ONLINE || isBotUser(item.uid) }"
                       :src="AvatarUtils.getAvatarUrl(groupStore.getUserInfo(item.uid)!.avatar!)"
                       :color="themes.content === ThemeEnum.DARK ? '' : '#fff'"
-                      :fallback-src="themes.content === ThemeEnum.DARK ? '/logoL.png' : '/logoD.png'" />
+                      :fallback-src="themes.content === ThemeEnum.DARK ? '/avatar-dark.svg' : '/avatar-light.svg'" />
 
                     <n-flex vertical justify="space-between" class="h-fit flex-1 truncate">
                       <span class="text-14px leading-tight flex-1 truncate">
@@ -105,7 +105,7 @@
                   :size="44"
                   :src="AvatarUtils.getAvatarUrl(item.avatar)"
                   :color="themes.content === ThemeEnum.DARK ? '' : '#fff'"
-                  :fallback-src="themes.content === ThemeEnum.DARK ? '/logoL.png' : '/logoD.png'" />
+                  :fallback-src="themes.content === ThemeEnum.DARK ? '/avatar-dark.svg' : '/avatar-light.svg'" />
 
                 <span class="text-14px leading-tight flex-1 truncate">{{ item.remark || item.groupName }}</span>
               </n-flex>
@@ -122,6 +122,7 @@ import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { MittEnum, OnlineEnum, RoomTypeEnum, ThemeEnum, UserType } from '@/enums'
 import { useMitt } from '@/hooks/useMitt.ts'
+import { openPhonePane } from '@/hooks/usePhoneLayout'
 import type { DetailsContent } from '@/services/types'
 import { useContactStore } from '@/stores/contacts.ts'
 import { useFeedStore } from '@/stores/feed'
@@ -189,6 +190,7 @@ const handleClick = (index: string, type: number) => {
     detailsShow: detailsShow.value
   }
   useMitt.emit(MittEnum.DETAILS_SHOW, data)
+  openPhonePane('contact')
 }
 // todo 需要循环数组来展示分组
 const showMenu = (event: MouseEvent) => {
@@ -234,6 +236,7 @@ const handleApply = async (applyType: 'friend' | 'group') => {
     } as DetailsContent
   })
   activeItem.value = ''
+  openPhonePane('contact')
 }
 
 /** 获取联系人数据 */
@@ -297,17 +300,19 @@ onUnmounted(() => {
   }
   &:not(.active):hover {
     background: var(--bg-msg-hover);
-    border-radius: 12px;
+    border-radius: 4px;
     cursor: pointer;
   }
 }
 
 .active {
   background: var(--msg-active-color);
-  border-radius: 12px;
-  color: #fff;
+  border-radius: 4px;
+  color: var(--msg-active-text-color);
+  box-shadow: inset 3px 0 0 var(--msg-active-mark-color);
   .text {
-    color: #fff;
+    color: var(--msg-active-text-color);
+    opacity: 0.8;
   }
 }
 

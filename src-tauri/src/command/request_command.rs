@@ -184,16 +184,23 @@ async fn handle_login_success(
     .await
     .map_err(|e| e.to_string())?;
 
-    let mut client = state.rc.lock().await;
-    check_user_init_and_fetch_messages(
+    // 同步要发好几个请求，用副本发，不占着共享的请求客户端
+    let mut client = state.rc.lock().await.clone();
+    let used_refresh_token = client.refresh_token.clone();
+    let result = check_user_init_and_fetch_messages(
         &mut client,
         &*state.db_conn.read().await,
         uid,
         async_data,
         false,
     )
-    .await
-    .map_err(|e| e.to_string())?;
+    .await;
+    state
+        .rc
+        .lock()
+        .await
+        .adopt_refreshed_tokens(&used_refresh_token, &client);
+    result.map_err(|e| e.to_string())?;
 
     Ok(())
 }
@@ -208,7 +215,8 @@ pub async fn im_request_command(
     app_handle: tauri::AppHandle,
 ) -> Result<Option<serde_json::Value>, String> {
     let user_uid = state.user_info.lock().await.uid.clone();
-    let mut rc = state.rc.lock().await;
+    // 在锁里取一份副本就放开锁：请求慢或断网时，其他请求不必排队等它
+    let mut rc = state.rc.lock().await.clone();
 
     // 记录请求前的 token，用于检测是否被刷新
     let old_tokens = capture_token_snapshot_direct(&rc);
@@ -217,12 +225,17 @@ pub async fn im_request_command(
         let result: Result<Option<serde_json::Value>, anyhow::Error> =
             rc.im_request(url, body, params).await;
 
-        // 无论请求成功还是失败，都检查 token 是否被刷新，如果是则保存到数据库
+        // 无论请求成功还是失败，都检查 token 是否被刷新，如果是则写回并保存到数据库
         // 这确保了即使请求重试后失败，刷新后的 token 也能被持久化
-        if let (Some(new_token), Some(new_refresh_token)) =
-            (rc.token.clone(), rc.refresh_token.clone())
-        {
-            if old_tokens.token != rc.token || old_tokens.refresh_token != rc.refresh_token {
+        if old_tokens.token != rc.token || old_tokens.refresh_token != rc.refresh_token {
+            let adopted = state
+                .rc
+                .lock()
+                .await
+                .adopt_refreshed_tokens(&old_tokens.refresh_token, &rc);
+            if let (true, Some(new_token), Some(new_refresh_token)) =
+                (adopted, rc.token.clone(), rc.refresh_token.clone())
+            {
                 if !user_uid.is_empty() {
                     im_user_repository::save_user_tokens(
                         &*state.db_conn.read().await,

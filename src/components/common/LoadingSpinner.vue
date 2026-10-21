@@ -2,23 +2,24 @@
   <div data-tauri-drag-region class="flex-col-center gap-30px size-full">
     <n-flex vertical justify="center" :size="20">
       <div class="logo-container">
-        <img src="/hula.png" class="logo-image" alt="HuLa Logo" loading="eager" />
+        <BrandLogo class="logo-image" />
       </div>
       <n-progress
         type="line"
         :show-indicator="false"
         :color="'#034fbc'"
-        :rail-color="'#034fbc30'"
+        :rail-color="'#d2dff6'"
         :percentage="percentage" />
       <n-flex justify="center" align="center" :gap="12">
         <n-spin :size="12" :color="'#034fbc'" />
-        <span class="text-14px text-#666">{{ loadingText }}</span>
+        <span class="text-14px text-[--chat-text-color]">{{ loadingText }}</span>
       </n-flex>
     </n-flex>
   </div>
 </template>
 
 <script setup lang="ts">
+import BrandLogo from '@/components/common/BrandLogo.vue'
 defineProps<{
   percentage: number
   loadingText: string
@@ -28,7 +29,7 @@ defineProps<{
 <style scoped>
 .logo-container {
   width: 220px;
-  height: 104px;
+  height: 96px;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -37,8 +38,8 @@ defineProps<{
 }
 
 .logo-image {
-  width: 100%;
-  height: 100%;
+  width: 160px;
+  height: auto;
   object-fit: contain;
 }
 </style>

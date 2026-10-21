@@ -37,6 +37,9 @@
 
     <!-- 左右箭头 -->
     <div
+      role="button"
+      :title="t('tooltip.prev_image')"
+      :aria-label="t('tooltip.prev_image')"
       v-show="imageList.length > 1 && showArrows.left"
       @click="prevImage"
       @mouseenter="handleArrowEnter('left')"
@@ -46,6 +49,9 @@
       <svg class="size-24px color-white rotate-180"><use href="#arrow-right"></use></svg>
     </div>
     <div
+      role="button"
+      :title="t('tooltip.next_image')"
+      :aria-label="t('tooltip.next_image')"
       v-show="imageList.length > 1 && showArrows.right"
       @click="nextImage"
       @mouseenter="handleArrowEnter('right')"

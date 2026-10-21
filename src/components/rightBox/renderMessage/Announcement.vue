@@ -25,8 +25,9 @@
           userSelect: 'text',
           padding: '2px 4px',
           borderRadius: '6px',
-          color: '#000',
-          background: '#034fbc'
+          color: 'var(--search-hit-color)',
+          background: 'var(--search-hit-bg)',
+          fontWeight: 600
         }" />
       <template v-else>{{ body.content }}</template>
     </p>

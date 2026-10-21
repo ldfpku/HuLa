@@ -39,6 +39,9 @@
     <div class="video-overlay">
       <!-- 播放/下载按钮 -->
       <div
+        role="button"
+        :title="t('tooltip.play')"
+        :aria-label="t('tooltip.play')"
         class="play-button"
         @click="handlePlayButtonClick"
         :class="{ loading: isOpening || isDownloading || isUploading }">

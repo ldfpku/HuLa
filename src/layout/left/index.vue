@@ -1,16 +1,20 @@
 <template>
-  <div style="background: var(--left-bg-color)" class="h-full">
-    <div style="background: var(--left-bg-color)" class="h-30px"></div>
+  <!-- smj-left*：网页版手机单栏时由 src/web/phone.scss 改成底部导航 -->
+  <div style="background: var(--left-bg-color)" class="smj-left h-full">
+    <div style="background: var(--left-bg-color)" class="smj-left-spacer h-30px"></div>
     <main
       :class="`left ${leftMinWidthClass} h-full p-[0_6px_40px] box-border flex-col-center select-none`"
       data-tauri-drag-region>
-      <p class="text-(16px [--left-text-color]) cursor-default select-none m-[4px_0_16px_0]">SMJ</p>
+      <!-- BIS B7：主标屏幕最小 48px 宽；侧栏是斯米伽蓝 / 深井蓝底，用反白双色 -->
+      <BrandLogo on-dark class="smj-left-logo w-48px h-auto m-[6px_0_16px_0] cursor-default" />
       <!-- 头像模块 -->
       <LeftAvatar />
       <!-- 导航选项按钮模块 -->
       <ActionList />
       <!-- 编辑资料弹窗 -->
       <InfoEdit />
+      <!-- 我的待办 -->
+      <TodoListModal />
 
       <!-- 弹出框 -->
       <component :is="componentMap" v-bind="componentProps" />
@@ -19,9 +23,12 @@
 </template>
 <script lang="ts" setup>
 import type { Component } from 'vue'
+import BrandLogo from '@/components/common/BrandLogo.vue'
 import { MittEnum, ModalEnum } from '@/enums'
 import { useMitt } from '@/hooks/useMitt.ts'
 import { isMac26 } from '@/utils/PlatformConstants'
+import TodoListModal from '@/components/ai/TodoListModal.vue'
+import { useTodoStore } from '@/stores/todo'
 import ActionList from './components/ActionList.vue'
 import InfoEdit from './components/InfoEdit.vue'
 import LeftAvatar from './components/LeftAvatar.vue'
@@ -39,6 +46,8 @@ const componentMapping: Record<number, Component> = {
 const leftMinWidthClass = computed(() => (isMac26() ? 'min-w-68px' : 'min-w-64px'))
 
 onMounted(() => {
+  // 左侧栏“待办”角标：已过期和今天到期的待办
+  useTodoStore().refreshSilently()
   useMitt.on(MittEnum.LEFT_MODAL_SHOW, (event: { type: ModalEnum; props?: Record<string, any> }) => {
     componentMap.value = componentMapping[event.type]
     // 保存传入的props

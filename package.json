@@ -2,7 +2,7 @@
   "$schema": "https://json.schemastore.org/package",
   "name": "hula",
   "type": "module",
-  "version": "3.0.9",
+  "version": "1.1.0",
   "license": "Apache-2.0",
   "engines": {
     "node": "^20.19.0 || >=22.12.0",
@@ -19,6 +19,10 @@
   "scripts": {
     "========= 启动vue(tauri项目会连带执行不需要单独执行) =========": "",
     "dev": "vite",
+    "========= 启动网页版(浏览器直接访问，不需要 Tauri) =========": "",
+    "dev:web": "vite --mode web",
+    "========= 打包网页版 =========": "",
+    "build:web": "vite build --mode web",
     "========= 打包vue(tauri项目会连带执行不需要单独执行) =========": "",
     "build": "vue-tsc --noEmit && vite build",
     "========= 启动HuLa桌面应用程序 =========": "",
@@ -80,6 +84,7 @@
     "@actions/github": "^9.1.1",
     "@breezystack/lamejs": "^1.2.7",
     "@fingerprintjs/fingerprintjs": "^5.2.0",
+    "@mediapipe/tasks-vision": "0.10.21",
     "@tauri-apps/api": "2.11.0",
     "@tauri-apps/plugin-autostart": "2.5.1",
     "@tauri-apps/plugin-barcode-scanner": "2.4.2",

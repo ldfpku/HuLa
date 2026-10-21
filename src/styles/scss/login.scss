@@ -18,22 +18,16 @@
   display: none;
 }
 
-/** 登录按钮样式 */
+/** 登录按钮：BIS 主按钮为斯米伽蓝实色，不用渐变与内阴影 */
 .gradient-button {
   @apply text-#fff border-none;
-  background: linear-gradient(to left, #4170cb, #7a9fe2);
-  box-shadow:
-    inset 0px 3px 16px 0px rgba(255, 255, 255, 0.5),
-    inset 0px -2px 27px 0px rgba(122, 159, 226, 0.76),
-    inset 0px 2px 6px 0px rgba(254, 254, 254, 0.5);
-  &:span {
-    color: #fff;
+  background: #034fbc;
+  border-radius: 2px;
+  &:hover {
+    background: #03419b;
+  }
+  &:active {
+    background: #06327a;
   }
 }
 
-[data-theme='dark'] {
-  .gradient-button {
-    background: linear-gradient(to left, #1d5fc9, #4170cb);
-    box-shadow: 0 0 8px rgba(65, 112, 203, 0.4), inset 0 1px 3px rgba(0, 0, 0, 0.1);
-  }
-}

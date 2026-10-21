@@ -19,8 +19,8 @@
             <n-flex @click="toSimpleBio" align="center" :size="6" class="w-full">
               <n-avatar
                 :size="38"
-                :src="AvatarUtils.getAvatarUrl(userStore.userInfo?.avatar ? userStore.userInfo.avatar : '/logoD.png')"
-                fallback-src="/logo.png"
+                :src="AvatarUtils.getAvatarUrl(userStore.userInfo?.avatar ? userStore.userInfo.avatar : '/avatar-light.svg')"
+                fallback-src="/avatar-light.svg"
                 round />
 
               <n-flex vertical justify="center" :size="6">
@@ -120,7 +120,7 @@
                       <n-avatar
                         :size="52"
                         :src="AvatarUtils.getAvatarUrl(item.avatar)"
-                        fallback-src="/logo.png"
+                        fallback-src="/avatar-light.svg"
                         round />
                     </n-badge>
                   </div>
@@ -339,7 +339,7 @@ const sessionList = computed(() => {
           ...item,
           avatar: latestAvatar,
           name: displayName, // 使用可能修改过的显示名称
-          lastMsg: displayMsg || '欢迎使用HuLa',
+          lastMsg: displayMsg || '欢迎使用SMJ',
           lastMsgTime: formatTimestamp(item?.activeTime),
           isAtMe
         }

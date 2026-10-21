@@ -70,7 +70,7 @@
                       :size="48"
                       :src="AvatarUtils.getAvatarUrl(item.avatar)"
                       :color="themes.content === ThemeEnum.DARK ? '' : '#fff'"
-                      :fallback-src="themes.content === ThemeEnum.DARK ? '/logoL.png' : '/logoD.png'"
+                      :fallback-src="themes.content === ThemeEnum.DARK ? '/avatar-dark.svg' : '/avatar-light.svg'"
                       round />
                     <n-flex vertical justify="center" :size="10" class="flex-1">
                       <n-space align="center" :size="10">

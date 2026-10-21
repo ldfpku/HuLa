@@ -408,7 +408,7 @@ const loadModel = async () => {
 const ensureScene = async () => {
   const el = container.value
   if (!el) {
-    throw new Error('未找到 HuLa 小管家容器')
+    throw new Error('未找到小管家容器')
   }
 
   if (!renderer) {

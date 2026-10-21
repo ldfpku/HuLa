@@ -29,14 +29,14 @@
           </n-flex>
         </n-flex>
         <n-flex align="center" size="medium">
-          <div v-if="newVersionTime">
+          <div v-if="formatReleaseDate(newVersionTime)">
             <span class="text-(12px #909090)">{{ t('message.check_update.new_release_date') }}</span>
-            <span class="text-(12px #034fbc)">{{ handRelativeTime(newVersionTime) }}</span>
+            <span class="text-(12px #034fbc)">{{ formatReleaseDate(newVersionTime) }}</span>
           </div>
 
-          <div v-else>
+          <div v-else-if="formatReleaseDate(versionTime)">
             <span class="text-(12px #909090)">{{ t('message.check_update.release_date') }}</span>
-            <span class="text-(12px #034fbc)">{{ handRelativeTime(versionTime) }}</span>
+            <span class="text-(12px #034fbc)">{{ formatReleaseDate(versionTime) }}</span>
           </div>
         </n-flex>
       </n-flex>
@@ -86,6 +86,10 @@
             </n-flex>
           </div>
 
+          <p v-if="commitLog.length === 0" class="p-[10px_16px] text-(12px #909090)">
+            {{ t('message.auto_update.no_notes') }}
+          </p>
+
           <n-timeline class="p-16px box-border">
             <n-timeline-item v-for="(log, index) in commitLog" :key="index" :content="log.message">
               <template #icon>
@@ -112,8 +116,14 @@ import { confirm } from '@tauri-apps/plugin-dialog'
 import { check } from '@tauri-apps/plugin-updater'
 import { useWindow } from '@/hooks/useWindow.ts'
 import { useSettingStore } from '@/stores/setting.ts'
-import { handRelativeTime } from '@/utils/ComputedTime'
 import { isMac } from '@/utils/PlatformConstants'
+import {
+  currentReleaseDate,
+  currentReleaseNotes,
+  formatReleaseDate,
+  splitReleaseNotes,
+  updaterDateToIso
+} from '@/utils/ReleaseInfo'
 import { invokeSilently } from '@/utils/TauriInvokeHandler.ts'
 import { useI18n } from 'vue-i18n'
 
@@ -155,47 +165,11 @@ const mapCommitType = (commitMessage: string) => {
   }
 }
 
-/* 记录检测更新的版本 */
-//let lastVersion: string | null = null
-
-const getCommitLog = async (url: string, isNew = false) => {
-  fetch(url).then((res) => {
-    if (!res.ok) {
-      commitLog.value = [{ message: t('message.check_update.fetch_log_failed'), icon: 'cloudError' }]
-      loading.value = false
-      return
-    }
-    res.json().then(async (data) => {
-      isNew ? (newVersionTime.value = data.created_at) : (versionTime.value = data.created_at)
-      await nextTick(() => {
-        // 使用正则表达式提取 * 号后面的内容
-        const regex = /\* (.+)/g
-        let match
-        const logs = []
-        while ((match = regex.exec(data.body)) !== null) {
-          logs.push(match[1])
-        }
-        const processedLogs = logs.map((commit) => {
-          // 获取最后一个 : 号的位置
-          const lastColonIndex = commit.lastIndexOf(':')
-          // 截取最后一个 : 号后的内容
-          const message = lastColonIndex !== -1 ? commit.substring(lastColonIndex + 1).trim() : commit
-          return {
-            message: message,
-            icon: mapCommitType(commit) || 'alien-monster'
-          }
-        })
-        isNew ? (newCommitLog.value = processedLogs) : (commitLog.value = processedLogs)
-        loading.value = false
-      })
-    })
-  })
-}
+/** 发布说明转成时间线条目 */
+const notesToLogs = (notes?: string) =>
+  splitReleaseNotes(notes).map((message) => ({ message, icon: mapCommitType(message) || 'alien-monster' }))
 
 const doUpdate = async () => {
-  if (!(await confirm(t('message.check_update.confirm_update')))) {
-    return
-  }
   await createWebviewWindow('更新', 'update', 490, 335, '', false, 490, 335, false, true)
   const windows = await WebviewWindow.getAll()
   windows.forEach((window) => {
@@ -221,13 +195,15 @@ const checkUpdate = async () => {
         return
       }
       newVersion.value = e.version
-      // 检查版本之间不同的提交信息和提交日期
-      const url = `https://gitee.com/api/v5/repos/HuLaSpark/HuLa/releases/tags/v${newVersion.value}?access_token=${import.meta.env.VITE_GITEE_TOKEN}`
-      await getCommitLog(url, true)
+      newVersionTime.value = updaterDateToIso(e.date)
+      newCommitLog.value = notesToLogs(e.body)
       text.value = t('message.check_update.update_now')
     })
     .catch(() => {
       window.$message.error(t('message.check_update.update_error'))
+    })
+    .finally(() => {
+      loading.value = false
     })
 }
 
@@ -292,6 +268,8 @@ const init = async () => {
   await moveWindowToBottomRight()
   loading.value = true
   currentVersion.value = await getVersion()
+  versionTime.value = currentReleaseDate
+  commitLog.value = notesToLogs(currentReleaseNotes)
   if (isMac()) {
     // 隐藏标题栏按钮
     try {
@@ -308,8 +286,6 @@ onMounted(async () => {
     loading.value = false
     return
   }
-  const url = `https://gitee.com/api/v5/repos/HuLaSpark/HuLa/releases/tags/v${currentVersion.value}?access_token=${import.meta.env.VITE_GITEE_TOKEN}`
-  await getCommitLog(url)
   await checkUpdate()
 })
 </script>

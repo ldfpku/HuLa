@@ -5,6 +5,7 @@ import { useGlobalStore } from '@/stores/global.ts'
 import { useGroupStore } from '@/stores/group.ts'
 import { AvatarUtils } from '@/utils/AvatarUtils'
 import { UserType } from '@/enums'
+import { useI18nGlobal } from '@/services/i18n'
 
 const contactStore = useContactStore()
 const groupStore = useGroupStore()
@@ -26,11 +27,21 @@ export const options = computed(() => {
       return {
         label: userInfo?.name || item.remark,
         value: item.uid,
-        avatar: AvatarUtils.getAvatarUrl(userInfo?.avatar || '/logoD.png')
+        account: userInfo?.account || '',
+        avatar: AvatarUtils.getAvatarUrl(userInfo?.avatar || '/avatar-light.svg')
       }
     })
     .filter(Boolean) as any
 })
+
+/** 穿梭框搜索：姓名或邮箱前缀（姓名拼音，如 gaozq）包含关键词即命中 */
+const matchOption = (option: { label?: string; account?: string }, pattern: string) => {
+  const keyword = pattern.trim().toLowerCase()
+  return (
+    !!option.label?.toLowerCase().includes(keyword) ||
+    (option.account ?? '').toLowerCase().split('@')[0].includes(keyword)
+  )
+}
 
 // 获取已禁用选项的值列表
 export const getDisabledOptions = () => {
@@ -81,9 +92,7 @@ export const renderSourceList = (
     const baseOptions = getFilteredOptions()
 
     // 根据搜索模式进一步过滤
-    const displayOptions = pattern
-      ? baseOptions.filter((option: { label: string }) => option.label?.toLowerCase().includes(pattern.toLowerCase()))
-      : baseOptions
+    const displayOptions = pattern ? baseOptions.filter((option: any) => matchOption(option, pattern)) : baseOptions
 
     return (
       <div class="select-none">
@@ -134,7 +143,7 @@ export const renderSourceList = (
               />
               <div style={{ display: 'flex', alignItems: 'center', flex: 1, minWidth: 0 }}>
                 {option.avatar ? (
-                  <NAvatar round src={option.avatar || '/logoD.png'} size={24} fallbackSrc="/logoD.png" />
+                  <NAvatar round src={option.avatar || '/avatar-light.svg'} size={24} fallbackSrc="/avatar-light.svg" />
                 ) : (
                   <NAvatar round size={24}>
                     {option.label?.slice(0, 1)}
@@ -154,7 +163,7 @@ export const renderLabel: TransferRenderTargetLabel = ({ option }: { option: any
   return (
     <div class="select-none" style={{ display: 'flex', margin: '6px 0' }}>
       {option.avatar ? (
-        <NAvatar round src={option.avatar || '/logoD.png'} size={24} fallbackSrc="/logoD.png" />
+        <NAvatar round src={option.avatar || '/avatar-light.svg'} size={24} fallbackSrc="/avatar-light.svg" />
       ) : (
         <NAvatar round size={24}>
           {option.label.slice(0, 1)}
@@ -183,9 +192,7 @@ export const renderTargetList = (
   }) => {
     // 根据搜索模式过滤选项
     const displayOptions = pattern
-      ? checkedOptions.filter((option: { label: string }) =>
-          option.label?.toLowerCase().includes(pattern.toLowerCase())
-        )
+      ? checkedOptions.filter((option: any) => matchOption(option, pattern))
       : checkedOptions
 
     return (
@@ -210,7 +217,7 @@ export const renderTargetList = (
               }}>
               <div style={{ display: 'flex', alignItems: 'center', flex: 1, minWidth: 0 }}>
                 {option.avatar ? (
-                  <NAvatar round src={option.avatar || '/logoD.png'} size={24} fallbackSrc="/logoD.png" />
+                  <NAvatar round src={option.avatar || '/avatar-light.svg'} size={24} fallbackSrc="/avatar-light.svg" />
                 ) : (
                   <NAvatar round size={24}>
                     {option.label?.slice(0, 1)}
@@ -232,6 +239,7 @@ export const renderTargetList = (
                     const newCheckedOptions = checkedOptions.filter((o: any) => o.value !== option.value)
                     onCheck(newCheckedOptions.map((o: any) => o.value))
                   }}>
+                  <title>{useI18nGlobal().t('tooltip.remove')}</title>
                   <use href="#close"></use>
                 </svg>
               )}

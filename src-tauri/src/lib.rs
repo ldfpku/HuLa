@@ -32,6 +32,20 @@ use desktops::directory_scanner;
 #[cfg(desktop)]
 use desktops::init;
 #[cfg(desktop)]
+use desktops::media_permission::{
+    media_permission_request, media_permission_reset, media_permission_status,
+};
+#[cfg(desktop)]
+use desktops::remote_control::{
+    remote_control_activate, remote_control_active, remote_control_heartbeat, remote_control_input,
+    remote_control_prepare, remote_control_request, remote_control_stop,
+};
+#[cfg(desktop)]
+use desktops::share_indicator::{
+    meeting_window_open, screen_share_indicator_hide, screen_share_indicator_show,
+    screen_share_indicator_stop,
+};
+#[cfg(desktop)]
 use desktops::tray;
 #[cfg(desktop)]
 use desktops::video_thumbnail::get_video_thumbnail;
@@ -484,6 +498,34 @@ fn get_invoke_handlers() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Se
         get_directory_usage_info_with_progress,
         #[cfg(desktop)]
         cancel_directory_scan,
+        #[cfg(desktop)]
+        remote_control_prepare,
+        #[cfg(desktop)]
+        remote_control_request,
+        #[cfg(desktop)]
+        remote_control_input,
+        #[cfg(desktop)]
+        remote_control_stop,
+        #[cfg(desktop)]
+        remote_control_active,
+        #[cfg(desktop)]
+        remote_control_activate,
+        #[cfg(desktop)]
+        remote_control_heartbeat,
+        #[cfg(desktop)]
+        media_permission_status,
+        #[cfg(desktop)]
+        media_permission_request,
+        #[cfg(desktop)]
+        media_permission_reset,
+        #[cfg(desktop)]
+        screen_share_indicator_show,
+        #[cfg(desktop)]
+        screen_share_indicator_hide,
+        #[cfg(desktop)]
+        screen_share_indicator_stop,
+        #[cfg(desktop)]
+        meeting_window_open,
         #[cfg(target_os = "windows")]
         get_windows_scale_info,
         // 通用命令（桌面端和移动端都支持）

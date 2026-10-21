@@ -12,7 +12,7 @@
       <n-flex class="ma text-center w-260px pointer-events-auto" vertical :size="16">
         <n-flex justify="center" align="center">
           <span class="text-(24px #636c7e) textFont">{{ t('auth.register.title') }}</span>
-          <img class="w-100px h-40px" src="/hula.png" alt="" />
+          <BrandLogo class="w-110px h-auto" on-dark />
         </n-flex>
         <n-form :model="info" :rules="rules" ref="registerForm">
           <!-- 注册信息 -->
@@ -165,37 +165,16 @@
       class="text-(12px #909090) w-full absolute bottom-20px left-1/2 transform -translate-x-1/2"
       :size="8"
       justify="center">
-      <span>Copyright {{ currentYear - 1 }}-{{ currentYear }} HuLaSpark All Rights Reserved.</span>
+      <span>Copyright {{ currentYear - 1 }}-{{ currentYear }} SMJ All Rights Reserved.</span>
     </n-flex>
-
-    <!-- 星标提示框 -->
-    <n-modal v-model:show="starTipsModal" :mask-closable="false" class="rounded-8px" transform-origin="center">
-      <div class="bg-[--bg-edit] w-380px h-fit box-border flex flex-col">
-        <n-flex vertical class="w-full h-fit">
-          <video class="w-full h-240px rounded-t-8px object-cover" src="@/assets/video/star.mp4" autoplay loop />
-          <n-flex vertical :size="10" class="p-14px">
-            <p class="text-(16px #303030)">{{ t('auth.register.modal.title') }}</p>
-            <p class="text-(12px #808080) leading-5">{{ t('auth.register.modal.desc') }}</p>
-
-            <n-flex :size="10" class="ml-auto">
-              <a
-                target="_blank"
-                rel="noopener noreferrer"
-                @click="handleStar"
-                href="https://github.com/HuLaSpark/HuLa"
-                class="bg-#363636 cursor-pointer w-70px h-30px rounded-8px flex-center text-(12px #f1f1f1) outline-none no-underline">
-                {{ t('auth.register.modal.cta') }}
-              </a>
-            </n-flex>
-          </n-flex>
-        </n-flex>
-      </div>
-    </n-modal>
 
     <!-- 邮箱验证码输入弹窗 -->
     <n-modal v-model:show="emailCodeModal" :mask-closable="false" class="rounded-8px" transform-origin="center">
       <div class="bg-#f0f0f0 dark:bg-#303030 w-380px h-fit box-border flex flex-col">
         <div
+          role="button"
+          :title="t('tooltip.close')"
+          :aria-label="t('tooltip.close')"
           v-if="isMac()"
           @click="emailCodeModal = false"
           class="mac-close z-999 size-13px shadow-inner bg-#ed6a5eff rounded-50% select-none absolute top-3px left-4px">
@@ -208,6 +187,7 @@
           v-if="isWindows()"
           @click="emailCodeModal = false"
           class="w-12px h-12px ml-a mr-4px mt-4px cursor-pointer select-none">
+          <title>{{ t('tooltip.close') }}</title>
           <use href="#close"></use>
         </svg>
         <n-flex vertical class="w-full h-fit">
@@ -239,6 +219,7 @@
 </template>
 
 <script setup lang="ts">
+import BrandLogo from '@/components/common/BrandLogo.vue'
 import { getCurrentWebviewWindow, WebviewWindow } from '@tauri-apps/api/webviewWindow'
 import dayjs from 'dayjs'
 import { darkTheme, lightTheme, type FormInst } from 'naive-ui'
@@ -321,7 +302,6 @@ const btnText = computed(() => {
 // 使用day.js获取当前年份
 const currentYear = dayjs().year()
 const registerForm = ref<FormInst | null>(null)
-const starTipsModal = ref(false)
 const emailCodeModal = ref(false)
 
 // 邮箱验证码PIN输入
@@ -529,16 +509,8 @@ const register = async () => {
   }
 }
 
-const handleStar = () => {
-  starTipsModal.value = false
-  localStorage.setItem('star', '1')
-}
-
 onMounted(async () => {
   await getCurrentWebviewWindow().show()
-  await nextTick(() => {
-    starTipsModal.value = localStorage.getItem('star') !== '1'
-  })
 })
 
 // 组件卸载时清理计时器
@@ -557,7 +529,7 @@ onUnmounted(() => {
 @use '@/styles/scss/login';
 
 .textFont {
-  font-family: AliFangYuan, sans-serif !important;
+  font-family: var(--font-family), sans-serif !important;
 }
 
 :deep(.n-form-item.n-form-item--top-labelled) {

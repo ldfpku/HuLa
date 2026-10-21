@@ -7,17 +7,19 @@ import { defineStore } from 'pinia'
 import { useRoute } from 'vue-router'
 import { ErrorType } from '@/common/exception'
 import { MittEnum, MessageStatusEnum, MsgEnum, RoomTypeEnum, StoresEnum, TauriCommand } from '@/enums'
-import type { MarkItemType, MessageType, RevokedMsgType, SessionItem } from '@/services/types'
+import type { MarkItemType, MessageType, MsgFileDeletedType, RevokedMsgType, SessionItem } from '@/services/types'
 import { useGlobalStore } from '@/stores/global.ts'
 import { useFeedStore } from '@/stores/feed.ts'
 import { useGroupStore } from '@/stores/group.ts'
 import { useUserStore } from '@/stores/user.ts'
-import { getSessionDetail, markMsgRead } from '@/utils/ImRequestUtils'
+import { getChatPurges, getSessionDetail, markMsgRead } from '@/utils/ImRequestUtils'
+import { chatPurgeSteps, parseChatPurgeEpoch } from '@/utils/ChatPurge'
 import { renderReplyContent } from '@/utils/RenderReplyContent.ts'
 import { invokeWithErrorHandler } from '@/utils/TauriInvokeHandler'
 import { useSessionUnreadStore } from '@/stores/sessionUnread'
 import { unreadCountManager } from '@/utils/UnreadCountManager'
 import { useMitt } from '@/hooks/useMitt'
+import { isMentioned } from '@/utils/mention'
 
 type RecalledMessage = {
   messageId: string
@@ -602,6 +604,8 @@ export const useChatStore = defineStore(
         }
         globalStore.unreadReady = true
         unreadCountManager.refreshBadge(globalStore.unReadMark, feedStore.unreadCount)
+        // 不等待：清理过程里会再拉一次会话列表
+        void applyChatPurges(false)
       } catch (e) {
         console.error('获取会话列表失败11:', e)
         sessionOptions.isLoading = false
@@ -776,7 +780,7 @@ export const useChatStore = defineStore(
       }
 
       // 如果收到的消息里面是艾特自己的就发送系统通知
-      if (msg.message.body.atUidList?.includes(userStore.userInfo!.uid) && cacheUser) {
+      if (isMentioned(msg.message.body.atUidList, userStore.userInfo!.uid, msg.fromUser?.uid) && cacheUser) {
         sendNotification({
           title: cacheUser.name as string,
           body: msg.message.body.content,
@@ -1055,6 +1059,68 @@ export const useChatStore = defineStore(
       newMsgCount[roomId] = { count: 0, isStart: false }
     }
 
+    /** 聊天文件被删除：消息换成服务端给的系统提示，并同步到本地数据库 */
+    const applyMsgFileDeleted = async (data: MsgFileDeletedType) => {
+      const next = data.message?.message
+      const roomId = data.roomId || findRoomIdByMsgId(data.msgId)
+      const target = roomId ? messageMap[roomId]?.[data.msgId] : undefined
+      if (!next || !target) return
+      target.message.type = next.type
+      target.message.body = next.body
+      try {
+        await invokeWithErrorHandler(
+          TauriCommand.UPDATE_MESSAGE_RECALL_STATUS,
+          { messageId: data.msgId, messageType: next.type, messageBody: JSON.stringify(next.body) },
+          { customErrorMessage: '更新已删除文件的消息失败', errorType: ErrorType.Client }
+        )
+      } catch (error) {
+        console.error('[删除文件] 更新本地消息失败:', error)
+      }
+    }
+
+    /** 本机已处理到的那次管理员清理（毫秒），按账号分开记 */
+    const chatPurgeEpochKey = (uid: string) => `smj-chat-purge-epoch:${uid}`
+    let applyingChatPurges: Promise<void> | null = null
+    let lastChatPurgeCheck = 0
+
+    /**
+     * 管理员在后台清理聊天数据后，删掉本机还留着的对应会话和消息，再从服务端重新拉会话列表。
+     * 每次拉会话列表后顺带检查（一分钟最多一次），收到 chatPurged 推送时立即检查；失败时不记进度，下次再试。
+     */
+    const applyChatPurges = (force = true) => {
+      if (!force && Date.now() - lastChatPurgeCheck < 60_000) return applyingChatPurges ?? Promise.resolve()
+      lastChatPurgeCheck = Date.now()
+      applyingChatPurges ??= (async () => {
+        const uid = userStore.userInfo?.uid
+        if (!uid) return
+        const key = chatPurgeEpochKey(uid)
+        const since = parseChatPurgeEpoch(localStorage.getItem(key))
+        const steps = chatPurgeSteps(await getChatPurges({ since }), since)
+        if (!steps) return
+        const quiet = { showError: false, errorType: ErrorType.Client }
+        for (const roomId of steps.rooms) {
+          await invokeWithErrorHandler(TauriCommand.DELETE_ROOM_MESSAGES, { roomId }, quiet)
+          clearRoomMessages(roomId)
+          sessionList.value = sessionList.value.filter((session) => session.roomId !== roomId)
+          delete sessionMap.value[roomId]
+        }
+        const touched = new Set<string>()
+        for (const { roomId, msgId } of steps.messages) {
+          await invokeWithErrorHandler(TauriCommand.DELETE_MESSAGE, { messageId: msgId, roomId }, quiet)
+          if (messageMap[roomId]) delete messageMap[roomId][msgId]
+          touched.add(roomId)
+        }
+        for (const roomId of touched) useMitt.emit(MittEnum.UPDATE_SESSION_LAST_MSG, { roomId })
+        localStorage.setItem(key, String(steps.epoch))
+        if (steps.rooms.length || touched.size) await getSessionList(true)
+      })()
+        .catch((error) => console.error('[聊天清理] 删除本机旧消息失败:', error))
+        .finally(() => {
+          applyingChatPurges = null
+        })
+      return applyingChatPurges
+    }
+
     // 更新消息
     const updateMsg = ({
       msgId,
@@ -1116,6 +1182,8 @@ export const useChatStore = defineStore(
 
     // 防止短时间内重复调用的缓存
     const markSessionReadLock = new Set<string>()
+    /** 每个会话最近一次标记已读前的未读条数 */
+    const unreadSnapshot = reactive<Record<string, number>>({})
 
     // 创建请求队列限制器，确保 markMsgRead 请求串行执行，避免触发服务器限流
     const markMsgReadQueue = pLimit(1)
@@ -1135,6 +1203,9 @@ export const useChatStore = defineStore(
 
       // 加锁，防止重复调用
       markSessionReadLock.add(roomId)
+
+      // 记下打开会话前的未读条数，“AI 摘要”据此摘要未读消息
+      if ((session.unreadCount || 0) > 0) unreadSnapshot[roomId] = session.unreadCount
 
       // 1. 记录已读时的活跃时间，用于重登时识别陈旧未读
       const activeTime = session.activeTime || Date.now()
@@ -1398,6 +1469,7 @@ export const useChatStore = defineStore(
 
     return {
       getMsgIndex,
+      unreadSnapshot,
       chatMessageList,
       pushMsg,
       deleteMsg,
@@ -1405,6 +1477,8 @@ export const useChatStore = defineStore(
       clearNewMsgCount,
       updateMarkCount,
       updateRecallMsg,
+      applyMsgFileDeleted,
+      applyChatPurges,
       recordRecallMsg,
       updateMsg,
       newMsgCount,

@@ -9,10 +9,9 @@
           <div
             style="background: rgba(111, 111, 111, 0.1)"
             class="w-170px h-113px absolute top-9% left-51% transform -translate-x-51% -translate-y-9%"></div>
-          <img
-            class="drop-shadow-md absolute top-30% left-1/2 transform -translate-x-1/2 -translate-y-30% w-140px h-60px"
-            src="/hula.png"
-            alt="" />
+          <BrandLogo
+            variant="signature"
+            class="absolute top-32% left-1/2 transform -translate-x-1/2 -translate-y-32% w-150px h-auto" />
         </div>
       </div>
 
@@ -35,17 +34,18 @@
 </template>
 
 <script setup lang="ts">
+import BrandLogo from '@/components/common/BrandLogo.vue'
 import { useI18n } from 'vue-i18n'
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow'
 import { arch, version } from '@tauri-apps/plugin-os'
 import dayjs from 'dayjs'
 import { getOSType, isWindows } from '@/utils/PlatformConstants'
-import pkg from '~/package.json'
+import { version as appVersion } from '~/package.json'
 
 const { t } = useI18n()
 
 const _pkg = reactive({
-  version: pkg.version
+  version: appVersion
 })
 const osType = ref()
 const osArch = ref()

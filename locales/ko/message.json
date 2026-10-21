@@ -55,7 +55,56 @@
     "speaker_off": "스피커 꺼짐",
     "camera_disable": "카메라 끄기",
     "camera_enable": "카메라 켜기",
-    "hangup": "전화 끊기"
+    "hangup": "전화 끊기",
+    "share_screen": "화면 공유",
+    "stop_share": "공유 중지",
+    "sharing_self": "화면을 공유하고 있습니다",
+    "sharing_window": "창을 공유하고 있습니다",
+    "share_preview": "상대방에게 보이는 화면",
+    "back_to_meeting": "회의로 돌아가기",
+    "share_web_no_border": "웹 버전은 화면 테두리를 표시할 수 없습니다. 테두리가 필요하면 데스크톱 앱을 사용하세요",
+    "remote_sharing": "{name} 님이 화면을 공유하고 있습니다",
+    "swap_view": "화면 전환",
+    "share_unsupported": "이 환경에서는 화면 공유를 사용할 수 없습니다. 컴퓨터의 Chrome 또는 Edge에서 웹 앱을 여세요",
+    "share_after_connected": "통화가 연결된 후 화면을 공유할 수 있습니다",
+    "share_peer_unsupported": "상대방 클라이언트가 오래되어 화면 공유를 받을 수 없습니다",
+    "share_cancelled": "화면 공유가 취소되었습니다",
+    "share_failed": "화면 공유에 실패했습니다. 시스템 화면 녹화 권한을 확인하세요",
+    "share_ended": "화면 공유가 종료되었습니다",
+    "rc_request": "Remote control",
+    "rc_request_tip": "Ask to control the other person's computer (they need the desktop app and must agree)",
+    "rc_requesting": "Waiting",
+    "rc_stop_control": "Stop control",
+    "rc_waiting": "Remote control request sent, waiting for approval",
+    "rc_timeout": "No response to the remote control request",
+    "rc_granted": "Approved. Click the screen to control their computer",
+    "rc_rejected": "The remote control request was declined",
+    "rc_ended": "Remote control ended",
+    "rc_after_connected": "Remote control is available once the call connects",
+    "rc_busy_self": "Your computer is being controlled, you cannot control theirs at the same time",
+    "rc_peer_old": "The other person's app is too old for remote control",
+    "rc_peer_web": "The other person is using the web version; the controlled side needs the desktop app",
+    "rc_peer_busy": "The other person is handling another remote control request",
+    "rc_peer_monitor": "The other person did not share the entire screen",
+    "rc_peer_not_primary": "The other person did not share the primary screen (shared vs primary: {detail}); only the primary screen can be controlled",
+    "rc_peer_error": "Remote control could not start on their computer: {detail}",
+    "rc_need_monitor": "Remote control needs the entire screen. Choose \"Entire screen\" in the picker",
+    "rc_need_primary": "Only the primary screen can be controlled. Ask again and choose the primary screen",
+    "rc_controlling": "Controlling {name}'s computer",
+    "rc_swap_hint": "(switch back to the screen view to control)",
+    "rc_being_controlled": "{name} is controlling your computer",
+    "rc_escape_hint": "Hold Esc 1s to stop",
+    "share_prompt": "연결되었습니다. 지금 화면을 공유할까요?",
+    "share_later": "나중에",
+    "rc_pending": "Waiting for them to accept and share their entire screen",
+    "rc_share_prompt": "{name} wants to control your computer",
+    "rc_share_start": "Accept and share screen",
+    "rc_share_cancel": "Decline (Esc)",
+    "rc_share_not_primary": "That is not your primary screen: click \"Accept and share screen\" again and pick the primary screen.",
+    "rc_share_retry": "Remote control needs your entire screen: click \"Accept and share screen\" again and pick \"Entire screen\".",
+    "rc_share_busy": "Choosing a screen…",
+    "rc_share_tip": "After accepting you will choose a screen to share; pick \"Entire screen\". They will see your screen and use your mouse and keyboard. While in control, click \"Stop control\" at the top of the screen or hold Esc for 1 second to end it.",
+    "rc_auto_hint": "Connected, asking to control their computer"
   },
   "permission": {
     "mic": {
@@ -71,7 +120,9 @@
     "open_settings": "시스템 설정 열기",
     "retry": "다시 시도",
     "hangup": "전화 끊기",
-    "requesting": "장치 권한 요청 중..."
+    "requesting": "장치 권한 요청 중...",
+    "reauthorize": "다시 권한 부여",
+    "got_it": "확인"
   },
   "friend_verify": {
     "title": "친구 추가 요청",
@@ -92,13 +143,13 @@
   "message_list": {
     "sync_loading": "메시지 동기화 중",
     "official_popover": "공식 그룹",
-    "bot_popover": "HuLa 어시스턴트",
+    "bot_popover": "SMJ 어시스턴트",
     "mention_tag": "[나를 언급함]",
     "shield_group": "그룹 알림 차단됨",
     "shield_user": "사용자 알림 차단됨",
     "empty_description": "친구들과 대화를 시작해보세요!",
     "empty_action": "친구 찾기",
-    "default_last_msg": "HuLa에 오신 것을 환영합니다"
+    "default_last_msg": "SMJ에 오신 것을 환영합니다"
   },
   "message_menu": {
     "pin_success": "고정되었습니다",
@@ -273,5 +324,21 @@
     "forward_success": "메시지를 전달했습니다",
     "forward_failed": "전달에 실패했습니다",
     "non_text_message": "[텍스트가 아닌 메시지]"
+  },
+  "mail_card": {
+    "label": "메일",
+    "no_subject": "(제목 없음)",
+    "attachments": "첨부 파일 {count}개",
+    "open": "클릭하여 메일 보기",
+    "open_failed": "메일을 열 수 없습니다",
+    "via_mailbox": "그룹 메일"
+  },
+  "auto_update": {
+    "title": "데스크톱 업데이트 준비됨",
+    "ready_windows": "새 버전 {version}을(를) 다운로드했습니다. 다시 시작하면 적용되며, 다시 시작하지 않으면 다음에 SMJ를 열 때 자동으로 설치됩니다.",
+    "ready_mac": "새 버전 {version}을(를) 다운로드했습니다. 다시 시작하면 적용됩니다. 업데이트 후 시스템 설정 → 개인정보 보호 및 보안의 화면 기록과 손쉬운 사용에서 SMJ를 다시 선택하세요.",
+    "restart_now": "지금 다시 시작",
+    "install_failed": "업데이트 설치에 실패했습니다. 나중에 업데이트 확인에서 다시 시도하세요.",
+    "no_notes": "없음"
   }
 }

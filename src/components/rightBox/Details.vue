@@ -107,6 +107,9 @@
       </n-flex>
 
       <n-icon-wrapper
+        role="button"
+        :title="footerOptions[0].title"
+        :aria-label="footerOptions[0].title"
         @click="footerOptions[0].click()"
         class="cursor-pointer"
         :size="40"

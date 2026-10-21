@@ -150,6 +150,12 @@ export enum StoresEnum {
   PLUGINS = 'plugins',
   /** 侧边栏头部菜单栏 */
   MENUTOP = 'menuTop',
+  /** 邮件 */
+  MAIL = 'mail',
+  /** 我的待办 */
+  TODO = 'todo',
+  /** 聊天里会议卡片的状态 */
+  MEETING_STATUS = 'meetingStatus',
   /** 账号账号历史记录列表 */
   LOGIN_HISTORY = 'loginHistory',
   /** 好友列表 */
@@ -199,7 +205,9 @@ export enum StoresEnum {
   /** 缩略图缓存 */
   THUMBNAIL_CACHE = 'thumbnailCache',
   /** 初始化同步状态 */
-  INITIAL_SYNC = 'initialSync'
+  INITIAL_SYNC = 'initialSync',
+  /** 视频背景板 */
+  VIDEO_BACKGROUND = 'videoBackground'
 }
 
 /**
@@ -244,7 +252,9 @@ export enum MsgEnum {
   /** AI 17*/
   AI,
   /** 位置 18*/
-  LOCATION
+  LOCATION,
+  /** 邮件卡片 19：从斯米伽邮箱转发到聊天的邮件 */
+  MAIL_CARD
 }
 
 /**
@@ -617,6 +627,40 @@ export enum ImUrlEnum {
   INIT_CONFIG = 'initConfig',
   /** 获取默认存储提供者 */
   STORAGE_PROVIDER = 'storageProvider',
+  /** 邮件：一次性网页登录链接 */
+  MAIL_SSO = 'mailSso',
+  /** 邮件：收件箱未读数 */
+  MAIL_UNREAD = 'mailUnread',
+  /** 群邮箱：查看 */
+  ROOM_MAILBOX = 'roomMailbox',
+  /** 群邮箱：开启 */
+  ROOM_MAILBOX_ENABLE = 'roomMailboxEnable',
+  /** 群邮箱：关闭 */
+  ROOM_MAILBOX_DISABLE = 'roomMailboxDisable',
+  /** 聊天与邮件统一搜索 */
+  UNIFIED_SEARCH = 'unifiedSearch',
+  /** 群文件：列表 */
+  ROOM_FILES = 'roomFiles',
+  /** 群文件：从列表移除 */
+  ROOM_FILE_REMOVE = 'roomFileRemove',
+  /** 群文件：存到我的网盘 */
+  ROOM_FILE_SAVE_TO_DRIVE = 'roomFileSaveToDrive',
+  /** 群文件：从网盘选文件发到会话 */
+  ROOM_FILE_FROM_DRIVE = 'roomFileFromDrive',
+  /** 网盘：列出文件夹内容（发送文件时选择） */
+  DRIVE_ITEMS = 'driveItems',
+  /** Workers AI：会话摘要（只返回给请求者，不写入聊天记录） */
+  AI_SUMMARY = 'aiSummary',
+  /** Workers AI：根据邮件生成待办草稿 */
+  AI_MAIL_TODO = 'aiMailTodo',
+  /** 我的待办：列表 */
+  TODO_LIST = 'todoList',
+  /** 我的待办：新建 */
+  TODO_CREATE = 'todoCreate',
+  /** 我的待办：修改（标题、要点、截止时间、完成） */
+  TODO_UPDATE = 'todoUpdate',
+  /** 我的待办：删除 */
+  TODO_DELETE = 'todoDelete',
   /** 获取模型列表 */
   GET_ASSISTANT_MODEL_LIST = 'getAssistantModelList',
   /** 坐标转换 */
@@ -667,6 +711,8 @@ export enum ImUrlEnum {
   REVOKE_ADMIN = 'revokeAdmin',
   /** 添加管理员 */
   ADD_ADMIN = 'addAdmin',
+  /** 转让群主 */
+  TRANSFER_GROUP_OWNER = 'transferGroupOwner',
 
   // 群聊成员管理
   /** 退出群聊 */
@@ -761,6 +807,9 @@ export enum ImUrlEnum {
   // 消息相关
   /** 撤回消息 */
   RECALL_MSG = 'recallMsg',
+  DELETE_MSG_FILE = 'deleteMsgFile',
+  /** 管理员清理聊天数据后，本机需要删掉的会话和消息 */
+  CHAT_PURGES = 'chatPurges',
   /** 标记消息 */
   MARK_MSG = 'markMsg',
   /** 获取消息列表 */
@@ -818,6 +867,19 @@ export enum ImUrlEnum {
 
   MERGE_MSG = 'mergeMsg',
   GET_USER_BY_IDS = 'getUserByIds',
+
+  /** 一对一通话的 ICE 服务器（Cloudflare TURN 临时凭证） */
+  RTC_ICE_SERVERS = 'rtcIceServers',
+  /** 视频会议 */
+  MEETING_LIST = 'meetingList',
+  MEETING_CREATE = 'meetingCreate',
+  MEETING_DETAIL = 'meetingDetail',
+  MEETING_JOIN = 'meetingJoin',
+  MEETING_ICS = 'meetingIcs',
+  MEETING_CANCEL = 'meetingCancel',
+  /** 预约会议的日程助手：参会人忙碌时段与推荐空闲时段 */
+  MEETING_AVAILABILITY = 'meetingAvailability',
+  MEETING_STATUS = 'meetingStatus',
 
   /** 发送 AI 消息 */
   MESSAGE_SEND_STREAM = 'messageSendStream',

@@ -9,6 +9,15 @@
         <template v-if="isBotUser">
           <Bot />
         </template>
+        <!-- 手机：输入区固定高度，软键盘弹出时整页变矮，消息区让出空间 -->
+        <div v-else-if="isPhoneLayout" class="flex flex-col h-full">
+          <div class="flex-1 min-h-0">
+            <ChatMain />
+          </div>
+          <div class="flex-shrink-0 h-148px">
+            <ChatFooter :detail-id="currentSession?.detailId" />
+          </div>
+        </div>
         <n-split
           v-else
           direction="vertical"
@@ -27,7 +36,8 @@
         </n-split>
       </div>
       <!-- 右侧栏占位：群聊时预留宽度直至 Sidebar 挂载完成，随后由子组件控制宽度（含折叠） -->
-      <ChatSidebar />
+      <!-- 手机单栏放不下群成员侧栏，成员在顶部“更多”里看 -->
+      <ChatSidebar v-if="!isPhoneLayout" />
     </div>
   </div>
 </template>
@@ -35,6 +45,7 @@
 import { useGlobalStore } from '@/stores/global'
 import { storeToRefs } from 'pinia'
 import { UserType } from '@/enums'
+import { isPhoneLayout } from '@/hooks/usePhoneLayout'
 
 const globalStore = useGlobalStore()
 const { currentSession } = storeToRefs(globalStore)

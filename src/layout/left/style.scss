@@ -3,7 +3,7 @@
 @mixin action() {
   &:not(.active):hover {
     background: var(--left-bg-hover);
-    border-radius: 8px;
+    border-radius: 4px;
     color: var(--left-active-hover);
     cursor: pointer;
     animation: linearAnimation 3s linear forwards;
@@ -23,7 +23,7 @@
 /** 通用的 active 样式  */
 .active {
   background: var(--left-active-bg-color);
-  border-radius: 8px;
+  border-radius: 4px;
   color: var(--left-active-icon-color);
   img {
     background: var(--icon-hover-color);
@@ -49,6 +49,9 @@
 :deep(.n-badge .n-badge-sup) {
   font-weight: bold;
   font-size: 10px;
+  // 侧栏是斯米伽蓝底，蓝色角标看不见：改白底蓝字（信号橙只属于选中态，不做角标）
+  background-color: #fff !important;
+  color: #034fbc !important;
 }
 
 :deep(.n-badge) {

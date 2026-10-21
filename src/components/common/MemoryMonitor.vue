@@ -31,7 +31,7 @@
       </div>
     </template>
 
-    <img v-else class="size-24px" title="点击恢复内存监控" src="/logoL.png" alt="" />
+    <img v-else class="size-24px" title="点击恢复内存监控" src="/brand/smj-symbol-color.svg" alt="" />
   </div>
 </template>
 <script setup lang="ts">

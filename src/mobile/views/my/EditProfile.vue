@@ -18,7 +18,7 @@
                 class="absolute"
                 :size="86"
                 :src="AvatarUtils.getAvatarUrl(localUserInfo.avatar!)"
-                fallback-src="/logo.png"
+                fallback-src="/avatar-light.svg"
                 round />
               <div
                 class="absolute h-50% w-full bottom-0 bg-[rgb(50,50,50)] bg-clip-padding backdrop-filter backdrop-blur-sm bg-opacity-15 backdrop-saturate-100 backdrop-contrast-100"></div>

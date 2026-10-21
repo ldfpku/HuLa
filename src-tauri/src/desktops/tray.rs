@@ -49,7 +49,7 @@ pub fn create_tray<R: Runtime>(app: &tauri::AppHandle<R>) -> tauri::Result<()> {
         };
 
         let _ = TrayIconBuilder::with_id("tray")
-            .tooltip("HuLa")
+            .tooltip("斯米伽 SMJ")
             .icon(default_icon)
             .menu(&tray_menu) // 直接设置菜单，让系统处理右键显示
             .show_menu_on_left_click(false) // 禁用左键显示菜单
@@ -116,7 +116,7 @@ pub fn create_tray<R: Runtime>(app: &tauri::AppHandle<R>) -> tauri::Result<()> {
         };
 
         let _ = TrayIconBuilder::with_id("tray")
-            .tooltip("HuLa")
+            .tooltip("斯米伽 SMJ")
             .icon(default_icon)
             .on_tray_icon_event(|tray, event| match event {
                 TrayIconEvent::Click {

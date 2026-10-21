@@ -1,9 +1,19 @@
 {
   "search_suggestions": "Suggestions",
-  "search_guide": "Search in the search box",
+  "search_guide": "Search colleagues, chats, chat history and mail",
   "no_search_results": "No results found",
   "search_result": "Results",
   "search_history": "History",
+  "search_contacts": "Contacts",
+  "search_view_profile": "View profile",
+  "search_sessions": "Chats",
+  "search_chat_records": "Messages",
+  "search_mail": "Mail",
+  "search_load_more": "Show more",
+  "search_searching": "Searching...",
+  "search_failed": "Search failed, please try again later",
+  "search_mail_to": "To {to}",
+  "search_no_subject": "(No subject)",
   "search_input_placeholder": "Search",
   "clear_search_history": "Clear",
   "loading": {
@@ -21,6 +31,10 @@
     "file_manager_short_title": "Files",
     "favorite": "Favorites",
     "favorite_short_title": "Favorites",
+    "mail": "Mail",
+    "mail_short_title": "Mail",
+    "todo": "To-dos",
+    "todo_short_title": "To-do",
     "plugin": "Plugins",
     "plugin_manage": "Plugin Management",
     "more": "More",
@@ -151,6 +165,7 @@
   },
   "chat_header": {
     "bot_tag": "Assistant",
+    "back": "Back",
     "status_abnormal": "Friend status unavailable",
     "toolbar": {
       "audio_call": "Voice call",
@@ -158,7 +173,9 @@
       "screen_share": "Screen share",
       "remote_assist": "Remote assist",
       "invite_to_group": "Invite to group",
-      "start_group_chat": "Start group chat"
+      "start_group_chat": "Start group chat",
+      "remote_assist_tip": "Remote assist: call and ask to control their computer (they need the desktop app and must agree)",
+      "remote_assist_group": "Remote assist is not available in group chats; use it in a one-to-one chat"
     },
     "sidebar": {
       "single": {
@@ -170,7 +187,7 @@
         "report": "Harassed? Report this user"
       },
       "group": {
-        "name_placeholder": "Enter group name (max 12 chars)",
+        "name_placeholder": "Enter group name (max 30 chars)",
         "official_badge": "Official group",
         "copy": "Copy",
         "qr": "QR",
@@ -179,6 +196,45 @@
         "my_name": "My nickname",
         "remark": "Group remark",
         "remark_desc": "(Only visible to you)",
+        "mailbox": {
+          "title": "Group email",
+          "desc": "Mail sent to this address is posted in the group",
+          "off": "Off",
+          "create": "Turn on group email",
+          "enable": "Turn on again",
+          "disable": "Turn off",
+          "copy": "Copy address",
+          "copied": "Group email address copied",
+          "placeholder": "Address name",
+          "no_domain": "Your account has no mail domain, so a group address cannot be created",
+          "member_hint": "The owner or an admin can give this group an email address",
+          "disabled_hint": "Off. Mail sent to this address no longer reaches the group",
+          "confirm_disable": "Mail sent to {address} will no longer reach the group. Mail already received stays here. Turn it off?",
+          "enabled": "Group email is on"
+        },
+        "files": {
+          "title": "Group files",
+          "count": "{count}",
+          "search": "Search file names",
+          "send_from_drive": "Send from Drive",
+          "summary": "{count} files, {size}",
+          "empty": "No files have been sent in this group yet",
+          "no_match": "No matching files",
+          "preview": "Preview",
+          "download": "Download",
+          "download_failed": "Download failed, please try again",
+          "more": "Load more",
+          "save_to_drive": "Save to my Drive",
+          "saved": "Saved to your Drive",
+          "remove": "Remove from group files",
+          "confirm_remove": "Remove \"{name}\" from group files? The chat message stays.",
+          "sent": "Sent to the group",
+          "picker_title": "Choose a file from Drive",
+          "my_drive": "My Drive",
+          "drive_empty": "This folder is empty",
+          "too_large": "Larger than {size}, cannot be sent",
+          "send": "Send"
+        },
         "settings": {
           "title": "Group settings",
           "pin": "Pin to top",
@@ -240,7 +296,7 @@
       "shield_off": "Messages unblocked",
       "action_failed": "Operation failed",
       "group_name_empty": "Group name cannot be empty",
-      "group_name_too_long": "Group name cannot exceed 12 characters",
+      "group_name_too_long": "Group name cannot exceed 30 characters",
       "delete_history_success": "Chat history deleted",
       "delete_history_failed": "Failed to delete chat history",
       "delete_friend_success": "Friend removed",
@@ -297,7 +353,7 @@
     "modal": {
       "add_friend": "Add friend request"
     },
-    "developer_badge": "HuLa Developer"
+    "developer_badge": "SMJ Developer"
   },
   "profile_edit": {
     "title": "Edit profile",
@@ -327,7 +383,7 @@
     "announcement": {
       "title": "Group announcement",
       "load_failed": "Failed to load announcement, please retry",
-      "default": "Please avoid sharing sensitive information. Follow internet regulations or the message will be removed.",
+      "default": "No group announcement yet",
       "window": {
         "add": "Add announcement",
         "view": "View announcement"
@@ -348,7 +404,7 @@
   "about": {
     "version": "Version: {version} ({arch})",
     "device": "Device: {type}{version}",
-    "copyright": "Copyright © {start}-{end} HuLaSpark",
+    "copyright": "Copyright © {start}-{end} SMJ",
     "rights": "All Rights Reserved."
   },
   "apply_list": {
@@ -391,7 +447,8 @@
   "chat_main": {
     "network_offline": "Network unavailable, please check your settings",
     "network_connecting": "Connecting to server...",
-    "network_ws_offline": "Server connection lost, retrying",
+    "network_ws_offline": "Can't reach the server, retrying…",
+    "network_proxy_hint": "Check your network connection. If you use proxy software, make sure it is running.",
     "copy": {
       "empty": "Nothing to copy",
       "image_processing": "Converting {format} image to PNG...",
@@ -404,12 +461,10 @@
     "feature": {
       "coming_soon": "Feature under development"
     },
-    "translate": {
-      "empty": "Nothing to translate"
-    },
     "file": {
       "missing_local": "File not found locally, please download first",
       "show_failed": "Unable to reveal file in folder",
+      "confirm_delete": "Nobody will be able to open this file afterwards; the chat keeps a note that it was deleted. Delete it?",
       "download_prompt": "File not downloaded yet, please download first",
       "download_success": "File downloaded successfully",
       "download_failed": "File download failed, please retry",

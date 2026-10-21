@@ -36,6 +36,7 @@
   },
   "list": {
     "fileCount": "{count} 个文件",
+    "loadMore": "加载更多",
     "meta": {
       "from": "来自："
     }

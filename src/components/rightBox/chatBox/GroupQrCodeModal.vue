@@ -452,6 +452,9 @@ const handleSaveGroupQrImage = async () => {
   <n-modal v-model:show="modalShow" class="w-400px rounded-8px">
     <div class="bg-[--bg-popover] w-400px p-6px box-border flex flex-col">
       <div
+        role="button"
+        :title="t('tooltip.close')"
+        :aria-label="t('tooltip.close')"
         v-if="isMac()"
         @click="modalShow = false"
         class="mac-close z-999 size-13px shadow-inner bg-#ed6a5eff rounded-50% select-none absolute left-6px">
@@ -461,6 +464,7 @@ const handleSaveGroupQrImage = async () => {
       </div>
 
       <svg v-if="isWindows()" @click="modalShow = false" class="size-12px ml-a cursor-pointer select-none">
+        <title>{{ t('tooltip.close') }}</title>
         <use href="#close"></use>
       </svg>
 

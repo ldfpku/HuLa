@@ -21,8 +21,7 @@ const VERSION_LABEL = isChineseLocale ? '版本: ' : 'version: '
 const NODE_PREFIX = isChineseLocale ? '当前 ' : 'Current '
 const NODE_SUFFIX = isChineseLocale ? ' 版本: ' : ' version: '
 const PKG_MANAGER_LABEL = isChineseLocale ? '包管理器: ' : 'Package manager: '
-const SERVER_URL_LABEL = isChineseLocale ? '服务端项目地址: ' : 'Server project URL: '
-const CLIENT_URL_LABEL = isChineseLocale ? '客户端项目地址: ' : 'Client project URL: '
+const SERVER_LABEL = isChineseLocale ? '服务端: ' : 'Server: '
 
 const getRuntimePackageManager = () => {
   const ua = process.env.npm_config_user_agent ?? ''
@@ -73,15 +72,11 @@ export const atStartup = (env: { [key: string]: string }, mode: string, host: st
         `${'\x1b[90m'}${process.version}${'\x1b[0m'}`,
         `  ${PKG_MANAGER_LABEL}${'\x1b[33m'}${'\x1b[90m'}${runtimePackageManager}${'\x1b[0m'}`
       )
+      // 只打印文字，不访问任何地址；服务端是部署在 Cloudflare 上的 mailflare
       console.log(
         `  ${'\u001b[32m'}${'\x1b[1m'}${'\u001b[2m'}${'➜'}${'\x1b[0m'}  ` +
-          SERVER_URL_LABEL +
-          `${'\x1b[35m'}${env.VITE_SERVICE_URL}${'\x1b[0m'}`
-      )
-      console.log(
-        `  ${'\u001b[32m'}${'\x1b[1m'}${'\u001b[2m'}${'➜'}${'\x1b[0m'}  ` +
-          CLIENT_URL_LABEL +
-          `${'\x1b[35m'}${env.VITE_PC_URL}${'\x1b[0m'}`
+          SERVER_LABEL +
+          `${'\x1b[35m'}${env.VITE_WEB_PROXY_TARGET || 'https://mail.smjtools.com'}${'\x1b[0m'}`
       )
     }
   }

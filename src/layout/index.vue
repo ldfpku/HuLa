@@ -1,21 +1,23 @@
 <template>
   <div
     id="layout"
-    class="relative flex min-w-310px bg-[--right-bg-color] h-full"
-    :class="{ 'is-dragging-files': isDraggingFiles }">
-    <div class="flex flex-1 min-h-0">
+    class="relative flex bg-[--right-bg-color] h-full"
+    :class="{ 'is-dragging-files': isDraggingFiles, 'min-w-310px': !isPhoneLayout, 'smj-phone': isPhoneLayout }">
+    <!-- 手机单栏：列表页是“中栏 + 底部导航（左栏）”，进入聊天或联系人详情后右栏占满一屏 -->
+    <div class="flex flex-1 min-h-0" :class="{ 'flex-col-reverse': isPhoneLayout }">
       <!-- 使用keep-alive包裹异步组件 -->
       <keep-alive>
-        <AsyncLeft />
+        <AsyncLeft v-show="!currentPhonePane" />
       </keep-alive>
       <keep-alive>
-        <AsyncCenter />
+        <AsyncCenter v-show="!currentPhonePane" />
       </keep-alive>
+      <!-- 手机上也要挂载（首屏加载遮罩要等三栏都加载完），没进入聊天/详情时隐藏；注释不能放在 keep-alive 里，开发模式会把它算作第二个子节点 -->
       <keep-alive>
-        <AsyncRight v-if="!shrinkStatus" />
+        <AsyncRight v-if="isPhoneLayout || !shrinkStatus" v-show="!isPhoneLayout || !!currentPhonePane" />
       </keep-alive>
     </div>
-    <div v-if="overlayVisible" class="absolute inset-0 z-10 flex items-center justify-center bg-[--right-bg-color]">
+    <div v-if="overlayVisible" data-smj-boot-loading class="absolute inset-0 z-10 flex items-center justify-center bg-[--right-bg-color]">
       <LoadingSpinner :percentage="loadingPercentage" :loading-text="loadingText" />
     </div>
 
@@ -53,6 +55,7 @@ import type { MessageType } from '@/services/types.ts'
 import { WsResponseMessageType } from '@/services/wsType.ts'
 import { useChatStore } from '@/stores/chat'
 import { useFileStore } from '@/stores/file'
+import { type MailNewEvent, useMailStore } from '@/stores/mail'
 import { useUserStore } from '@/stores/user'
 import { useSettingStore } from '@/stores/setting.ts'
 import { useInitialSyncStore } from '@/stores/initialSync.ts'
@@ -60,10 +63,12 @@ import { invokeSilently } from '@/utils/TauriInvokeHandler'
 import { useRoute } from 'vue-router'
 import { audioManager } from '@/utils/AudioManager'
 import { useOverlayController } from '@/hooks/useOverlayController'
+import { clearPhonePane, currentPhonePane, isPhoneLayout } from '@/hooks/usePhoneLayout'
 import { useGroupStore } from '@/stores/group'
 import { RoomTypeEnum } from '@/enums'
 import { getFilesMeta } from '@/utils/PathUtil'
 import FileUtil from '@/utils/FileUtil'
+import { isOwnPendingEcho } from '@/utils/MessageSync'
 import type { FilesMeta } from '@/services/types'
 
 const { t } = useI18n()
@@ -156,6 +161,26 @@ const ensureInitStarted = (blockInit: boolean) => {
   return initPromise
 }
 
+// 首次同步失败（多是手机网络抖动）时不能让加载遮罩一直挡着：先显示界面，再在后台重试，间隔逐次加倍
+let initRetryTimer: ReturnType<typeof setTimeout> | null = null
+const scheduleInitRetry = (delay = 3000) => {
+  if (initRetryTimer) return
+  initRetryTimer = setTimeout(() => {
+    initRetryTimer = null
+    initPromise = runInitWithMode(false)
+    initPromise.catch(() => scheduleInitRetry(Math.min(delay * 2, 60_000)))
+  }, delay)
+}
+
+const waitInitialSync = async (initTask: Promise<void>) => {
+  try {
+    await initTask
+  } catch {
+    if (!initRetryTimer) window.$message?.warning?.('数据同步失败，正在重试…')
+    scheduleInitRetry()
+  }
+}
+
 // 修改异步组件的加载配置
 const AsyncLeft = defineAsyncComponent({
   loader: async () => {
@@ -166,7 +191,7 @@ const AsyncLeft = defineAsyncComponent({
     const comp = await import('./left/index.vue')
     loadingPercentage.value = 33
     if (blockInit) {
-      await initTask
+      await waitInitialSync(initTask)
     }
     markAsyncLoaded()
     return comp
@@ -182,7 +207,7 @@ const AsyncCenter = defineAsyncComponent({
     const comp = await import('./center/index.vue')
     loadingPercentage.value = 66
     if (blockInit) {
-      await initTask
+      await waitInitialSync(initTask)
     }
     markAsyncLoaded()
     return comp
@@ -199,7 +224,7 @@ const AsyncRight = defineAsyncComponent({
     const comp = await import('./right/index.vue')
     loadingPercentage.value = 100
     if (blockInit) {
-      await initTask
+      await waitInitialSync(initTask)
     }
     markAsyncLoaded()
 
@@ -212,6 +237,15 @@ const AsyncRight = defineAsyncComponent({
     return comp
   }
 })
+
+// 手机上进入聊天页或联系人详情时给 <html> 加 smj-phone-pane：网页版底部的“添加到主屏幕”提示要让开输入框
+watch(
+  currentPhonePane,
+  (pane) => {
+    if (isPhoneLayout.value) document.documentElement.classList.toggle('smj-phone-pane', Boolean(pane))
+  },
+  { immediate: true }
+)
 
 const globalStore = useGlobalStore()
 const contactStore = useContactStore()
@@ -233,6 +267,12 @@ timerWorker.onmessage = (e) => {
   const { type } = e.data
   if (type === 'timeout') {
     checkUpdate('home')
+    // 定时器只响一次，每次到点后重新计时，保证运行期间每 4 小时检查一次
+    timerWorker.postMessage({
+      type: 'startTimer',
+      msgId: 'checkUpdate',
+      duration: CHECK_UPDATE_TIME
+    })
   }
 }
 
@@ -340,8 +380,17 @@ const addFileToStore = (data: MessageType) => {
   })
 }
 
+// 新邮件：更新未读数并弹出系统通知
+useMitt.on(WsResponseMessageType.MAIL_NEW, (data: MailNewEvent) => {
+  useMailStore().handleMailNew(data)
+})
+
 useMitt.on(WsResponseMessageType.RECEIVE_MESSAGE, async (data: MessageType) => {
   if (chatStore.checkMsgExist(data.message.roomId, data.message.id)) {
+    return
+  }
+  // 自己刚在这台设备上发的消息，服务端推给自己其他设备时也会推回来，这里已经显示着了
+  if (isOwnPendingEcho(data, userUid.value, chatStore.checkMsgExist)) {
     return
   }
 
@@ -504,6 +553,10 @@ onBeforeMount(async () => {
 })
 
 onMounted(async () => {
+  clearPhonePane()
+  useMailStore().refreshUnread()
+  // 登录后先查一次更新，有新版就在后台下载
+  void checkUpdate('home')
   timerWorker.postMessage({
     type: 'startTimer',
     msgId: 'checkUpdate',

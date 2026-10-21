@@ -13,7 +13,7 @@
   <component :is="mobileRtcCallFloatCell" v-if="mobileRtcCallFloatCell" />
 </template>
 <script setup lang="ts">
-import { WebviewWindow } from '@tauri-apps/api/webviewWindow'
+import { WebviewWindow, getAllWebviewWindows } from '@tauri-apps/api/webviewWindow'
 import { info } from '@tauri-apps/plugin-log'
 import { exit } from '@tauri-apps/plugin-process'
 import { loadLanguage } from '@/services/i18n'
@@ -24,24 +24,28 @@ import { useWindow } from '@/hooks/useWindow.ts'
 import { useNetworkStatus } from '@/hooks/useNetworkStatus'
 import { useGlobalStore } from '@/stores/global'
 import { useSettingStore } from '@/stores/setting.ts'
-import { isDesktop, isIOS, isMobile, isWindows10 } from '@/utils/PlatformConstants'
+import { isDesktop, isIOS, isMobile, isWeb, isWindows10 } from '@/utils/PlatformConstants'
 import LockScreen from '@/views/LockScreen.vue'
 import MemoryMonitor from '@/components/common/MemoryMonitor.vue'
 import { unreadCountManager } from '@/utils/UnreadCountManager'
 import {
   type LoginSuccessResType,
   type OnStatusChangeType,
+  WsRequestMsgType,
   WsResponseMessageType,
   type WsTokenExpire
 } from '@/services/wsType.ts'
+import rustWebSocketClient from '@/services/webSocketRust'
+import { isCallOrMeetingWindow } from '@/utils/RtcCallUtils'
 import { useContactStore } from '@/stores/contacts.ts'
 import { useGroupStore } from '@/stores/group'
 import { useUserStore } from '@/stores/user'
 import { useChatStore } from '@/stores/chat'
+import { useMeetingStatusStore, type MeetingStatusInfo } from '@/stores/meetingStatus'
 import { useAnnouncementStore } from '@/stores/announcement'
 import { useFeedStore } from '@/stores/feed'
 import { useFeedNotificationStore } from '@/stores/feedNotification'
-import type { MarkItemType, RevokedMsgType, UserItem } from '@/services/types.ts'
+import type { MarkItemType, MsgFileDeletedType, RevokedMsgType, UserItem } from '@/services/types.ts'
 import * as ImRequestUtils from '@/utils/ImRequestUtils'
 import { listen } from '@tauri-apps/api/event'
 import { useTauriListener } from '@/hooks/useTauriListener'
@@ -63,6 +67,7 @@ const feedNotificationStore = useFeedNotificationStore()
 const userUid = computed(() => userStore.userInfo!.uid)
 const groupStore = useGroupStore()
 const chatStore = useChatStore()
+const meetingStatusStore = useMeetingStatusStore()
 const appWindow = WebviewWindow.getCurrent()
 const { createRtcCallWindow, sendWindowPayload } = useWindow()
 const globalStore = useGlobalStore()
@@ -95,10 +100,31 @@ const preventDrag = (e: MouseEvent) => {
 }
 const preventGlobalContextMenu = (event: MouseEvent) => event.preventDefault()
 
-useMitt.on(WsResponseMessageType.VideoCallRequest, (event) => {
+/** 桌面端已开着通话窗口或会议窗口：服务端没拦下的来电（例如它还不知道本机在开会）在这里回忙线，不再弹窗 */
+const inCallOrMeeting = async () => {
+  if (!isDesktop() || isWeb()) return false
+  try {
+    return (await getAllWebviewWindows()).some((win) => isCallOrMeetingWindow(win.label))
+  } catch {
+    return false
+  }
+}
+
+useMitt.on(WsResponseMessageType.VideoCallRequest, async (event) => {
   info(`收到通话请求：${JSON.stringify(event)}`)
   const remoteUid = event.callerUid
   const callType = event.isVideo ? CallTypeEnum.VIDEO : CallTypeEnum.AUDIO
+
+  if (await inCallOrMeeting()) {
+    info('正在通话或会议中，来电回忙线')
+    await rustWebSocketClient
+      .sendMessage({
+        type: WsRequestMsgType.VIDEO_CALL_RESPONSE,
+        data: { callerUid: remoteUid, roomId: event.roomId, accepted: 0, busy: true }
+      })
+      .catch(() => undefined)
+    return
+  }
 
   if (isMobile()) {
     useMitt.emit(MittEnum.MOBILE_RTC_CALL_REQUEST, {
@@ -108,7 +134,8 @@ useMitt.on(WsResponseMessageType.VideoCallRequest, (event) => {
     return
   }
 
-  handleVideoCall(remoteUid, callType)
+  // 来电带着通话所在的会话，不能用当前打开的会话（接听方可能正停在别的聊天里）
+  handleVideoCall(remoteUid, callType, event.roomId)
 })
 
 useMitt.on(WsResponseMessageType.LOGIN_SUCCESS, async (data: LoginSuccessResType) => {
@@ -132,6 +159,18 @@ useMitt.on(WsResponseMessageType.LOGIN_SUCCESS, async (data: LoginSuccessResType
 
 useMitt.on(WsResponseMessageType.MSG_RECALL, (data: RevokedMsgType) => {
   chatStore.updateRecallMsg(data)
+})
+
+useMitt.on(WsResponseMessageType.MSG_FILE_DELETED, (data: MsgFileDeletedType) => {
+  chatStore.applyMsgFileDeleted(data)
+})
+
+useMitt.on(WsResponseMessageType.CHAT_PURGED, () => {
+  chatStore.applyChatPurges()
+})
+
+useMitt.on(WsResponseMessageType.MEETING_STATUS, (data: MeetingStatusInfo) => {
+  meetingStatusStore.apply(data)
 })
 
 useMitt.on(WsResponseMessageType.MY_ROOM_INFO_CHANGE, (data: { myName: string; roomId: string; uid: string }) => {
@@ -274,6 +313,9 @@ useMitt.on(WsResponseMessageType.ROOM_INFO_CHANGE, async (data: { roomId: string
     name,
     avatar
   })
+  // 群详情（右侧群信息、群设置里的群名和头像）同步
+  const detail = groupStore.groupDetails.find((item) => item.roomId === roomId)
+  if (detail) Object.assign(detail, { groupName: name, avatar })
 })
 
 useMitt.on(WsResponseMessageType.TOKEN_EXPIRED, async (wsTokenExpire: WsTokenExpire) => {
@@ -471,7 +513,7 @@ useMitt.on(WsResponseMessageType.FEED_NOTIFY, async (data: any) => {
 
 useMitt.on(WsResponseMessageType.GROUP_SET_ADMIN_SUCCESS, (event) => {
   console.log('设置群管理员---> ', event)
-  groupStore.updateAdminStatus(event.roomId, event.uids, event.status)
+  groupStore.updateAdminStatus(event.roomId, event.uids, event.status, event.roles)
 })
 
 useMitt.on(WsResponseMessageType.OFFLINE, async (onStatusChangeType: OnStatusChangeType) => {
@@ -494,7 +536,7 @@ useMitt.on(WsResponseMessageType.OFFLINE, async (onStatusChangeType: OnStatusCha
   }
 })
 
-const handleVideoCall = async (remotedUid: string, callType: CallTypeEnum) => {
+const handleVideoCall = async (remotedUid: string, callType: CallTypeEnum, callRoomId?: string) => {
   info(`监听到视频通话调用，remotedUid: ${remotedUid}, callType: ${callType}`)
   const currentSession = globalStore.currentSession
   const targetUid = remotedUid || currentSession?.detailId
@@ -507,14 +549,14 @@ const handleVideoCall = async (remotedUid: string, callType: CallTypeEnum) => {
       path: '/mobile/rtcCall',
       query: {
         remoteUserId: targetUid,
-        roomId: globalStore.currentSessionRoomId,
+        roomId: callRoomId || globalStore.currentSessionRoomId,
         callType: callType,
         // 接受方
         isIncoming: 'true'
       }
     })
   } else {
-    await createRtcCallWindow(true, targetUid, globalStore.currentSessionRoomId, callType)
+    await createRtcCallWindow(true, targetUid, callRoomId || globalStore.currentSessionRoomId, callType)
   }
 }
 
@@ -607,7 +649,7 @@ const handleWebsocketEvent = async (event: any) => {
  * 在应用启动时发起一个轻量级网络请求，触发iOS的网络权限弹窗
  */
 const requestNetworkPermissionForIOS = async () => {
-  await fetch('https://www.apple.com/favicon.ico', {
+  await fetch('https://mail.smjtools.com/favicon.ico', {
     method: 'HEAD',
     cache: 'no-cache'
   })
@@ -707,15 +749,6 @@ watch(
   () => page.value.blur,
   (val) => {
     document.documentElement.setAttribute('data-blur', val ? '1' : '0')
-  },
-  { immediate: true }
-)
-
-/** 控制字体样式 */
-watch(
-  () => page.value.fonts,
-  (val) => {
-    document.documentElement.style.setProperty('--font-family', val)
   },
   { immediate: true }
 )

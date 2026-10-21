@@ -447,16 +447,21 @@ export const useWindow = () => {
     }
   }
 
-  const startRtcCall = async (callType: CallTypeEnum) => {
+  /**
+   * shareScreen：从聊天顶部“屏幕共享”发起，接通后通话页提示开始共享
+   * remoteControl：从聊天顶部“远程协助”发起，接通后通话页自动请求控制对方电脑
+   */
+  const startRtcCall = async (callType: CallTypeEnum, options?: { shareScreen?: boolean; remoteControl?: boolean }) => {
     try {
       const currentSession = globalStore.currentSession
       if (!currentSession) {
         window.$message?.warning?.('当前会话尚未准备好')
         return
       }
-      // 判断是否为群聊，如果是群聊则跳过
+      // 群聊的音视频是多人会议（Cloudflare RealtimeKit），立即开始并把会议链接发到群里
       if (currentSession.type === RoomTypeEnum.GROUP) {
-        window.$message.warning('群聊暂不支持音视频通话')
+        const { useMeeting } = await import('@/hooks/useMeeting')
+        await useMeeting().startMeeting({ roomId: globalStore.currentSessionRoomId })
         return
       }
 
@@ -466,7 +471,9 @@ export const useWindow = () => {
         window.$message.error('无法获取对方用户信息')
         return
       }
-      await createRtcCallWindow(false, remoteUid, globalStore.currentSessionRoomId, callType)
+      await createRtcCallWindow(false, remoteUid, globalStore.currentSessionRoomId, callType, options?.shareScreen, {
+        remoteControl: options?.remoteControl
+      })
     } catch (error) {
       console.error('创建视频通话窗口失败:', error)
     }
@@ -476,7 +483,9 @@ export const useWindow = () => {
     isIncoming: boolean,
     remoteUserId: string,
     roomId: string,
-    callType: CallTypeEnum
+    callType: CallTypeEnum,
+    shareScreen = false,
+    extra?: { remoteControl?: boolean }
   ) => {
     // 根据是否来电决定窗口尺寸
     const windowConfig = isIncoming
@@ -501,7 +510,9 @@ export const useWindow = () => {
         remoteUserId,
         roomId: roomId,
         callType,
-        isIncoming
+        isIncoming,
+        ...(shareScreen ? { shareScreen: '1' } : {}),
+        ...(extra?.remoteControl ? { remoteControl: '1' } : {})
       }
     )
   }

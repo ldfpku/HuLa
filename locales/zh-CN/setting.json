@@ -1,7 +1,7 @@
 {
   "common": {
     "provider_label": "提供者",
-    "provider_name": "HuLa",
+    "provider_name": "SMJ",
     "tag_new": "新"
   },
   "footer": {
@@ -27,25 +27,12 @@
         "dark": "深色"
       }
     },
-    "chat": {
-      "title": "聊天",
-      "translate_service": "翻译服务",
-      "translate_options": {
-        "tencent": "腾讯云翻译",
-        "youdao": "有道云翻译"
-      }
-    },
     "ui": {
       "title": "界面",
       "language": "语言",
       "blur": "高斯模糊",
       "shadow": "启用阴影",
-      "font": "字体",
-      "menu_name": "菜单名称",
-      "font_options": {
-        "PingFang": "苹方",
-        "AliFangYuan": "阿里妈妈方圆体"
-      }
+      "menu_name": "菜单名称"
     },
     "system": {
       "title": "系统",
@@ -123,7 +110,7 @@
     "file_scan_progress": "扫描文件中",
     "usage": "扫描文件占比",
     "used_space": "已用空间",
-    "app_used_space": "HuLa 数据",
+    "app_used_space": "SMJ 数据",
     "free_space": "可用空间",
     "directory": "目录",
     "curr_dir": "当前目录",

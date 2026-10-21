@@ -3,9 +3,12 @@
   <main
     v-if="activeItem"
     data-tauri-drag-region
-    class="z-999 flex-y-center flex-shrink-0 border-b-(1px solid [--right-chat-footer-line-color]) select-none cursor-default justify-between p-[6px_22px_10px]">
+    class="z-999 flex-y-center flex-shrink-0 border-b-(1px solid [--right-chat-footer-line-color]) select-none cursor-default justify-between"
+    :class="isPhoneLayout ? 'p-[8px_10px_8px_4px] gap-8px' : 'p-[6px_22px_10px]'">
     <Transition name="loading" mode="out-in">
-      <n-flex align="center">
+      <n-flex align="center" :wrap="false" class="min-w-0">
+        <!-- 手机单栏：回到会话列表 -->
+        <PhoneBackButton v-if="isPhoneLayout" class="-mr-6px" />
         <n-avatar
           :class="[
             'rounded-8px select-none',
@@ -13,10 +16,16 @@
           ]"
           :size="28"
           :color="themes.content === ThemeEnum.DARK ? '' : '#fff'"
-          :fallback-src="themes.content === ThemeEnum.DARK ? '/logoL.png' : '/logoD.png'"
+          :fallback-src="themes.content === ThemeEnum.DARK ? '/avatar-dark.svg' : '/avatar-light.svg'"
           :src="currentUserAvatar" />
-        <label class="flex-y-center gap-6px">
-          <p class="text-(16px [--text-color])">{{ groupStore.countInfo?.remark || activeItem?.name }}</p>
+        <label class="flex-y-center gap-6px min-w-0">
+          <p
+            class="text-(16px [--text-color]) truncate"
+            :class="{ 'cursor-pointer hover:color-#034fbc': canManageGroup }"
+            :title="canManageGroup ? '点击修改群名称' : undefined"
+            @click="canManageGroup && openRenameGroupDialog(currentSessionRoomId, activeItem?.name || '')">
+            {{ groupStore.countInfo?.remark || activeItem?.name }}
+          </p>
           <p
             v-if="activeItem?.type === RoomTypeEnum.GROUP && groupStore.countInfo?.memberNum"
             class="text-(11px #808080)">
@@ -40,7 +49,7 @@
               <n-badge v-else :color="isOnline ? '#1ab292' : '#909090'" dot />
 
               <!-- 状态文本 -->
-              <p class="text-(12px [--text-color])">
+              <p v-if="!isPhoneLayout" class="text-(12px [--text-color])">
                 {{ statusTitle }}
               </p>
             </n-flex>
@@ -58,7 +67,10 @@
       </n-flex>
     </Transition>
     <!-- 顶部右边选项栏 -->
-    <nav v-if="shouldShowDeleteFriend || chatStore.isGroup" class="options flex-y-center gap-20px color-[--icon-color]">
+    <nav
+      v-if="shouldShowDeleteFriend || chatStore.isGroup"
+      class="options flex-y-center flex-shrink-0 color-[--icon-color]"
+      :class="isPhoneLayout ? 'gap-16px' : 'gap-20px'">
       <div v-if="!isChannel && !isBotUser" class="options-box">
         <n-popover trigger="hover" :show-arrow="false" placement="bottom">
           <template #trigger>
@@ -81,7 +93,20 @@
         </n-popover>
       </div>
 
-      <div v-if="!isChannel && !isBotUser" class="options-box">
+      <div v-if="!isChannel && !isBotUser" class="options-box" @click="showScheduleMeeting = true">
+        <n-popover trigger="hover" :show-arrow="false" placement="bottom">
+          <template #trigger>
+            <!-- 预约会议：日历图标 -->
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+              <rect x="3.5" y="5" width="17" height="15.5" rx="2.5" />
+              <path d="M3.5 10h17M8 3v4M16 3v4M8 14h3" />
+            </svg>
+          </template>
+          <span>预约会议</span>
+        </n-popover>
+      </div>
+
+      <div v-if="!isChannel && !isBotUser && !isPhoneLayout" class="options-box">
         <n-popover trigger="hover" :show-arrow="false" placement="bottom">
           <template #trigger>
             <svg @click="handleMedia">
@@ -92,14 +117,20 @@
         </n-popover>
       </div>
 
-      <div v-if="!isChannel && !isBotUser" class="options-box">
+      <div v-if="!isChannel && !isBotUser && !isPhoneLayout" class="options-box">
         <n-popover trigger="hover" :show-arrow="false" placement="bottom">
           <template #trigger>
-            <svg @click="handleAssist">
+            <svg :class="{ 'opacity-40 cursor-not-allowed': chatStore.isGroup }" @click="handleAssist">
               <use href="#remote-control"></use>
             </svg>
           </template>
-          <span>{{ t('home.chat_header.toolbar.remote_assist') }}</span>
+          <span>
+            {{
+              chatStore.isGroup
+                ? t('home.chat_header.toolbar.remote_assist_group')
+                : t('home.chat_header.toolbar.remote_assist_tip')
+            }}
+          </span>
         </n-popover>
       </div>
 
@@ -120,7 +151,32 @@
         </n-popover>
       </div>
 
-      <div class="options-box" @click="sidebarShow = !sidebarShow">
+      <div v-if="!isBotUser" class="options-box" @click="showSummary = true">
+        <n-popover trigger="hover" :show-arrow="false" placement="bottom">
+          <template #trigger>
+            <!-- AI 摘要：文档加星光 -->
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round">
+              <path d="M14 3.5H6.5a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V12" />
+              <path d="M8 12h6M8 16h8" />
+              <path d="M18.5 2.5l.9 2.1 2.1.9-2.1.9-.9 2.1-.9-2.1-2.1-.9 2.1-.9z" />
+            </svg>
+          </template>
+          <span>AI 摘要</span>
+        </n-popover>
+      </div>
+
+      <div
+        role="button"
+        :title="t('tooltip.chat_info')"
+        :aria-label="t('tooltip.chat_info')"
+        class="options-box"
+        @click="sidebarShow = !sidebarShow">
         <svg>
           <use href="#more"></use>
         </svg>
@@ -141,7 +197,7 @@
         v-else
         :active-item="activeItem"
         :user-list="userList"
-        :is-group-owner="isGroupOwner"
+        :can-manage="canManageGroup"
         :is-editing-group-name="isEditingGroupName"
         v-model:editing-group-name="editingGroupName"
         v-model:local-my-name="localMyName"
@@ -159,8 +215,7 @@
         @start-edit-group-name="startEditGroupName"
         @group-info-change="handleGroupInfoChange"
         @manage-group-member="handleManageGroupMember"
-        @show-qr-code="showQRCodeModal = true"
-        @update-room-info="updateRoomInfo" />
+        @show-qr-code="showQRCodeModal = true" />
     </ChatInnerDrawer>
   </main>
 
@@ -168,6 +223,9 @@
   <n-modal v-model:show="modalShow" class="w-350px rounded-8px">
     <div class="bg-[--bg-popover] w-360px h-full p-6px box-border flex flex-col">
       <div
+        role="button"
+        :title="t('tooltip.close')"
+        :aria-label="t('tooltip.close')"
         v-if="isMac()"
         @click="modalShow = false"
         class="mac-close z-999 size-13px shadow-inner bg-#ed6a5eff rounded-50% select-none absolute left-6px">
@@ -177,6 +235,7 @@
       </div>
 
       <svg v-if="isWindows()" @click="modalShow = false" class="size-12px ml-a cursor-pointer select-none">
+        <title>{{ t('tooltip.close') }}</title>
         <use href="#close"></use>
       </svg>
       <div class="flex flex-col gap-30px p-[22px_10px_10px_22px] select-none">
@@ -192,6 +251,19 @@
     </div>
   </n-modal>
 
+  <!-- 预约视频会议（邮件邀请 + 日历邀请） -->
+  <ChatSummaryModal
+    v-if="currentSessionRoomId"
+    v-model:show="showSummary"
+    :room-id="currentSessionRoomId"
+    :room-name="activeItem?.name" />
+
+  <ScheduleMeetingModal
+    v-if="currentSessionRoomId"
+    v-model:show="showScheduleMeeting"
+    :room-id="currentSessionRoomId"
+    :default-title="activeItem?.name ? `${activeItem.name} 的会议` : undefined" />
+
   <!-- 群二维码分享弹窗 -->
   <GroupQrCodeModal
     v-model:show="showQRCodeModal"
@@ -205,6 +277,9 @@
   <n-modal v-model:show="showManageGroupMemberModal" class="w-600px rounded-8px" :mask-closable="false">
     <div class="bg-[--bg-popover] w-600px p-6px box-border flex flex-col">
       <div
+        role="button"
+        :title="t('tooltip.close')"
+        :aria-label="t('tooltip.close')"
         v-if="isMac()"
         @click="showManageGroupMemberModal = false"
         class="mac-close z-999 size-13px shadow-inner bg-#ed6a5eff rounded-50% select-none absolute left-6px">
@@ -217,6 +292,7 @@
         v-if="isWindows()"
         @click="showManageGroupMemberModal = false"
         class="size-12px ml-a cursor-pointer select-none">
+        <title>{{ t('tooltip.close') }}</title>
         <use href="#close"></use>
       </svg>
 
@@ -241,6 +317,7 @@ import { useI18n } from 'vue-i18n'
 import { ErrorType } from '@/common/exception'
 import { useDisplayMedia } from '@vueuse/core'
 import AvatarCropper from '@/components/common/AvatarCropper.vue'
+import PhoneBackButton from '@/components/common/PhoneBackButton.vue'
 import ManageGroupMember from '@/views/ManageGroupMember.vue'
 import {
   CallTypeEnum,
@@ -257,6 +334,7 @@ import { useAvatarUpload } from '@/hooks/useAvatarUpload'
 import { useMyRoomInfoUpdater } from '@/hooks/useMyRoomInfoUpdater'
 import { useMitt } from '@/hooks/useMitt.ts'
 import { useOnlineStatus } from '@/hooks/useOnlineStatus'
+import { isPhoneLayout } from '@/hooks/usePhoneLayout'
 import { useWindow } from '@/hooks/useWindow'
 import { IsAllUserEnum, type UserItem } from '@/services/types.ts'
 import { WsResponseMessageType } from '@/services/wsType'
@@ -273,7 +351,10 @@ import { isMac, isWindows } from '@/utils/PlatformConstants'
 import ChatInnerDrawer from '../../chat-inner-drawer.vue'
 import SingleChatSidebar from './SingleChatSidebar.vue'
 import GroupChatSidebar from './GroupChatSidebar.vue'
+import { GROUP_NAME_MAX_LENGTH, openRenameGroupDialog } from '@/utils/groupDialogs'
 import GroupQrCodeModal from './GroupQrCodeModal.vue'
+import ScheduleMeetingModal from '@/components/meeting/ScheduleMeetingModal.vue'
+import ChatSummaryModal from '@/components/ai/ChatSummaryModal.vue'
 
 const { t } = useI18n()
 const { createModalWindow, startRtcCall } = useWindow()
@@ -292,6 +373,8 @@ const optionsType = ref<RoomActEnum>()
 const modalShow = ref(false)
 const sidebarShow = ref(false)
 const showQRCodeModal = ref(false)
+const showScheduleMeeting = ref(false)
+const showSummary = ref(false)
 const showManageGroupMemberModal = ref(false)
 const { currentSession: activeItem, currentSessionRoomId } = storeToRefs(globalStore)
 const { persistMyRoomInfo, resolveMyRoomNickname } = useMyRoomInfoUpdater()
@@ -300,8 +383,8 @@ const { persistMyRoomInfo, resolveMyRoomNickname } = useMyRoomInfoUpdater()
 const isChannel = computed(() => activeItem.value?.hotFlag === IsAllUserEnum.Yes || currentSessionRoomId.value === '1')
 // 是否为bot用户
 const isBotUser = computed(() => activeItem.value?.account === UserType.BOT)
-// 是否为群主
-const isGroupOwner = computed(() => {
+// 是否可管理群资料（群主或管理员可改群名、群头像）
+const canManageGroup = computed(() => {
   const session = activeItem.value
   if (!session || currentSessionRoomId.value === '1' || session.hotFlag === IsAllUserEnum.Yes) {
     return false
@@ -309,7 +392,7 @@ const isGroupOwner = computed(() => {
 
   // 检查groupStore.userList中当前用户的角色
   const currentUser = groupStore.userList.find((user) => user.uid === userStore.userInfo!.uid)
-  return currentUser!.roleId === RoleEnum.LORD
+  return currentUser?.roleId === RoleEnum.LORD || currentUser?.roleId === RoleEnum.ADMIN
 })
 
 // 是否正在编辑群名称
@@ -524,12 +607,18 @@ const saveGroupInfo = async () => {
   }
 }
 
+// 私聊：发起语音通话，接通后自动请求控制对方电脑（对方桌面版确认）；群聊不支持
 const handleAssist = () => {
-  window.$message.warning(t('home.chat_header.toast.todo'))
+  if (chatStore.isGroup) {
+    window.$message.info(t('home.chat_header.toolbar.remote_assist_group'))
+    return
+  }
+  void startRtcCall(CallTypeEnum.AUDIO, { remoteControl: true })
 }
 
+// 私聊：发起语音通话，接通后提示开始共享；群聊：发起会议，在会议里共享
 const handleMedia = () => {
-  window.$message.warning(t('home.chat_header.toast.todo'))
+  void startRtcCall(CallTypeEnum.AUDIO, { shareScreen: true })
 }
 
 /** 置顶 */
@@ -625,7 +714,7 @@ const handleGroupNameChange = () => {
       window.$message.warning(t('home.chat_header.toast.group_name_empty'))
       return
     }
-    if (trimmedName.length > 12) {
+    if (trimmedName.length > GROUP_NAME_MAX_LENGTH) {
       window.$message.warning(t('home.chat_header.toast.group_name_too_long'))
       return
     }
@@ -723,7 +812,7 @@ const handleConfirm = async () => {
     }
 
     try {
-      await groupStore.exitGroup(targetRoomId)
+      await groupStore.exitGroup(targetRoomId, true)
       window.$message.success(t('home.chat_header.toast.dissolve_success'))
       // 删除当前的会话
       useMitt.emit(MittEnum.DELETE_SESSION, targetRoomId)
@@ -782,7 +871,7 @@ const handleCancel = () => {
 
 // 开始编辑群名称
 const startEditGroupName = () => {
-  if (!isGroupOwner.value) return
+  if (!canManageGroup.value) return
 
   editingGroupName.value = activeItem.value?.name || ''
   isEditingGroupName.value = true
@@ -790,7 +879,7 @@ const startEditGroupName = () => {
 
 // 保存群名称
 const saveGroupName = async () => {
-  if (!isGroupOwner.value || !currentSessionRoomId.value) return
+  if (!canManageGroup.value || !currentSessionRoomId.value) return
 
   isEditingGroupName.value = false
 
@@ -814,7 +903,7 @@ const saveGroupName = async () => {
 
 // 处理上传头像
 const handleUploadAvatar = () => {
-  if (!isGroupOwner.value || !currentSessionRoomId.value) return
+  if (!canManageGroup.value || !currentSessionRoomId.value) return
 
   openFileSelector()
 }
