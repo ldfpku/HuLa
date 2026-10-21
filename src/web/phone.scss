@@ -101,6 +101,20 @@ html.smj-phone {
         justify-content: center;
         box-sizing: border-box;
       }
+
+      // 320 宽的小屏（iPhone SE 一代）放不下七个 44px 按钮，收紧间距，最右的“更多”不被切掉
+      @media (max-width: 359px) {
+        padding: 0 4px 0 8px;
+        gap: 4px;
+
+        .top-action,
+        .bottom-action,
+        .more,
+        header > div,
+        footer > div {
+          min-width: 38px;
+        }
+      }
     }
 
     // 会话列表、联系人列表占满剩余高度
