@@ -35,6 +35,7 @@ import { isDiffNow } from '@/utils/ComputedTime.ts'
 import { extractFileName, removeTag } from '@/utils/Formatting'
 import { detectImageFormat, imageUrlToUint8Array, isImageUrl } from '@/utils/ImageUtils'
 import { deleteMsgFile, recallMsg, removeGroupMember, updateMyRoomInfo } from '@/utils/ImRequestUtils'
+import { confirmGroupAction } from '@/utils/groupDialogs'
 import { detectRemoteFileType, getFilesMeta } from '@/utils/PathUtil'
 import { isMac, isMobile } from '@/utils/PlatformConstants'
 import { invokeWithErrorHandler } from '@/utils/TauriInvokeHandler'
@@ -166,7 +167,13 @@ export const useChatMain = (isHistoryMode = false, options: UseChatMainOptions =
   }
 
   // 复制禁用类型
-  const copyDisabledTypes: MsgEnum[] = [MsgEnum.NOTICE, MsgEnum.MERGE, MsgEnum.LOCATION, MsgEnum.VOICE, MsgEnum.MAIL_CARD]
+  const copyDisabledTypes: MsgEnum[] = [
+    MsgEnum.NOTICE,
+    MsgEnum.MERGE,
+    MsgEnum.LOCATION,
+    MsgEnum.VOICE,
+    MsgEnum.MAIL_CARD
+  ]
   const shouldHideCopy = (item: MessageType) => copyDisabledTypes.includes(item.message.type)
   const isNoticeMessage = (item: MessageType) => item.message.type === MsgEnum.NOTICE
   const revealInDirSafely = async (targetPath?: string | null) => {
@@ -953,6 +960,34 @@ export const useChatMain = (isHistoryMode = false, options: UseChatMainOptions =
         if (targetRoleId !== RoleEnum.ADMIN) return false
 
         // 5. 检查当前用户是否是群主
+        const currentUser = groupStore.userList.find((user) => user.uid === userUid.value)
+        return currentUser?.roleId === RoleEnum.LORD
+      }
+    },
+    {
+      label: () => '转让群主',
+      icon: 'people-safe',
+      click: (item: any) => {
+        const targetUid = item.uid || item.fromUser.uid
+        const roomId = globalStore.currentSessionRoomId
+        if (!roomId) return
+        const target = groupStore.getUserInfo(targetUid, roomId)
+        const name = target?.myName || target?.name || item.name || ''
+        confirmGroupAction({
+          title: '转让群主',
+          content: `确定将群主转让给“${name}”？转让后你将成为普通成员。`,
+          positiveText: '转让',
+          onConfirm: async () => {
+            await groupStore.transferOwner(roomId, targetUid)
+            window.$message.success('群主已转让')
+          }
+        })
+      },
+      visible: (item: any) => {
+        const roomId = globalStore.currentSessionRoomId
+        if (globalStore.currentSession?.type !== RoomTypeEnum.GROUP || !roomId || roomId === '1') return false
+        const targetUid = item.uid || item.fromUser?.uid
+        if (!targetUid || targetUid === userUid.value) return false
         const currentUser = groupStore.userList.find((user) => user.uid === userUid.value)
         return currentUser?.roleId === RoleEnum.LORD
       }

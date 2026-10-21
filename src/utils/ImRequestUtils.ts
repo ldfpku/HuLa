@@ -463,7 +463,8 @@ export async function shield(body: { roomId: string; state: boolean }) {
   })
 }
 
-export async function exitGroup(body: { roomId: string }) {
+/** 退出群聊；群主只能解散（dissolve: true），或先转让群主再退出 */
+export async function exitGroup(body: { roomId: string; dissolve?: boolean }) {
   return await imRequest({
     url: ImUrlEnum.EXIT_GROUP,
     body
@@ -473,6 +474,13 @@ export async function exitGroup(body: { roomId: string }) {
 export async function addAdmin(body: { roomId: string; uidList: string[] }) {
   return await imRequest({
     url: ImUrlEnum.ADD_ADMIN,
+    body
+  })
+}
+
+export async function transferGroupOwner(body: { roomId: string; uid: string }) {
+  return await imRequest({
+    url: ImUrlEnum.TRANSFER_GROUP_OWNER,
     body
   })
 }
@@ -507,6 +515,14 @@ export async function updateRoomInfo(body: { id: string; name?: string; avatar?:
   groupStore.updateGroupDetail(body.id, body)
 
   window.$message.success('更新成功')
+}
+
+/** 只改群名称，不动当前群的头像等资料 */
+export async function renameRoom(body: { id: string; name: string }) {
+  return await imRequest({
+    url: ImUrlEnum.UPDATE_ROOM_INFO,
+    body
+  })
 }
 
 export async function updateMyRoomInfo(body: { id: string; myName: string; remark: string }) {

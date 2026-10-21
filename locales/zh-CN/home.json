@@ -184,7 +184,7 @@
         "report": "被骚扰了？举报该用户"
       },
       "group": {
-        "name_placeholder": "请输入群名称(最多12字)",
+        "name_placeholder": "请输入群名称(最多30字)",
         "official_badge": "官方群聊认证",
         "copy": "复制",
         "qr": "二维码",
@@ -293,7 +293,7 @@
       "shield_off": "已取消屏蔽",
       "action_failed": "设置失败",
       "group_name_empty": "群名称不能为空",
-      "group_name_too_long": "群名称不能超过12个字符",
+      "group_name_too_long": "群名称不能超过30个字",
       "delete_history_success": "聊天记录已删除",
       "delete_friend_success": "已删除好友",
       "dissolve_not_allowed": "无法解散频道",
@@ -379,7 +379,7 @@
     "announcement": {
       "title": "群公告须知",
       "load_failed": "公告加载失败，请重试",
-      "default": "请不要把重要信息发到该群，网络不是法外之地，请遵守网络规范，否则直接删除。",
+      "default": "暂无群公告",
       "window": {
         "add": "新增群公告",
         "view": "查看群公告"

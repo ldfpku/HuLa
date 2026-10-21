@@ -6,7 +6,7 @@ import type { Ref } from 'vue'
 import { nextTick } from 'vue'
 import { LimitEnum, MessageStatusEnum, MittEnum, MsgEnum, UploadSceneEnum } from '@/enums'
 import { useMitt } from '@/hooks/useMitt.ts'
-import type { AIModel } from '@/services/types.ts'
+import type { AIModel, UserItem } from '@/services/types.ts'
 import type { BaseUserItem } from '@/stores/cached.ts'
 import { useChatStore } from '@/stores/chat.ts'
 import { useGlobalStore } from '@/stores/global.ts'
@@ -23,6 +23,7 @@ import { globalFileUploadQueue } from './useFileUploadQueue.ts'
 import { useTrigger } from './useTrigger'
 import { UploadProviderEnum, useUpload } from './useUpload.ts'
 import { useI18n } from 'vue-i18n'
+import { AT_ALL_NAME, AT_ALL_UID } from '@/utils/mention'
 
 /**
  * 光标管理器
@@ -177,15 +178,21 @@ export const useMsgInput = (messageInputDom: Ref) => {
   const editorRange = ref<{ range: Range; selection: Selection } | null>(null)
   /** @ 候选人列表 */
   const personList = computed(() => {
+    // 群主和管理员可以 @全体成员，排在最前
+    const atAll =
+      globalStore.currentSessionRoomId !== '1' && groupStore.isAdminOrLord()
+        ? [{ uid: AT_ALL_UID, name: AT_ALL_NAME, avatar: '' } as UserItem]
+        : []
     if (aitKey.value && !isChinese.value) {
-      return groupStore.userList.filter((user) => {
+      const members = groupStore.userList.filter((user) => {
         // 同时匹配群昵称（myName）和原名称（name）
         const displayName = user.myName || user.name
         return displayName?.startsWith(aitKey.value) && user.uid !== userUid.value
       })
+      return [...atAll.filter((item) => item.name.startsWith(aitKey.value)), ...members]
     } else {
       // 过滤当前登录的用户
-      return groupStore.userList.filter((user) => user.uid !== userUid.value)
+      return [...atAll, ...groupStore.userList.filter((user) => user.uid !== userUid.value)]
     }
   })
   /** 记录当前选中的提及项 key */

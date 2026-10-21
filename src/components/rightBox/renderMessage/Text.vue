@@ -110,6 +110,7 @@ import { useGroupStore } from '@/stores/group'
 import { useUserStore } from '@/stores/user'
 import type { TextBody } from '@/services/types'
 import { isMobile } from '@/utils/PlatformConstants'
+import { AT_ALL_NAME, AT_ALL_UID } from '@/utils/mention'
 
 // 标记结构用于描述需特殊渲染的片段区间
 type ContentMarker = {
@@ -202,7 +203,7 @@ const mentionTokens = computed(() => {
   const tokens = new Set<string>()
   props.body.atUidList.forEach((uid) => {
     const user = groupStore.getUserInfo(uid)
-    const name = user?.myName || user?.name
+    const name = uid === AT_ALL_UID ? AT_ALL_NAME : user?.myName || user?.name
     if (name) {
       tokens.add(`@${name}`)
     }
@@ -220,7 +221,7 @@ const mentionTokenToUid = computed(() => {
   }
   props.body.atUidList.forEach((uid) => {
     const user = groupStore.getUserInfo(uid)
-    const name = user?.myName || user?.name
+    const name = uid === AT_ALL_UID ? AT_ALL_NAME : user?.myName || user?.name
     if (name) {
       map.set(`@${name}`, uid)
     }

@@ -711,6 +711,8 @@ export enum ImUrlEnum {
   REVOKE_ADMIN = 'revokeAdmin',
   /** 添加管理员 */
   ADD_ADMIN = 'addAdmin',
+  /** 转让群主 */
+  TRANSFER_GROUP_OWNER = 'transferGroupOwner',
 
   // 群聊成员管理
   /** 退出群聊 */
