@@ -29,14 +29,14 @@
           </n-flex>
         </n-flex>
         <n-flex align="center" size="medium">
-          <div v-if="newVersionTime">
+          <div v-if="formatReleaseDate(newVersionTime)">
             <span class="text-(12px #909090)">{{ t('message.check_update.new_release_date') }}</span>
-            <span class="text-(12px #034fbc)">{{ handRelativeTime(newVersionTime) }}</span>
+            <span class="text-(12px #034fbc)">{{ formatReleaseDate(newVersionTime) }}</span>
           </div>
 
-          <div v-else>
+          <div v-else-if="formatReleaseDate(versionTime)">
             <span class="text-(12px #909090)">{{ t('message.check_update.release_date') }}</span>
-            <span class="text-(12px #034fbc)">{{ handRelativeTime(versionTime) }}</span>
+            <span class="text-(12px #034fbc)">{{ formatReleaseDate(versionTime) }}</span>
           </div>
         </n-flex>
       </n-flex>
@@ -86,6 +86,10 @@
             </n-flex>
           </div>
 
+          <p v-if="commitLog.length === 0" class="p-[10px_16px] text-(12px #909090)">
+            {{ t('message.auto_update.no_notes') }}
+          </p>
+
           <n-timeline class="p-16px box-border">
             <n-timeline-item v-for="(log, index) in commitLog" :key="index" :content="log.message">
               <template #icon>
@@ -112,8 +116,14 @@ import { confirm } from '@tauri-apps/plugin-dialog'
 import { check } from '@tauri-apps/plugin-updater'
 import { useWindow } from '@/hooks/useWindow.ts'
 import { useSettingStore } from '@/stores/setting.ts'
-import { handRelativeTime } from '@/utils/ComputedTime'
 import { isMac } from '@/utils/PlatformConstants'
+import {
+  currentReleaseDate,
+  currentReleaseNotes,
+  formatReleaseDate,
+  splitReleaseNotes,
+  updaterDateToIso
+} from '@/utils/ReleaseInfo'
 import { invokeSilently } from '@/utils/TauriInvokeHandler.ts'
 import { useI18n } from 'vue-i18n'
 
@@ -155,24 +165,11 @@ const mapCommitType = (commitMessage: string) => {
   }
 }
 
-/** 发布说明（邮箱站点 latest.json 的 notes）每行一条，去掉行首的 "- " 或 "* " */
+/** 发布说明转成时间线条目 */
 const notesToLogs = (notes?: string) =>
-  (notes ?? '')
-    .split('\n')
-    .map((line) => line.replace(/^\s*[-*]\s*/, '').trim())
-    .filter(Boolean)
-    .map((message) => ({ message, icon: mapCommitType(message) || 'alien-monster' }))
-
-/** 更新器给的发布时间形如 "2026-10-20 1:02:03.0 +00:00:00"（UTC），转成 ISO 才能算相对时间 */
-const toIsoDate = (date?: string) => {
-  const m = date?.match(/^(\d{4}-\d{2}-\d{2})[ T](\d{1,2}):(\d{2}):(\d{2})/)
-  return m ? `${m[1]}T${m[2].padStart(2, '0')}:${m[3]}:${m[4]}Z` : ''
-}
+  splitReleaseNotes(notes).map((message) => ({ message, icon: mapCommitType(message) || 'alien-monster' }))
 
 const doUpdate = async () => {
-  if (!(await confirm(t('message.check_update.confirm_update')))) {
-    return
-  }
   await createWebviewWindow('更新', 'update', 490, 335, '', false, 490, 335, false, true)
   const windows = await WebviewWindow.getAll()
   windows.forEach((window) => {
@@ -198,7 +195,7 @@ const checkUpdate = async () => {
         return
       }
       newVersion.value = e.version
-      newVersionTime.value = toIsoDate(e.date)
+      newVersionTime.value = updaterDateToIso(e.date)
       newCommitLog.value = notesToLogs(e.body)
       text.value = t('message.check_update.update_now')
     })
@@ -271,6 +268,8 @@ const init = async () => {
   await moveWindowToBottomRight()
   loading.value = true
   currentVersion.value = await getVersion()
+  versionTime.value = currentReleaseDate
+  commitLog.value = notesToLogs(currentReleaseNotes)
   if (isMac()) {
     // 隐藏标题栏按钮
     try {

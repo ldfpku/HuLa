@@ -183,6 +183,10 @@ export default defineConfig(({ mode }: ConfigEnv) => {
   return {
     // 网页版挂在 mailflare 的 /im/ 下
     base: isWeb ? '/im/' : '/',
+    // 桌面版“检查更新”里显示的版本发布日期（打包时间）
+    define: {
+      'import.meta.env.VITE_BUILD_TIME': JSON.stringify(new Date().toISOString())
+    },
     resolve: {
       alias: {
         // 配置主路径别名@
