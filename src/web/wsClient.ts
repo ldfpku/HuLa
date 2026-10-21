@@ -99,6 +99,8 @@ export class WebSocketClient {
   private pending: unknown[] = []
   /** 每次 open 加一，等 ticket 期间又发起了新连接或断开时，旧的那次作废 */
   private openSeq = 0
+  /** 正在连接或已连上的那次所用的 token；没有进行中的连接时为 null */
+  private activeToken: string | null = null
 
   constructor(private emit: Emit) {
     window.addEventListener('online', () => {
@@ -115,6 +117,9 @@ export class WebSocketClient {
   }
 
   async init(clientId: string) {
+    // 页面加载时替身已经用同一登录连上（或正在连），登录流程再调一次时不必断开重连
+    const token = tokenStore.get()?.token
+    if (!this.manualClose && clientId === this.clientId && token && token === this.activeToken) return
     this.clientId = clientId
     this.manualClose = false
     this.attempts = 0
@@ -126,6 +131,7 @@ export class WebSocketClient {
 
   disconnect() {
     this.manualClose = true
+    this.activeToken = null
     this.openSeq++
     this.clearTimers()
     this.socket?.close()
@@ -162,6 +168,7 @@ export class WebSocketClient {
     this.setState(isReconnection ? 'RECONNECTING' : 'CONNECTING', isReconnection)
     const seq = ++this.openSeq
     const token = tokenStore.get()?.token
+    this.activeToken = token ?? null
     if (!token) {
       this.scheduleReconnect()
       return
