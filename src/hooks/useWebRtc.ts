@@ -1251,14 +1251,10 @@ export const useWebRtc = (roomId: string, remoteUserId: string, callType: CallTy
     try {
       selectedAudioDevice.value = deviceId
       if (localStream.value) {
+        // 只换麦克风，不再多开一路摄像头（多开的那路没人停，摄像头灯会一直亮）
         const newStream = await navigator?.mediaDevices?.getUserMedia({
           audio: { deviceId: { exact: deviceId } },
-          video:
-            rtcMsg.value.callType === CallTypeEnum.VIDEO
-              ? selectedVideoDevice.value
-                ? { deviceId: { exact: selectedVideoDevice.value || undefined } }
-                : false
-              : false
+          video: false
         })
         // 替换现有轨道
         const newAudioTrack = newStream.getAudioTracks()[0]
@@ -1275,7 +1271,10 @@ export const useWebRtc = (roomId: string, remoteUserId: string, callType: CallTy
               sender?.replaceTrack?.(newAudioTrack)
             }
           })
-          oldAudioTrack && localStream.value.removeTrack(oldAudioTrack)
+          if (oldAudioTrack) {
+            localStream.value.removeTrack(oldAudioTrack)
+            oldAudioTrack.stop()
+          }
           localStream.value.addTrack(newAudioTrack)
         } else {
           window.$message.error('切换设备不存在或不支持，请重新选择！')
@@ -1599,7 +1598,8 @@ export const useWebRtc = (roomId: string, remoteUserId: string, callType: CallTy
 
       switch (data.signalType) {
         case SignalTypeEnum.OFFER:
-          await handleOffer(signal, true, roomId)
+          // 按本窗口的通话类型取设备：语音通话不能打开摄像头
+          await handleOffer(signal, callType === CallTypeEnum.VIDEO, roomId)
           await lisendCandidate()
           break
 
