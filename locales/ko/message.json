@@ -120,7 +120,9 @@
     "open_settings": "시스템 설정 열기",
     "retry": "다시 시도",
     "hangup": "전화 끊기",
-    "requesting": "장치 권한 요청 중..."
+    "requesting": "장치 권한 요청 중...",
+    "reauthorize": "다시 권한 부여",
+    "got_it": "확인"
   },
   "friend_verify": {
     "title": "친구 추가 요청",

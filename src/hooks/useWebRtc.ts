@@ -177,7 +177,8 @@ export const useWebRtc = (roomId: string, remoteUserId: string, callType: CallTy
   })
   const userStore = useUserStore()
   const { t } = useI18n()
-  const { isPermissionDenied, resolveDeniedDeviceKind, openSystemSettings } = useDevicePermission()
+  const { ensureNativeAccess, isPermissionDenied, resolveDeniedDeviceKind, showPermissionDeniedDialog } =
+    useDevicePermission()
 
   // 设备相关状态
   const audioDevices = ref<MediaDeviceInfo[]>([])
@@ -496,22 +497,8 @@ export const useWebRtc = (roomId: string, remoteUserId: string, callType: CallTy
   }
 
   const showPermissionDeniedMessage = (kind: DeviceKind, err?: unknown, onHangup?: () => void | Promise<void>) => {
-    const titleKey = kind === 'camera' ? 'message.permission.camera.title' : 'message.permission.mic.title'
-    const key = kind === 'camera' ? 'message.permission.camera.denied' : 'message.permission.mic.denied'
-    window.$dialog.warning({
-      title: t(titleKey),
-      content: t(key),
-      positiveText: t('message.permission.open_settings'),
-      negativeText: t('message.permission.hangup'),
-      onPositiveClick: () => {
-        void openSystemSettings(kind)
-        return false
-      },
-      onNegativeClick: () => {
-        void onHangup?.()
-      }
-    })
-    error(`设备权限被拒绝(${kind}): ${String(err ?? '')}`)
+    if (err) error(`获取设备被拒绝(${kind}): ${String(err)}`)
+    showPermissionDeniedDialog(kind, { onHangup })
   }
 
   // 获取设备列表
@@ -520,6 +507,18 @@ export const useWebRtc = (roomId: string, remoteUserId: string, callType: CallTy
       info('start getDevices')
       isDeviceLoad.value = true
       deviceAccessError.value = undefined
+
+      // Mac 桌面版先问系统授权：没问过的由 SMJ 弹出系统授权框，被拒的直接给出步骤
+      const nativeDenied = await ensureNativeAccess(getRequiredDeviceKinds(type))
+      if (nativeDenied) {
+        showPermissionDeniedDialog(nativeDenied.kind, {
+          nativeStatus: nativeDenied.status,
+          onHangup: onPermissionHangup
+        })
+        deviceAccessError.value = 'permission'
+        isDeviceLoad.value = false
+        return false
+      }
 
       // 先请求权限以获取完整的设备信息
       try {

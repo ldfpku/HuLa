@@ -2,6 +2,7 @@ pub mod app_event;
 pub mod common_cmd;
 pub mod directory_scanner;
 pub mod init;
+pub mod media_permission;
 pub mod remote_control;
 pub mod share_indicator;
 pub mod tray;
