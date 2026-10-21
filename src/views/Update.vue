@@ -37,11 +37,14 @@
   </n-flex>
 </template>
 <script setup lang="tsx">
+import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow'
 import { relaunch } from '@tauri-apps/plugin-process'
 import { check } from '@tauri-apps/plugin-updater'
 import { NCarousel, NCarouselItem } from 'naive-ui'
 import { changeColor } from 'seemly'
 import { useI18n } from 'vue-i18n'
+import { useWindow } from '@/hooks/useWindow.ts'
+import { splitReleaseNotes } from '@/utils/ReleaseInfo'
 
 const list = ref<string[]>([])
 const updating = ref(false)
@@ -49,19 +52,25 @@ const percentage = ref(0)
 const total = ref(0)
 const downloaded = ref(0)
 const { t } = useI18n()
+const { createWebviewWindow } = useWindow()
 
-/** 发布说明（邮箱站点 latest.json 的 notes）每行一条，去掉行首的 "- " 或 "* " */
+/** 发布说明（邮箱站点 latest.json 的 notes） */
 const setupCommitList = (notes?: string) => {
-  list.value = (notes ?? '')
-    .split('\n')
-    .map((line) => line.replace(/^\s*[-*]\s*/, '').trim())
-    .filter(Boolean)
+  list.value = splitReleaseNotes(notes)
+}
+
+/** 下载或安装失败时回到登录窗口，不让用户卡在更新窗口 */
+const backToLogin = async () => {
+  window.$message?.error(t('message.auto_update.install_failed'))
+  await createWebviewWindow('登录', 'login', 320, 448, undefined, false, 320, 448)
+  await getCurrentWebviewWindow().close()
 }
 
 const doUpdate = async () => {
   await check()
     .then(async (e) => {
       if (!e?.available) {
+        await backToLogin()
         return
       }
 
@@ -86,8 +95,9 @@ const doUpdate = async () => {
         console.log(e)
       }
     })
-    .catch((e) => {
+    .catch(async (e) => {
       console.log(e)
+      await backToLogin()
     })
     .finally(() => {
       updating.value = false

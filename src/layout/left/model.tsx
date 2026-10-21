@@ -16,16 +16,21 @@ import {
 } from 'naive-ui'
 import { emit } from '@tauri-apps/api/event'
 import { EventEnum } from '@/enums'
-import { handRelativeTime } from '@/utils/ComputedTime'
 import './style.scss'
 import { getVersion } from '@tauri-apps/api/app'
-import { confirm } from '@tauri-apps/plugin-dialog'
 import { relaunch } from '@tauri-apps/plugin-process'
 import { check } from '@tauri-apps/plugin-updater'
 import { useSettingStore } from '@/stores/setting.ts'
 import { useUserStore } from '@/stores/user.ts'
 import { AvatarUtils } from '@/utils/AvatarUtils'
 import { isMac } from '@/utils/PlatformConstants'
+import {
+  currentReleaseDate,
+  currentReleaseNotes,
+  formatReleaseDate,
+  splitReleaseNotes,
+  updaterDateToIso
+} from '@/utils/ReleaseInfo'
 import { useI18n } from 'vue-i18n'
 
 const formRef = ref<FormInst | null>()
@@ -166,52 +171,11 @@ export const CheckUpdate = defineComponent(() => {
     }
   }
 
-  /* 记录检测更新的版本 */
-  //let lastVersion: string | null = null
-
-  const getCommitLog = async (url: string, isNew = false) => {
-    // 不访问外部服务：原来从 Gitee 读 HuLa 的发布说明，SMJ 暂无发布说明地址
-    if (!url) {
-      loading.value = false
-      return
-    }
-    fetch(url).then((res) => {
-      if (!res.ok) {
-        commitLog.value = [{ message: t('message.check_update.fetch_log_failed'), icon: 'cloudError' }]
-        loading.value = false
-        return
-      }
-      res.json().then(async (data) => {
-        isNew ? (newVersionTime.value = data.created_at) : (versionTime.value = data.created_at)
-        await nextTick(() => {
-          // 使用正则表达式提取 * 号后面的内容
-          const regex = /\* (.+)/g
-          let match
-          const logs = []
-          while ((match = regex.exec(data.body)) !== null) {
-            logs.push(match[1])
-          }
-          const processedLogs = logs.map((commit) => {
-            // 获取最后一个 : 号的位置
-            const lastColonIndex = commit.lastIndexOf(':')
-            // 截取最后一个 : 号后的内容
-            const message = lastColonIndex !== -1 ? commit.substring(lastColonIndex + 1).trim() : commit
-            return {
-              message: message,
-              icon: mapCommitType(commit) || 'alien-monster'
-            }
-          })
-          isNew ? (newCommitLog.value = processedLogs) : (commitLog.value = processedLogs)
-          loading.value = false
-        })
-      })
-    })
-  }
+  /** 发布说明转成时间线条目 */
+  const notesToLogs = (notes?: string) =>
+    splitReleaseNotes(notes).map((message) => ({ message, icon: mapCommitType(message) || 'alien-monster' }))
 
   const doUpdate = async () => {
-    if (!(await confirm(t('message.check_update.confirm_update')))) {
-      return
-    }
     buttonState.value = 'downloading'
     updating.value = true
     checkLoading.value = true
@@ -263,9 +227,8 @@ export const CheckUpdate = defineComponent(() => {
           return
         }
         newVersion.value = e.version
-        // 检查版本之间不同的提交信息和提交日期
-        const url = ''
-        getCommitLog(url, true)
+        newVersionTime.value = updaterDateToIso(e.date)
+        newCommitLog.value = notesToLogs(e.body)
         buttonState.value = 'update_now'
         checkLoading.value = false
       })
@@ -278,12 +241,13 @@ export const CheckUpdate = defineComponent(() => {
   const init = async () => {
     loading.value = true
     currentVersion.value = await getVersion()
+    versionTime.value = currentReleaseDate
+    commitLog.value = notesToLogs(currentReleaseNotes)
+    loading.value = false
   }
 
   onMounted(async () => {
     await init()
-    const url = ''
-    await getCommitLog(url)
     await checkUpdate()
   })
   return () => (
@@ -336,17 +300,17 @@ export const CheckUpdate = defineComponent(() => {
                 ) : null}
               </NFlex>
               <NFlex align={'center'} size={10}>
-                {newVersionTime.value ? (
+                {formatReleaseDate(newVersionTime.value) ? (
                   <>
                     <p class="text-(12px #909090)">{t('message.check_update.new_release_date')}</p>
-                    <p class="text-(12px #034fbc)">{handRelativeTime(newVersionTime.value)}</p>
+                    <p class="text-(12px #034fbc)">{formatReleaseDate(newVersionTime.value)}</p>
                   </>
-                ) : (
+                ) : formatReleaseDate(versionTime.value) ? (
                   <>
                     <p class="text-(12px #909090)">{t('message.check_update.release_date')}</p>
-                    <p class="text-(12px #034fbc)">{handRelativeTime(versionTime.value)}</p>
+                    <p class="text-(12px #034fbc)">{formatReleaseDate(versionTime.value)}</p>
                   </>
-                )}
+                ) : null}
               </NFlex>
             </NFlex>
             <p class="text-(14px #909090)">{t('message.check_update.log_title')}</p>
@@ -383,6 +347,10 @@ export const CheckUpdate = defineComponent(() => {
                     </NFlex>
                   </NFlex>
                 </>
+              ) : null}
+
+              {commitLog.value.length === 0 ? (
+                <p class="p-[10px_16px] text-(12px #909090)">{t('message.auto_update.no_notes')}</p>
               ) : null}
 
               <NTimeline class="p-16px box-border">

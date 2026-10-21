@@ -349,5 +349,13 @@
     "open": "点击查看邮件",
     "open_failed": "打开邮件失败",
     "via_mailbox": "群邮箱"
+  },
+  "auto_update": {
+    "title": "桌面版有更新",
+    "ready_windows": "新版本 {version} 已下载，重启后生效；不重启的话，下次打开 SMJ 时会自动完成更新。",
+    "ready_mac": "新版本 {version} 已下载，重启后生效。更新后请到“系统设置 → 隐私与安全性”，在“屏幕录制”和“辅助功能”里重新勾选 SMJ，否则共享屏幕和远程协助不可用。",
+    "restart_now": "立即重启",
+    "install_failed": "安装新版本失败，请稍后在“检查更新”里重试",
+    "no_notes": "暂无"
   }
 }

@@ -121,7 +121,15 @@ jobs:
           NODE_OPTIONS: --max-old-space-size=6144
           SIGNING_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          INPUT_NOTES: ${{ inputs.notes }}
         run: |
+          # 本版本的更新说明写进安装包，“检查更新”里显示（和 latest.json 的 notes 同一来源）
+          if [[ "$GITHUB_EVENT_NAME" == "push" ]]; then
+            git fetch --force origin "refs/tags/${GITHUB_REF_NAME}:refs/tags/${GITHUB_REF_NAME}"
+            export VITE_RELEASE_NOTES="$(git tag -l --format='%(contents)' "$GITHUB_REF_NAME")"
+          else
+            export VITE_RELEASE_NOTES="$INPUT_NOTES"
+          fi
           # 从记事本复制的私钥常带换行，base64 解码会失败，先去掉空白
           if [[ -n "$SIGNING_KEY" ]]; then
             export TAURI_SIGNING_PRIVATE_KEY="$(printf '%s' "$SIGNING_KEY" | tr -d '\r\n\t ')"

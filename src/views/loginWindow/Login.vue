@@ -325,6 +325,15 @@ const startAutoLoginCountdown = () => {
   }, AUTO_LOGIN_DELAY_MS)
 }
 
+/** 登录窗口发现新版本时直接安装；正在登录就不打断，登录后由主窗口后台下载 */
+const canInstallUpdate = () => {
+  if (loading.value) {
+    return false
+  }
+  clearAutoLoginTimer()
+  return true
+}
+
 const cancelAutoLogin = () => {
   if (!autoLoginPending.value) {
     return
@@ -411,7 +420,7 @@ timerWorker.onerror = (error) => {
 timerWorker.onmessage = (e) => {
   const { type } = e.data
   if (type === 'timeout') {
-    checkUpdate('login')
+    checkUpdate('login', canInstallUpdate)
   }
 }
 
@@ -610,7 +619,7 @@ onMounted(async () => {
     window.addEventListener('pointerdown', handleAutoLoginActivity, true)
     window.addEventListener('keydown', handleAutoLoginActivity, true)
   }
-  await checkUpdate('login', true)
+  await checkUpdate('login', canInstallUpdate)
   timerWorker.postMessage({
     type: 'startTimer',
     msgId: 'checkUpdate',

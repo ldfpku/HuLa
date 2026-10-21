@@ -349,5 +349,13 @@
     "open": "Click to read the mail",
     "open_failed": "Could not open the mail",
     "via_mailbox": "Group email"
+  },
+  "auto_update": {
+    "title": "Desktop update ready",
+    "ready_windows": "Version {version} has been downloaded and takes effect after a restart. If you don't restart now, it will be installed the next time you open SMJ.",
+    "ready_mac": "Version {version} has been downloaded and takes effect after a restart. After updating, re-enable SMJ under System Settings → Privacy & Security → Screen Recording and Accessibility, or screen sharing and remote assistance won't work.",
+    "restart_now": "Restart now",
+    "install_failed": "Failed to install the update. Please try again later from Check for updates.",
+    "no_notes": "None"
   }
 }

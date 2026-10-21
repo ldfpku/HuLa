@@ -267,6 +267,12 @@ timerWorker.onmessage = (e) => {
   const { type } = e.data
   if (type === 'timeout') {
     checkUpdate('home')
+    // 定时器只响一次，每次到点后重新计时，保证运行期间每 4 小时检查一次
+    timerWorker.postMessage({
+      type: 'startTimer',
+      msgId: 'checkUpdate',
+      duration: CHECK_UPDATE_TIME
+    })
   }
 }
 
@@ -549,6 +555,8 @@ onBeforeMount(async () => {
 onMounted(async () => {
   clearPhonePane()
   useMailStore().refreshUnread()
+  // 登录后先查一次更新，有新版就在后台下载
+  void checkUpdate('home')
   timerWorker.postMessage({
     type: 'startTimer',
     msgId: 'checkUpdate',
