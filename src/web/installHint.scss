@@ -88,6 +88,11 @@
   }
 }
 
+// 聊天页、联系人详情占满一屏时提示会挡住输入框和按钮，先隐藏，回到列表再显示（smj-phone-pane 由 src/layout/index.vue 加上）
+html.smj-phone-pane .smj-install-hint {
+  display: none;
+}
+
 html[data-theme='dark'] .smj-install-hint {
   border-color: #2b3a52;
   background: #1f2633;

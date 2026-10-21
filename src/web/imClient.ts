@@ -44,19 +44,26 @@ const buildUrl = (path: string, params?: Record<string, unknown> | null) => {
   return url.toString()
 }
 
+const NETWORK_RETRY_DELAYS = [500, 1500]
+
 const send = async (method: string, path: string, body?: unknown, params?: Record<string, unknown> | null) => {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' }
   const tokens = tokenStore.get()
   if (tokens?.token) headers.token = tokens.token
-  let response: Response
-  try {
-    response = await fetch(buildUrl(path, params), {
-      method,
-      headers,
-      body: method === 'GET' || method === 'HEAD' ? undefined : JSON.stringify(body ?? {})
-    })
-  } catch (error) {
-    throw new ImRequestError(`network_error: ${error}`)
+  const readOnly = method === 'GET' || method === 'HEAD'
+  let response: Response | undefined
+  // 手机网络抖动时 fetch 会直接失败（Safari 报 “Load failed”）；只读请求重试两次，写请求不重试以免重复提交
+  for (let attempt = 0; !response; attempt++) {
+    try {
+      response = await fetch(buildUrl(path, params), {
+        method,
+        headers,
+        body: readOnly ? undefined : JSON.stringify(body ?? {})
+      })
+    } catch (error) {
+      if (!readOnly || attempt >= NETWORK_RETRY_DELAYS.length) throw new ImRequestError(`network_error: ${error}`)
+      await new Promise((resolve) => setTimeout(resolve, NETWORK_RETRY_DELAYS[attempt]))
+    }
   }
   try {
     return (await response.json()) as { code?: number; msg?: string; data?: unknown; success?: boolean }

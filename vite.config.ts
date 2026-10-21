@@ -237,7 +237,14 @@ export default defineConfig(({ mode }: ConfigEnv) => {
         // order: 'pre'：构建时要在 Vite 收集入口脚本之前替换，否则仍按 src/main.ts 打包
         transformIndexHtml: {
           order: 'pre' as const,
-          handler: (html: string) => html.replace('/src/main.ts', '/src/web/entry.ts')
+          handler: (html: string) =>
+            html
+              .replace('/src/main.ts', '/src/web/entry.ts')
+              // 启动看门狗要先于所有模块执行，内联在 <head> 最前面（见 src/web/bootGuard.js）
+              .replace(
+                '<head>',
+                `<head>\n    <script>${readFileSync(fileURLToPath(new URL('./src/web/bootGuard.js', import.meta.url)), 'utf8').replace(/^[\s\S]*?\n;/, ';')}</script>`
+              )
         }
       },
       /**
