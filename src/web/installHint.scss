@@ -1,0 +1,122 @@
+/** 手机浏览器里的“添加到主屏幕”提示（./installHint.ts），浮在底部导航上方 */
+.smj-install-hint {
+  position: fixed;
+  left: calc(12px + env(safe-area-inset-left));
+  right: calc(12px + env(safe-area-inset-right));
+  bottom: calc(76px + env(safe-area-inset-bottom));
+  z-index: 3000;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 12px 8px 12px 12px;
+  border: 1px solid #d6e2f5;
+  border-radius: 14px;
+  background: #fff;
+  color: #1f2937;
+  box-shadow: 0 8px 24px rgba(3, 79, 188, 0.16);
+  font-size: 13px;
+  line-height: 1.45;
+  animation: smj-install-hint-in 0.24s ease-out;
+
+  &__icon {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: #eef4fd;
+    color: #034fbc;
+
+    svg {
+      width: 20px;
+      height: 20px;
+    }
+  }
+
+  &__text {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-width: 0;
+
+    strong {
+      font-size: 14px;
+      font-weight: 600;
+      color: #111827;
+    }
+
+    span {
+      color: #4b5563;
+    }
+  }
+
+  &__action {
+    flex-shrink: 0;
+    padding: 6px 12px;
+    border: 0;
+    border-radius: 8px;
+    background: #034fbc;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 500;
+    text-decoration: none;
+    cursor: pointer;
+  }
+
+  &__close {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: #6b7280;
+    cursor: pointer;
+
+    svg {
+      width: 16px;
+      height: 16px;
+    }
+  }
+}
+
+html[data-theme='dark'] .smj-install-hint {
+  border-color: #2b3a52;
+  background: #1f2633;
+  color: #e5e7eb;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+
+  .smj-install-hint__icon {
+    background: rgba(3, 79, 188, 0.28);
+    color: #9cc0f5;
+  }
+
+  .smj-install-hint__text {
+    strong {
+      color: #f3f4f6;
+    }
+
+    span {
+      color: #9ca3af;
+    }
+  }
+
+  .smj-install-hint__close {
+    color: #9ca3af;
+  }
+}
+
+@keyframes smj-install-hint-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
