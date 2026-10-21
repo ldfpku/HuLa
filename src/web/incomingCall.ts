@@ -3,9 +3,11 @@
  * 所以在当前页面右下角显示来电横幅，用户点“接听”时再打开通话页（并自动接听），点“拒绝”直接回复拒绝。
  */
 
+import { type CallBell, createCallBell } from '@/utils/CallToneUtils'
+
 const BANNER_ID = 'smj-web-incoming-call'
 
-let bell: HTMLAudioElement | null = null
+let bell: CallBell | null = null
 
 export const closeIncomingCall = () => {
   document.getElementById(BANNER_ID)?.remove()
@@ -56,8 +58,7 @@ export const showIncomingCall = ({ isVideo, callerName, onAccept, onReject }: In
   }
   banner.append(text, button('拒绝', '#d03050', onReject), button('接听', '#034fbc', onAccept))
   document.body.appendChild(banner)
-  bell = new Audio(`${import.meta.env.BASE_URL}sound/hula_bell.mp3`)
-  bell.loop = true
-  // 用户还没和页面交互过时浏览器不让自动播放，横幅照常显示
-  bell.play().catch(() => null)
+  // 用户还没和页面交互过时浏览器不让自动播放，横幅照常显示，等第一次点击或按键再响
+  bell = createCallBell('incoming')
+  bell.play()
 }

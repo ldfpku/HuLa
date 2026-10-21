@@ -3,6 +3,7 @@ import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow'
 import { error, info } from '@tauri-apps/plugin-log'
 import { useI18n } from 'vue-i18n'
 import { getRtcIceServers } from '@/utils/MeetingRequestUtils'
+import { type CallBell, callBellTone, createCallBell, playCallCue } from '@/utils/CallToneUtils'
 import { CALL_ALIVE_INTERVAL_MS, isBusyRejection, isEventForRoom } from '@/utils/RtcCallUtils'
 import {
   applyScreenSendParams,
@@ -158,8 +159,6 @@ const loadIceServers = async () => {
 // const settings = await getSettings()
 // configuration.iceServers?.push(settings.ice_server)
 // const isSupportScreenSharing = !!navigator?.mediaDevices?.getDisplayMedia
-// TODO 改成动态配置
-const rtcCallBellUrl = '/sound/hula_bell.mp3'
 
 /**
  * webrtc 相关
@@ -205,7 +204,7 @@ export const useWebRtc = (roomId: string, remoteUserId: string, callType: CallTy
   // 待发送ice列表
   const pendingCandidates = ref<RTCIceCandidate[]>([])
   // 添加铃声相关状态
-  const bellAudio = ref<HTMLAudioElement | null>(null)
+  const bellAudio = shallowRef<CallBell | null>(null)
 
   // 添加计时器引用
   const callTimer = ref<NodeJS.Timeout | null>(null)
@@ -379,14 +378,10 @@ export const useWebRtc = (roomId: string, remoteUserId: string, callType: CallTy
    * 打开铃声
    */
   const startBell = () => {
-    if (!rtcCallBellUrl) {
-      console.log('rtc通话已经静音')
-      bellAudio.value = null
-      return
-    }
-    bellAudio.value = new Audio(rtcCallBellUrl)
-    bellAudio.value!.loop = true
-    bellAudio.value?.play?.()
+    bellAudio.value?.pause()
+    // 被叫方响来电铃声，主叫方听回铃
+    bellAudio.value = createCallBell(callBellTone(isReceiver))
+    bellAudio.value.play()
   }
 
   /**
@@ -411,16 +406,23 @@ export const useWebRtc = (roomId: string, remoteUserId: string, callType: CallTy
    * 关闭铃声
    */
   const stopBell = () => {
-    bellAudio.value?.pause?.()
+    bellAudio.value?.pause()
     bellAudio.value = null
   }
 
   const pauseBell = () => {
-    bellAudio.value?.pause?.()
+    bellAudio.value?.pause()
   }
 
   const playBell = () => {
-    bellAudio.value?.play?.()
+    bellAudio.value?.play()
+  }
+
+  /** 对方挂断、拒绝、取消或超时：停铃，响一声结束音再关窗口 */
+  const endCallWithCue = async () => {
+    stopBell()
+    await playCallCue('ended')
+    await endCall()
   }
 
   /**
@@ -901,7 +903,7 @@ export const useWebRtc = (roomId: string, remoteUserId: string, callType: CallTy
           window.$message.warning('通话无人接听，自动挂断')
           // 告诉对方停止响铃，服务端也就不再把双方算作通话中
           void sendRtcCall2VideoCallResponse(-1)
-          endCall()
+          void endCallWithCue()
         }
       }, MAX_TIME_OUT_SECONDS * 1000)
 
@@ -1652,14 +1654,14 @@ export const useWebRtc = (roomId: string, remoteUserId: string, callType: CallTy
       listen('ws-room-closed', (event: any) => {
         if (!isEventForRoom(event.payload, roomId)) return
         info(`房间已关闭: ${JSON.stringify(event.payload)}`)
-        endCall()
+        void endCallWithCue()
       }),
       `${roomId}-ws-room-closed`
     )
     await addListener(
       listen('ws-dropped', (event: any) => {
         if (!isEventForRoom(event.payload, roomId)) return
-        endCall()
+        void endCallWithCue()
       }),
       `${roomId}-ws-dropped`
     )
@@ -1668,13 +1670,14 @@ export const useWebRtc = (roomId: string, remoteUserId: string, callType: CallTy
         if (!isEventForRoom(event.payload, roomId)) return
         info(`通话被拒绝: ${JSON.stringify(event.payload)}`)
         if (isBusyRejection(event.payload)) {
-          // 对方正在通话或会议中：停铃，提示留一会儿再关窗口
+          // 对方正在通话或会议中：停铃，响忙音并提示，留一会儿再关窗口
           stopBell()
+          void playCallCue('busy')
           window.$message.warning('对方正在通话中，请稍后再拨')
           setTimeout(() => void endCall(), 2500)
           return
         }
-        endCall()
+        void endCallWithCue()
       }),
       `${roomId}-ws-call-rejected`
     )
@@ -1682,7 +1685,7 @@ export const useWebRtc = (roomId: string, remoteUserId: string, callType: CallTy
       listen('ws-cancel', (event: any) => {
         if (!isEventForRoom(event.payload, roomId)) return
         info(`已取消通话: ${JSON.stringify(event.payload)}`)
-        endCall()
+        void endCallWithCue()
       }),
       `${roomId}-ws-cancel`
     )
@@ -1690,7 +1693,7 @@ export const useWebRtc = (roomId: string, remoteUserId: string, callType: CallTy
       listen('ws-timeout', (event: any) => {
         if (!isEventForRoom(event.payload, roomId)) return
         info(`已取消通话: ${JSON.stringify(event.payload)}`)
-        endCall()
+        void endCallWithCue()
       }),
       `${roomId}-ws-timeout`
     )
