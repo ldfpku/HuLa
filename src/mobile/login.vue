@@ -507,6 +507,7 @@ const resetLoginForm = () => {
   userInfo.value = {
     account: '',
     password: '',
+    code: '',
     avatar: '',
     uid: '',
     name: ''

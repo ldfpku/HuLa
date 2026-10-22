@@ -10,10 +10,13 @@
   },
   "input": {
     "account": {
-      "placeholder": "Email / HuLa Account"
+      "placeholder": "Email"
     },
     "pass": {
-      "placeholder": "Enter HuLa Password"
+      "placeholder": "Password"
+    },
+    "code": {
+      "placeholder": "Two-factor code"
     }
   },
   "option": {
@@ -189,5 +192,8 @@
     "complete_info_before_register": "Please complete your information before registering.",
     "register_success": "Registration successful.",
     "register_fail": "Registration failed."
+  },
+  "mfa": {
+    "required": "This account uses two-factor authentication. Enter the code from your authenticator and sign in again."
   }
 }
