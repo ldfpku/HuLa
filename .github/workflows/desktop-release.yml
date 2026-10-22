@@ -54,8 +54,6 @@ jobs:
             args: --target universal-apple-darwin --bundles app,dmg
             bundle: src-tauri/target/universal-apple-darwin/release/bundle
     runs-on: ${{ matrix.os }}
-    # macOS 打包失败不挡 Windows 发布
-    continue-on-error: ${{ matrix.name == 'macos' }}
     steps:
       - uses: actions/checkout@v4
 

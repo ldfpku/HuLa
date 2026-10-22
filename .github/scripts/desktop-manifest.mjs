@@ -28,9 +28,8 @@ const find = (test, label, optional = false) => {
 }
 
 const windowsSetup = find((f) => /\/nsis\/[^/]+-setup\.exe$/.test(f), ' Windows 安装包（nsis/*-setup.exe）')
-// macOS 打包失败时只发布 Windows，不耽误 Windows 同事
-const macDmg = find((f) => /\/dmg\/[^/]+\.dmg$/.test(f), ' macOS 磁盘映像（dmg/*.dmg）', true)
-const macUpdate = macDmg && find((f) => /\/macos\/[^/]+\.app\.tar\.gz$/.test(f), ' macOS 更新包（macos/*.app.tar.gz）')
+const macDmg = find((f) => /\/dmg\/[^/]+\.dmg$/.test(f), ' macOS 磁盘映像（dmg/*.dmg）')
+const macUpdate = find((f) => /\/macos\/[^/]+\.app\.tar\.gz$/.test(f), ' macOS 更新包（macos/*.app.tar.gz）')
 const signature = (file) => readFileSync(`${file}.sig`, 'utf8').trim()
 
 // R2 里的对象名：releases/<版本>/<文件名>；清单里只写 <版本>/<文件名>，下载地址由邮箱站点拼
@@ -48,7 +47,7 @@ const notes = (process.env.RELEASE_NOTES ?? '')
   .map((line) => `- ${line}`)
   .join('\n')
 
-const macPlatform = macUpdate && { file: rel(names.macUpdate), signature: signature(macUpdate) }
+const macPlatform = { file: rel(names.macUpdate), signature: signature(macUpdate) }
 const manifest = {
   version,
   notes,
@@ -56,18 +55,19 @@ const manifest = {
   // 自动更新：键是 Tauri 的 {{target}}-{{arch}}；通用包同时服务 Apple 芯片和 Intel
   platforms: {
     'windows-x86_64': { file: rel(names.windowsSetup), signature: signature(windowsSetup) },
-    ...(macPlatform && { 'darwin-aarch64': macPlatform, 'darwin-x86_64': macPlatform })
+    'darwin-aarch64': macPlatform,
+    'darwin-x86_64': macPlatform
   },
   // 下载页：首次安装用的文件
   downloads: {
     windows: { file: rel(names.windowsSetup), size: statSync(windowsSetup).size },
-    ...(macDmg && { macos: { file: rel(names.macDmg), size: statSync(macDmg).size } })
+    macos: { file: rel(names.macDmg), size: statSync(macDmg).size }
   }
 }
 
 mkdirSync(join(outDir, version), { recursive: true })
 const uploads = [[windowsSetup, names.windowsSetup]]
-if (macDmg) uploads.push([macDmg, names.macDmg], [macUpdate, names.macUpdate])
+uploads.push([macDmg, names.macDmg], [macUpdate, names.macUpdate])
 for (const [from, name] of uploads) copyFileSync(from, join(outDir, rel(name)))
 writeFileSync(join(outDir, 'latest.json'), `${JSON.stringify(manifest, null, 2)}\n`)
 // 上传顺序：先安装包和更新包，最后清单，客户端看到新版本时文件一定已经在了
