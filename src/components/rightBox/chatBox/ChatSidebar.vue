@@ -13,6 +13,9 @@
     ]">
     <!-- 收缩按钮 -->
     <div
+      role="button"
+      :title="isCollapsed ? t('tooltip.expand_sidebar') : t('tooltip.collapse_sidebar')"
+      :aria-label="isCollapsed ? t('tooltip.expand_sidebar') : t('tooltip.collapse_sidebar')"
       v-show="isGroup"
       @click.stop="isCollapsed = !isCollapsed"
       style="border-radius: 18px 0 0 18px"
@@ -25,6 +28,18 @@
     </div>
 
     <div v-if="isGroup && !isCollapsed">
+      <!-- 群名称：群主和管理员可点笔改名 -->
+      <n-flex align="center" :size="6" :wrap="false" class="px-4px pt-4px">
+        <p class="text-(14px [--text-color]) font-500 truncate flex-1 min-w-0" :title="groupName">{{ groupName }}</p>
+        <svg
+          v-if="canRename"
+          class="size-14px shrink-0 cursor-pointer color-[--icon-color] hover:color-#034fbc"
+          @click="openRenameGroupDialog(globalStore.currentSessionRoomId, groupName)">
+          <title>修改群名称</title>
+          <use href="#edit"></use>
+        </svg>
+      </n-flex>
+
       <!-- 群公告 -->
       <n-flex vertical :size="14" class="px-4px py-10px">
         <n-flex align="center" justify="space-between" :size="8" class="cursor-pointer">
@@ -36,6 +51,9 @@
           <svg
             class="size-16px rotate-270 color-[--text-color] shrink-0"
             @click="handleOpenAnnoun(announNum === 0 && isAddAnnoun)">
+            <title>
+              {{ announNum === 0 && isAddAnnoun ? t('tooltip.add_announcement') : t('tooltip.view_announcement') }}
+            </title>
             <use v-if="announNum === 0 && isAddAnnoun" href="#plus"></use>
             <use v-else href="#down"></use>
           </svg>
@@ -79,6 +97,7 @@
       <n-flex v-if="!isSearch" align="center" justify="space-between" class="pr-8px pl-8px h-42px">
         <span class="text-14px">{{ t('home.chat_sidebar.online_members', { count: onlineCountDisplay }) }}</span>
         <svg @click="handleSelect" class="size-14px">
+          <title>{{ t('tooltip.search_members') }}</title>
           <use href="#search"></use>
         </svg>
       </n-flex>
@@ -143,7 +162,7 @@
                         :class="{ 'grayscale-0': item.activeStatus === OnlineEnum.ONLINE }"
                         :size="26"
                         :color="themes.content === ThemeEnum.DARK ? '' : '#fff'"
-                        :fallback-src="themes.content === ThemeEnum.DARK ? '/logoL.png' : '/logoD.png'"
+                        :fallback-src="themes.content === ThemeEnum.DARK ? '/avatar-dark.svg' : '/avatar-light.svg'"
                         :src="AvatarUtils.getAvatarUrl(item.avatar)"
                         @load="userLoadedMap[item.uid] = true"
                         @error="userLoadedMap[item.uid] = true" />
@@ -209,6 +228,8 @@ import { useUserStatusStore } from '@/stores/userStatus'
 import { AvatarUtils } from '@/utils/AvatarUtils'
 import { getUserByIds } from '@/utils/ImRequestUtils'
 import { useAnnouncementStore } from '@/stores/announcement'
+import { useUserStore } from '@/stores/user'
+import { openRenameGroupDialog } from '@/utils/groupDialogs'
 
 const { t } = useI18n()
 const appWindow = WebviewWindow.getCurrent()
@@ -216,6 +237,7 @@ const emit = defineEmits<(e: 'ready') => void>()
 const { createWebviewWindow } = useWindow()
 const groupStore = useGroupStore()
 const globalStore = useGlobalStore()
+const userStore = useUserStore()
 const settingStore = useSettingStore()
 const announcementStore = useAnnouncementStore()
 const { clearAnnouncements } = announcementStore
@@ -230,6 +252,15 @@ const onlineCountDisplay = computed(() => {
   return groupStore.userListOptions.isLast ? totalOnline : loadedOnline
 })
 const isGroup = computed(() => globalStore.currentSession?.type === RoomTypeEnum.GROUP)
+const groupName = computed(() => globalStore.currentSession?.name ?? '')
+const canRename = computed(
+  () =>
+    globalStore.currentSessionRoomId !== '1' &&
+    groupStore.userList.some(
+      (user) =>
+        user.uid === userStore.userInfo?.uid && (user.roleId === RoleEnum.LORD || user.roleId === RoleEnum.ADMIN)
+    )
+)
 // 公告相关计算属性
 const { announcementContent, announNum, announError, isAddAnnoun } = storeToRefs(announcementStore)
 const { segments: announcementSegments, openLink: openAnnouncementLink } = useLinkSegments(announcementContent)

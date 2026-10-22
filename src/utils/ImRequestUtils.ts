@@ -1,5 +1,21 @@
 import { ImUrlEnum, TauriCommand, type NotificationTypeEnum } from '@/enums'
-import type { CacheBadgeReq, LoginUserReq, ModifyUserInfoType, RegisterUserReq, UserItem } from '@/services/types'
+import type {
+  CacheBadgeReq,
+  ChatPurgeChanges,
+  ChatSummaryResult,
+  DrivePickerListing,
+  LoginUserReq,
+  MailTodoDraft,
+  MessageType,
+  ModifyUserInfoType,
+  RegisterUserReq,
+  RoomFilePage,
+  RoomMailboxState,
+  TodoItem,
+  UnifiedSearchResult,
+  UnifiedSearchScope,
+  UserItem
+} from '@/services/types'
 import { ErrorType, invokeSilently, invokeWithErrorHandler, invokeWithRetry } from '@/utils/TauriInvokeHandler'
 import { useChatStore } from '../stores/chat'
 import { useGroupStore } from '../stores/group'
@@ -273,6 +289,22 @@ export async function recallMsg(body: { msgId: string; roomId: string }) {
   })
 }
 
+/** 删除聊天里的文件（发送者本人，或群主、群管理员）；返回变成系统提示后的消息 */
+export async function deleteMsgFile(body: { msgId: string; roomId: string }) {
+  return await imRequest<MessageType>({
+    url: ImUrlEnum.DELETE_MSG_FILE,
+    body
+  })
+}
+
+/** 管理员清理聊天数据后，`since` 之后本机需要删掉的会话和消息 */
+export async function getChatPurges(params: { since: number }) {
+  return await imRequest<ChatPurgeChanges>({
+    url: ImUrlEnum.CHAT_PURGES,
+    params
+  })
+}
+
 export async function addEmoji(body: { expressionUrl: string }) {
   return await imRequest({
     url: ImUrlEnum.ADD_EMOJI,
@@ -431,7 +463,8 @@ export async function shield(body: { roomId: string; state: boolean }) {
   })
 }
 
-export async function exitGroup(body: { roomId: string }) {
+/** 退出群聊；群主只能解散（dissolve: true），或先转让群主再退出 */
+export async function exitGroup(body: { roomId: string; dissolve?: boolean }) {
   return await imRequest({
     url: ImUrlEnum.EXIT_GROUP,
     body
@@ -441,6 +474,13 @@ export async function exitGroup(body: { roomId: string }) {
 export async function addAdmin(body: { roomId: string; uidList: string[] }) {
   return await imRequest({
     url: ImUrlEnum.ADD_ADMIN,
+    body
+  })
+}
+
+export async function transferGroupOwner(body: { roomId: string; uid: string }) {
+  return await imRequest({
+    url: ImUrlEnum.TRANSFER_GROUP_OWNER,
     body
   })
 }
@@ -475,6 +515,14 @@ export async function updateRoomInfo(body: { id: string; name?: string; avatar?:
   groupStore.updateGroupDetail(body.id, body)
 
   window.$message.success('更新成功')
+}
+
+/** 只改群名称，不动当前群的头像等资料 */
+export async function renameRoom(body: { id: string; name: string }) {
+  return await imRequest({
+    url: ImUrlEnum.UPDATE_ROOM_INFO,
+    body
+  })
 }
 
 export async function updateMyRoomInfo(body: { id: string; myName: string; remark: string }) {
@@ -1339,4 +1387,111 @@ export async function messageSaveGeneratedContent(params: {
     url: ImUrlEnum.MESSAGE_SAVE_GENERATED_CONTENT,
     params
   })
+}
+
+/** 邮件：获取一次性网页登录链接，next 为登录后跳转的站内路径 */
+export async function getMailSsoUrl(next?: string) {
+  return await imRequest<{ url: string }>({
+    url: ImUrlEnum.MAIL_SSO,
+    params: next ? { next } : undefined
+  })
+}
+
+/** 邮件：获取收件箱未读数 */
+export async function getMailUnread() {
+  return await imRequestSilent<{ count: number }>({ url: ImUrlEnum.MAIL_UNREAD })
+}
+
+/** 群邮箱：查看群的邮箱地址和是否开启 */
+export async function getRoomMailbox(roomId: string) {
+  return await imRequest<RoomMailboxState>({ url: ImUrlEnum.ROOM_MAILBOX, params: { roomId } })
+}
+
+/** 群邮箱：开启（第一次开启时用 localPart 创建地址） */
+export async function enableRoomMailbox(body: { roomId: string; localPart?: string }) {
+  return await imRequest<RoomMailboxState>({ url: ImUrlEnum.ROOM_MAILBOX_ENABLE, body })
+}
+
+/** 群邮箱：关闭（地址和已收邮件保留） */
+export async function disableRoomMailbox(roomId: string) {
+  return await imRequest<RoomMailboxState>({ url: ImUrlEnum.ROOM_MAILBOX_DISABLE, body: { roomId } })
+}
+
+/** 聊天与邮件统一搜索：聊天只搜自己所在的会话，邮件只搜自己的和共享给自己的邮箱 */
+export async function unifiedSearch(params: {
+  keyword: string
+  scope?: UnifiedSearchScope
+  roomId?: string
+  mailboxId?: string
+  page?: number
+  size?: number
+}) {
+  return await imRequest<UnifiedSearchResult>({ url: ImUrlEnum.UNIFIED_SEARCH, params })
+}
+
+/** 群文件：分页列出群里发过的文件（cursor 为上一页最后一项的 id） */
+export async function getRoomFiles(params: { roomId: string; cursor?: string; pageSize?: number; keyword?: string }) {
+  return await imRequest<RoomFilePage>({ url: ImUrlEnum.ROOM_FILES, params })
+}
+
+/** 群文件：从群文件列表移除（聊天里的消息保留） */
+export async function removeRoomFile(body: { roomId: string; id: string }) {
+  return await imRequest<boolean>({ url: ImUrlEnum.ROOM_FILE_REMOVE, body })
+}
+
+/** 群文件：复制到我的网盘根目录 */
+export async function saveRoomFileToDrive(body: { roomId: string; id: string }) {
+  return await imRequest<{ id: string; name: string; size: number }>({ url: ImUrlEnum.ROOM_FILE_SAVE_TO_DRIVE, body })
+}
+
+/** 从网盘选一个文件发到会话，服务端复制成聊天文件后推送给所有成员（包括自己） */
+export async function sendDriveFileToRoom(body: { roomId: string; driveItemId: string }) {
+  return await imRequest<unknown>({ url: ImUrlEnum.ROOM_FILE_FROM_DRIVE, body })
+}
+
+/** 网盘：列出根目录或某个文件夹 */
+export async function getDriveItems(parentId?: string) {
+  return await imRequest<DrivePickerListing>({ url: ImUrlEnum.DRIVE_ITEMS, params: parentId ? { parentId } : {} })
+}
+
+/** Workers AI：摘要会话最近 count 条消息（默认 100，最多 500），结果只给自己看 */
+export async function summarizeChat(body: { roomId: string; count?: number }) {
+  return await imRequest<ChatSummaryResult>({ url: ImUrlEnum.AI_SUMMARY, body })
+}
+
+/** Workers AI：根据邮件（mailId）或聊天里的邮件卡片（shareId）生成待办草稿 */
+export async function draftMailTodo(body: { mailId?: string; shareId?: string }) {
+  return await imRequest<MailTodoDraft>({ url: ImUrlEnum.AI_MAIL_TODO, body })
+}
+
+/** 我的待办：open 未完成（默认）、done 已完成、all 全部 */
+export async function getTodoList(status: 'open' | 'done' | 'all' = 'open') {
+  return await imRequest<TodoItem[]>({ url: ImUrlEnum.TODO_LIST, params: { status } })
+}
+
+/** 我的待办：新建；带 mailId 或 shareId 时记录来源邮件 */
+export async function createTodo(body: {
+  title: string
+  notes?: string
+  dueAt?: number | null
+  mailId?: string
+  shareId?: string
+}) {
+  return await imRequest<TodoItem>({ url: ImUrlEnum.TODO_CREATE, body })
+}
+
+/** 我的待办：修改传入的字段 */
+export async function updateTodo(body: {
+  id: string
+  title?: string
+  notes?: string
+  dueAt?: number | null
+  done?: boolean
+}) {
+  return await imRequest<TodoItem>({ url: ImUrlEnum.TODO_UPDATE, body })
+}
+
+/** 我的待办：删除 */
+export async function deleteTodo(id: string) {
+  return await imRequest<boolean>({ url: ImUrlEnum.TODO_DELETE, body: { id } })
 }

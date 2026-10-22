@@ -1,3 +1,4 @@
+import { createReadStream, readdirSync, readFileSync, statSync } from 'node:fs'
 import { fileURLToPath, URL } from 'node:url'
 import UnoCSS from '@unocss/vite'
 import vue from '@vitejs/plugin-vue'
@@ -34,6 +35,114 @@ const dependencies = Object.keys(packageJson.dependencies || {})
 // 预先获取本地IP
 const rawIP = getLocalIP() || (await internalIpV4())
 
+/**
+ * 网页版挂在 /im/ 下，但代码里直接写了 public 目录的绝对路径（如 '/emoji/xx.webp'、'/logo.png'），
+ * Vite 不会给这类字符串加 base。网页构建时把它们改成带 /im/ 前缀的地址。
+ */
+const createPublicPathRebase = (base: string) => {
+  const publicDir = fileURLToPath(new URL('./public', import.meta.url))
+  const entries = readdirSync(publicDir)
+  const escapeRegExp = (name: string) => name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const dirs = entries.filter((name) => statSync(`${publicDir}/${name}`).isDirectory()).map(escapeRegExp)
+  const files = entries.filter((name) => !statSync(`${publicDir}/${name}`).isDirectory()).map(escapeRegExp)
+  const pattern = new RegExp(`(['"\`(])/(?:(${dirs.join('|')})/|(${files.join('|')})(?=['"\`)?#]))`, 'g')
+  const prefix = base.replace(/\/$/, '')
+  return {
+    name: 'smj-web-public-paths',
+    enforce: 'pre' as const,
+    transform(code: string, id: string) {
+      if (id.includes('node_modules') || !id.includes('/src/') || !/\.(vue|ts|tsx|js|scss|css)(\?|$)/.test(id))
+        return null
+      if (!pattern.test(code)) return null
+      pattern.lastIndex = 0
+      return {
+        code: code.replace(pattern, (match, quote, dir, file, offset) => {
+          // 模板里的静态 src/href 和 import 语句 Vite 自己会处理 base，跳过
+          const before = code.slice(Math.max(0, offset - 12), offset)
+          if (/(?:\b(?:src|href|poster)=|\bfrom\s*|\bimport\s*\(?)$/.test(before)) return match
+          return `${quote}${prefix}/${dir ? `${dir}/` : file}`
+        }),
+        map: null
+      }
+    }
+  }
+}
+
+/**
+ * 视频背景板的人像分割 wasm（src/utils/videoBackground）。只带 SIMD 版（主流浏览器都支持），
+ * 从 node_modules 拷到产物的 video-bg/wasm/，开发时直接从 node_modules 读，不进 git 也不走 CDN。
+ */
+const createVideoBackgroundWasm = () => {
+  const wasmDir = fileURLToPath(new URL('./node_modules/@mediapipe/tasks-vision/wasm/', import.meta.url))
+  const files = ['vision_wasm_internal.js', 'vision_wasm_internal.wasm']
+  const contentType = (file: string) => (file.endsWith('.wasm') ? 'application/wasm' : 'text/javascript')
+  return {
+    name: 'smj-video-bg-wasm',
+    configureServer(server: { middlewares: { use: (fn: (req: any, res: any, next: () => void) => void) => void } }) {
+      server.middlewares.use((req, res, next) => {
+        const file = /\/video-bg\/wasm\/([\w.]+)(?:\?.*)?$/.exec(req.url || '')?.[1]
+        if (!file || !files.includes(file)) return next()
+        res.setHeader('Content-Type', contentType(file))
+        createReadStream(`${wasmDir}${file}`).pipe(res)
+      })
+    },
+    generateBundle(this: { emitFile: (file: { type: 'asset'; fileName: string; source: Uint8Array }) => void }) {
+      for (const file of files) {
+        this.emitFile({ type: 'asset', fileName: `video-bg/wasm/${file}`, source: readFileSync(`${wasmDir}${file}`) })
+      }
+    }
+  }
+}
+
+/**
+ * 网页版“添加到主屏幕”（PWA）：输出 manifest.webmanifest 和 service worker（src/web/sw.js → sw.js），
+ * 并在页面 <head> 里写入 manifest、主题色和 iOS 主屏幕需要的标签。图标都是随包的品牌图标，不引用外部地址。
+ */
+const createWebAppManifest = (base: string) => {
+  const manifest = {
+    id: base,
+    name: 'SMJ 即时通讯',
+    short_name: 'SMJ',
+    description: '斯米伽（SMJ）内部即时通讯，与斯米伽邮箱共用账号',
+    lang: 'zh-CN',
+    start_url: base,
+    scope: base,
+    display: 'standalone',
+    orientation: 'any',
+    background_color: '#ffffff',
+    theme_color: '#034fbc',
+    icons: [
+      { src: `${base}brand/smj-icon-192.png`, sizes: '192x192', type: 'image/png', purpose: 'any' },
+      { src: `${base}brand/smj-icon-512.png`, sizes: '512x512', type: 'image/png', purpose: 'any' },
+      { src: `${base}brand/smj-icon-maskable-512.png`, sizes: '512x512', type: 'image/png', purpose: 'maskable' }
+    ]
+  }
+  const headTags = [
+    `<link rel="manifest" href="${base}manifest.webmanifest" />`,
+    '<meta name="theme-color" content="#034fbc" />',
+    '<meta name="mobile-web-app-capable" content="yes" />',
+    '<meta name="apple-mobile-web-app-capable" content="yes" />',
+    '<meta name="apple-mobile-web-app-title" content="SMJ" />',
+    '<meta name="apple-mobile-web-app-status-bar-style" content="default" />',
+    '<meta name="application-name" content="SMJ" />'
+  ].join('\n    ')
+  return {
+    name: 'smj-web-app-manifest',
+    transformIndexHtml: (html: string) =>
+      html
+        .replace('</head>', `    ${headTags}\n  </head>`)
+        .replace('<html lang="en">', '<html lang="zh-CN">')
+        // 软键盘弹出时让页面缩到键盘上方（Android Chrome），iOS 由 src/web/phone.ts 按可见区域处理
+        .replace('viewport-fit=cover"', 'viewport-fit=cover, interactive-widget=resizes-content"'),
+    generateBundle(this: { emitFile: (file: { type: 'asset'; fileName: string; source: string }) => void }) {
+      this.emitFile({ type: 'asset', fileName: 'manifest.webmanifest', source: JSON.stringify(manifest, null, 2) })
+      // 缓存名带上构建时间：每次发布 service worker 内容都不同，浏览器才会换新并清掉旧缓存
+      const sw = readFileSync(fileURLToPath(new URL('./src/web/sw.js', import.meta.url)), 'utf8')
+      this.emitFile({ type: 'asset', fileName: 'sw.js', source: sw.replace('__SMJ_BUILD__', Date.now().toString(36)) })
+    }
+  }
+}
+
 // https://vitejs.dev/config/
 /**! 不需要优化前端打包(如开启gzip) */
 export default defineConfig(({ mode }: ConfigEnv) => {
@@ -41,6 +150,9 @@ export default defineConfig(({ mode }: ConfigEnv) => {
   const config = loadEnv(mode, process.cwd(), '')
   const currentPlatform = config.TAURI_ENV_PLATFORM
   const isPC = currentPlatform === 'windows' || currentPlatform === 'darwin' || currentPlatform === 'linux'
+  // 网页版（vite --mode web）：入口换成 src/web/entry.ts，开发时把 /api 代理到 IM 服务端
+  const isWeb = mode === 'web'
+  const webProxyTarget = config.VITE_WEB_PROXY_TARGET || 'https://mail.smjtools.com'
 
   const serverPort = isPC ? 6130 : 5210
   const componentsDirs = getComponentsDirs(currentPlatform)
@@ -69,6 +181,12 @@ export default defineConfig(({ mode }: ConfigEnv) => {
   atStartup(config, mode, host)()
 
   return {
+    // 网页版挂在 mailflare 的 /im/ 下
+    base: isWeb ? '/im/' : '/',
+    // 桌面版“检查更新”里显示的版本发布日期（打包时间）
+    define: {
+      'import.meta.env.VITE_BUILD_TIME': JSON.stringify(new Date().toISOString())
+    },
     resolve: {
       alias: {
         // 配置主路径别名@
@@ -101,6 +219,38 @@ export default defineConfig(({ mode }: ConfigEnv) => {
       }
     },
     plugins: [
+      {
+        // Vant 图标字体除了内联的 woff2，还带一个 at.alicdn.com 的 woff 备选，浏览器会去下载；去掉外部备选，只用内联字体。
+        // 有组件在 scoped 样式里再次引入了 Vant 的样式，所以在最终产物的 CSS 上处理
+        name: 'smj-strip-external-fonts',
+        generateBundle(_options: unknown, bundle: Record<string, any>) {
+          for (const file of Object.values(bundle)) {
+            if (file.type !== 'asset' || !file.fileName.endsWith('.css')) continue
+            file.source = String(file.source).replace(
+              /,\s*url\(\s*["']?(?:https?:)?\/\/at\.alicdn\.com[^)]*\)\s*format\(["'][a-z0-9]+["']\)/g,
+              ''
+            )
+          }
+        }
+      },
+      createVideoBackgroundWasm(),
+      isWeb && createPublicPathRebase('/im/'),
+      isWeb && createWebAppManifest('/im/'),
+      isWeb && {
+        name: 'smj-web-entry',
+        // order: 'pre'：构建时要在 Vite 收集入口脚本之前替换，否则仍按 src/main.ts 打包
+        transformIndexHtml: {
+          order: 'pre' as const,
+          handler: (html: string) =>
+            html
+              .replace('/src/main.ts', '/src/web/entry.ts')
+              // 启动看门狗要先于所有模块执行，内联在 <head> 最前面（见 src/web/bootGuard.js）
+              .replace(
+                '<head>',
+                `<head>\n    <script>${readFileSync(fileURLToPath(new URL('./src/web/bootGuard.js', import.meta.url)), 'utf8').replace(/^[\s\S]*?\n;/, ';')}</script>`
+              )
+        }
+      },
       /**
        * vue3.5.0已支持解构并具有响应式
        * */
@@ -155,12 +305,15 @@ export default defineConfig(({ mode }: ConfigEnv) => {
     clearScreen: false,
     // 2. tauri expects a fixed port, fail if that port is not available
     server: {
-      hmr: {
-        protocol: 'ws',
-        host: host,
-        port: serverPort
-      },
+      hmr: isWeb
+        ? undefined
+        : {
+            protocol: 'ws',
+            host: host,
+            port: serverPort
+          },
       cors: true, // 配置 CORS
+      proxy: isWeb ? { '/api': { target: webProxyTarget, changeOrigin: true, secure: true, ws: true } } : undefined,
       host: '0.0.0.0',
       port: serverPort,
       strictPort: true,

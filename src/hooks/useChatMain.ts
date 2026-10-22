@@ -8,6 +8,7 @@ import { computed, onUnmounted, type InjectionKey } from 'vue'
 import { ErrorType } from '@/common/exception'
 import {
   MergeMessageType,
+  MessageStatusEnum,
   MittEnum,
   MsgEnum,
   PowerEnum,
@@ -20,7 +21,6 @@ import { useCommon } from '@/hooks/useCommon.ts'
 import { useDownload } from '@/hooks/useDownload'
 import { useMitt } from '@/hooks/useMitt.ts'
 import { useVideoViewer } from '@/hooks/useVideoViewer'
-import { translateTextStream } from '@/services/translate'
 import type { FilesMeta, MessageType, RightMouseMessageItem } from '@/services/types.ts'
 import { useCachedStore } from '@/stores/cached'
 import { useChatStore } from '@/stores/chat.ts'
@@ -29,13 +29,13 @@ import { useEmojiStore } from '@/stores/emoji'
 import { type FileDownloadStatus, useFileDownloadStore } from '@/stores/fileDownload'
 import { useGlobalStore } from '@/stores/global.ts'
 import { useGroupStore } from '@/stores/group'
-import { useSettingStore } from '@/stores/setting.ts'
 import { useUserStore } from '@/stores/user'
 import { saveFileAttachmentAs, saveVideoAttachmentAs } from '@/utils/AttachmentSaver'
 import { isDiffNow } from '@/utils/ComputedTime.ts'
 import { extractFileName, removeTag } from '@/utils/Formatting'
 import { detectImageFormat, imageUrlToUint8Array, isImageUrl } from '@/utils/ImageUtils'
-import { recallMsg, removeGroupMember, updateMyRoomInfo } from '@/utils/ImRequestUtils'
+import { deleteMsgFile, recallMsg, removeGroupMember, updateMyRoomInfo } from '@/utils/ImRequestUtils'
+import { confirmGroupAction } from '@/utils/groupDialogs'
 import { detectRemoteFileType, getFilesMeta } from '@/utils/PathUtil'
 import { isMac, isMobile } from '@/utils/PlatformConstants'
 import { invokeWithErrorHandler } from '@/utils/TauriInvokeHandler'
@@ -59,8 +59,6 @@ export const useChatMain = (isHistoryMode = false, options: UseChatMainOptions =
   const { createWebviewWindow, sendWindowPayload, startRtcCall } = useWindow()
   const { getLocalVideoPath, checkVideoDownloaded } = useVideoViewer()
   const fileDownloadStore = useFileDownloadStore()
-  const settingStore = useSettingStore()
-  const { chat } = storeToRefs(settingStore)
   const globalStore = useGlobalStore()
   const groupStore = useGroupStore()
   const chatStore = useChatStore()
@@ -169,7 +167,13 @@ export const useChatMain = (isHistoryMode = false, options: UseChatMainOptions =
   }
 
   // 复制禁用类型
-  const copyDisabledTypes: MsgEnum[] = [MsgEnum.NOTICE, MsgEnum.MERGE, MsgEnum.LOCATION, MsgEnum.VOICE]
+  const copyDisabledTypes: MsgEnum[] = [
+    MsgEnum.NOTICE,
+    MsgEnum.MERGE,
+    MsgEnum.LOCATION,
+    MsgEnum.VOICE,
+    MsgEnum.MAIL_CARD
+  ]
   const shouldHideCopy = (item: MessageType) => copyDisabledTypes.includes(item.message.type)
   const isNoticeMessage = (item: MessageType) => item.message.type === MsgEnum.NOTICE
   const revealInDirSafely = async (targetPath?: string | null) => {
@@ -184,6 +188,20 @@ export const useChatMain = (isHistoryMode = false, options: UseChatMainOptions =
       window.$message?.error(t('home.chat_main.file.show_failed'))
     }
   }
+
+  /** 当前会话是群聊，且自己是群主或管理员 */
+  const isCurrentGroupManager = () => {
+    if (globalStore.currentSession?.type !== RoomTypeEnum.GROUP) return false
+    const currentMember = groupStore.userList.find((member) => member.uid === userUid.value)
+    return (
+      currentMember?.roleId === RoleEnum.LORD ||
+      currentMember?.roleId === RoleEnum.ADMIN ||
+      groupStore.currentLordId === userUid.value ||
+      groupStore.adminUidList.includes(userUid.value)
+    )
+  }
+  /** 可以删除文件的消息类型 */
+  const DELETABLE_FILE_TYPES: MsgEnum[] = [MsgEnum.IMAGE, MsgEnum.FILE, MsgEnum.VIDEO, MsgEnum.VOICE]
 
   const commonMenuList = ref<OPT.RightMenu[]>([
     {
@@ -266,17 +284,7 @@ export const useChatMain = (isHistoryMode = false, options: UseChatMainOptions =
           return true
         }
 
-        const isGroupSession = globalStore.currentSession?.type === RoomTypeEnum.GROUP
-        const groupMembers = groupStore.userList
-        const currentMember = isGroupSession ? groupMembers.find((member) => member.uid === userUid.value) : undefined
-        const isGroupManager =
-          isGroupSession &&
-          (currentMember?.roleId === RoleEnum.LORD ||
-            currentMember?.roleId === RoleEnum.ADMIN ||
-            groupStore.currentLordId === userUid.value ||
-            groupStore.adminUidList.includes(userUid.value))
-
-        if (isGroupManager) {
+        if (isCurrentGroupManager()) {
           return true
         }
 
@@ -287,6 +295,35 @@ export const useChatMain = (isHistoryMode = false, options: UseChatMainOptions =
 
         return !isDiffNow({ time: item.message.sendTime, unit: 'minute', diff: 2 })
       }
+    },
+    {
+      label: () => t('menu.delete_file'),
+      icon: 'delete',
+      click: (item: MessageType) => {
+        window.$dialog.warning({
+          title: t('menu.delete_file'),
+          content: t('home.chat_main.file.confirm_delete'),
+          positiveText: t('menu.delete_file'),
+          negativeText: t('home.chat_header.modal.cancel'),
+          onPositiveClick: async () => {
+            try {
+              const updated = await deleteMsgFile({ roomId: item.message.roomId, msgId: item.message.id })
+              await chatStore.applyMsgFileDeleted({
+                msgId: item.message.id,
+                roomId: item.message.roomId,
+                message: updated
+              })
+            } catch (error) {
+              console.error('[删除文件] 失败:', error)
+            }
+          }
+        })
+      },
+      // 服务端规则相同：发送者本人随时可删，群里群主和管理员也可以
+      visible: (item: MessageType) =>
+        DELETABLE_FILE_TYPES.includes(item.message.type) &&
+        item.message.status !== MessageStatusEnum.SENDING &&
+        (item.fromUser.uid === userUid.value || isCurrentGroupManager())
     }
   ])
   const videoMenuList = ref<OPT.RightMenu[]>([
@@ -356,31 +393,6 @@ export const useChatMain = (isHistoryMode = false, options: UseChatMainOptions =
       },
       visible: (item: MessageType) => !shouldHideCopy(item)
     },
-    {
-      label: () => t('menu.translate'),
-      icon: 'translate',
-      click: async (item: MessageType) => {
-        const selectedText = getSelectedText(item.message.id)
-        if (!selectedText && item.message.body.translatedText) {
-          delete item.message.body.translatedText
-          return
-        }
-
-        const content = selectedText || item.message.body.content
-        if (!content) {
-          window.$message?.warning(t('home.chat_main.translate.empty'))
-          return
-        }
-
-        item.message.body.translatedText = { provider: chat.value.translate || 'tencent', text: '' }
-        await translateTextStream(content, chat.value.translate || 'tencent', (seg) => {
-          const prev = item.message.body.translatedText?.text || ''
-          item.message.body.translatedText = { provider: chat.value.translate || 'tencent', text: prev + seg }
-        })
-      },
-      visible: (item: MessageType) => item.message.type === MsgEnum.TEXT
-    },
-
     ...commonMenuList.value
   ])
   const specialMenuList = computed(() => {
@@ -948,6 +960,34 @@ export const useChatMain = (isHistoryMode = false, options: UseChatMainOptions =
         if (targetRoleId !== RoleEnum.ADMIN) return false
 
         // 5. 检查当前用户是否是群主
+        const currentUser = groupStore.userList.find((user) => user.uid === userUid.value)
+        return currentUser?.roleId === RoleEnum.LORD
+      }
+    },
+    {
+      label: () => '转让群主',
+      icon: 'people-safe',
+      click: (item: any) => {
+        const targetUid = item.uid || item.fromUser.uid
+        const roomId = globalStore.currentSessionRoomId
+        if (!roomId) return
+        const target = groupStore.getUserInfo(targetUid, roomId)
+        const name = target?.myName || target?.name || item.name || ''
+        confirmGroupAction({
+          title: '转让群主',
+          content: `确定将群主转让给“${name}”？转让后你将成为普通成员。`,
+          positiveText: '转让',
+          onConfirm: async () => {
+            await groupStore.transferOwner(roomId, targetUid)
+            window.$message.success('群主已转让')
+          }
+        })
+      },
+      visible: (item: any) => {
+        const roomId = globalStore.currentSessionRoomId
+        if (globalStore.currentSession?.type !== RoomTypeEnum.GROUP || !roomId || roomId === '1') return false
+        const targetUid = item.uid || item.fromUser?.uid
+        if (!targetUid || targetUid === userUid.value) return false
         const currentUser = groupStore.userList.find((user) => user.uid === userUid.value)
         return currentUser?.roleId === RoleEnum.LORD
       }

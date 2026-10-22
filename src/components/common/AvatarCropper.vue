@@ -9,6 +9,9 @@
       <!-- 标题栏 -->
       <n-flex :size="6" vertical class="w-full">
         <div
+          role="button"
+          :title="t('tooltip.close')"
+          :aria-label="t('tooltip.close')"
           v-if="isMac()"
           @click="closeWindow"
           class="mac-close size-13px shadow-inner bg-#ed6a5eff rounded-50% mt-6px select-none absolute left-6px">
@@ -25,6 +28,7 @@
           v-if="isWindows()"
           class="size-14px cursor-pointer pt-6px select-none absolute right-6px"
           @click="closeWindow">
+          <title>{{ t('tooltip.close') }}</title>
           <use href="#close"></use>
         </svg>
         <span class="h-1px w-full bg-[--line-color]"></span>

@@ -95,7 +95,7 @@
                               class="grayscale"
                               :class="{ 'grayscale-0': item.activeStatus === OnlineEnum.ONLINE }"
                               :src="AvatarUtils.getAvatarUrl(groupStore.getUserInfo(item.uid)?.avatar!)"
-                              fallback-src="/logo.png" />
+                              fallback-src="/avatar-light.svg" />
 
                             <n-flex vertical justify="space-between" class="h-fit flex-1 truncate">
                               <span class="text-14px leading-tight flex-1 truncate">
@@ -146,7 +146,7 @@
                           bordered
                           :size="44"
                           :src="AvatarUtils.getAvatarUrl(item.avatar)"
-                          fallback-src="/logo.png" />
+                          fallback-src="/avatar-light.svg" />
 
                         <span class="text-14px leading-tight flex-1 truncate">{{ item.remark || item.groupName }}</span>
                       </n-flex>

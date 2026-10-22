@@ -1,9 +1,19 @@
 {
   "search_suggestions": "建议",
-  "search_guide": "在搜索框内搜索",
+  "search_guide": "搜索同事、会话、聊天记录和邮件",
   "no_search_results": "未找到相关结果",
   "search_result": "搜索结果",
   "search_history": "历史记录",
+  "search_contacts": "联系人",
+  "search_view_profile": "查看资料",
+  "search_sessions": "会话",
+  "search_chat_records": "聊天记录",
+  "search_mail": "邮件",
+  "search_load_more": "查看更多",
+  "search_searching": "正在搜索...",
+  "search_failed": "搜索失败，请稍后再试",
+  "search_mail_to": "发给 {to}",
+  "search_no_subject": "(无主题)",
   "search_input_placeholder": "搜索",
   "clear_search_history": "清空",
   "loading": {
@@ -21,6 +31,10 @@
     "file_manager_short_title": "文件",
     "favorite": "收藏列表",
     "favorite_short_title": "收藏",
+    "mail": "邮件",
+    "mail_short_title": "邮件",
+    "todo": "待办",
+    "todo_short_title": "待办",
     "plugin": "插件",
     "plugin_manage": "插件管理",
     "more": "更多",
@@ -148,6 +162,7 @@
   },
   "chat_header": {
     "bot_tag": "助手",
+    "back": "返回",
     "status_abnormal": "好友状态异常",
     "toolbar": {
       "audio_call": "语音通话",
@@ -155,7 +170,9 @@
       "screen_share": "屏幕共享",
       "remote_assist": "远程协助",
       "invite_to_group": "邀请进群",
-      "start_group_chat": "发起群聊"
+      "start_group_chat": "发起群聊",
+      "remote_assist_tip": "远程协助：发起通话并请求控制对方电脑（对方需使用桌面版并同意）",
+      "remote_assist_group": "群聊不支持远程协助，请在私聊中使用"
     },
     "sidebar": {
       "single": {
@@ -167,7 +184,7 @@
         "report": "被骚扰了？举报该用户"
       },
       "group": {
-        "name_placeholder": "请输入群名称(最多12字)",
+        "name_placeholder": "请输入群名称(最多30字)",
         "official_badge": "官方群聊认证",
         "copy": "复制",
         "qr": "二维码",
@@ -176,6 +193,45 @@
         "my_name": "我本群的昵称",
         "remark": "群备注",
         "remark_desc": "(群备注仅自己可见)",
+        "mailbox": {
+          "title": "群邮箱",
+          "desc": "发到这个地址的邮件会自动发到群里",
+          "off": "未开启",
+          "create": "开启群邮箱",
+          "enable": "重新开启",
+          "disable": "关闭",
+          "copy": "复制地址",
+          "copied": "已复制群邮箱地址",
+          "placeholder": "邮箱名",
+          "no_domain": "你的账号没有可用的邮件域名，无法创建群邮箱",
+          "member_hint": "群主或管理员可以为本群开启邮箱",
+          "disabled_hint": "已关闭，发到这个地址的邮件不会再进群",
+          "confirm_disable": "关闭后发到 {address} 的邮件不会再进群，已收到的邮件仍可在群里查看。确定关闭吗？",
+          "enabled": "群邮箱已开启"
+        },
+        "files": {
+          "title": "群文件",
+          "count": "{count} 个",
+          "search": "搜索文件名",
+          "send_from_drive": "从网盘发送",
+          "summary": "共 {count} 个文件，{size}",
+          "empty": "群里还没有发过文件",
+          "no_match": "没有找到相关文件",
+          "preview": "预览",
+          "download": "下载",
+          "download_failed": "下载失败，请稍后再试",
+          "more": "加载更多",
+          "save_to_drive": "存到我的网盘",
+          "saved": "已存到我的网盘",
+          "remove": "移出群文件",
+          "confirm_remove": "把“{name}”移出群文件吗？聊天里的消息不受影响。",
+          "sent": "已发送到群里",
+          "picker_title": "从网盘选择文件",
+          "my_drive": "我的网盘",
+          "drive_empty": "这个文件夹是空的",
+          "too_large": "超过 {size}，不能发送",
+          "send": "发送"
+        },
         "settings": {
           "title": "群设置",
           "pin": "设为置顶",
@@ -237,7 +293,7 @@
       "shield_off": "已取消屏蔽",
       "action_failed": "设置失败",
       "group_name_empty": "群名称不能为空",
-      "group_name_too_long": "群名称不能超过12个字符",
+      "group_name_too_long": "群名称不能超过30个字",
       "delete_history_success": "聊天记录已删除",
       "delete_friend_success": "已删除好友",
       "dissolve_not_allowed": "无法解散频道",
@@ -293,7 +349,7 @@
     "modal": {
       "add_friend": "申请加好友"
     },
-    "developer_badge": "HuLa开发工程师"
+    "developer_badge": "SMJ开发工程师"
   },
   "profile_edit": {
     "title": "编辑资料",
@@ -323,7 +379,7 @@
     "announcement": {
       "title": "群公告须知",
       "load_failed": "公告加载失败，请重试",
-      "default": "请不要把重要信息发到该群，网络不是法外之地，请遵守网络规范，否则直接删除。",
+      "default": "暂无群公告",
       "window": {
         "add": "新增群公告",
         "view": "查看群公告"
@@ -344,7 +400,7 @@
   "about": {
     "version": "版本：{version} ({arch})",
     "device": "当前设备：{type}{version}",
-    "copyright": "Copyright © {start}-{end} HuLaSpark",
+    "copyright": "Copyright © {start}-{end} SMJ",
     "rights": "All Rights Reserved."
   },
   "apply_list": {
@@ -387,7 +443,8 @@
   "chat_main": {
     "network_offline": "当前网络不可用，请检查你的网络设置",
     "network_connecting": "正在连接服务器...",
-    "network_ws_offline": "服务器连接已断开，正在重试",
+    "network_ws_offline": "无法连接服务器，正在重试…",
+    "network_proxy_hint": "请检查网络连接；如果你在使用代理软件，请确认它在运行。",
     "copy": {
       "empty": "没有可复制的内容",
       "image_processing": "正在将 {format} 格式图片转换为 PNG 并复制...",
@@ -400,12 +457,10 @@
     "feature": {
       "coming_soon": "功能暂开发"
     },
-    "translate": {
-      "empty": "没有可翻译的内容"
-    },
     "file": {
       "missing_local": "暂时找不到本地文件，请先下载后再试~",
       "show_failed": "无法在文件夹中显示该文件",
+      "confirm_delete": "删除后所有人都无法再打开这个文件，聊天里会留下一条“已删除”的提示。确定删除吗？",
       "download_prompt": "文件还未下载，请先下载后再试~",
       "download_success": "文件下载完成，请查看~",
       "download_failed": "文件下载失败，请重试",

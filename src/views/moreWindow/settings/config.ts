@@ -60,36 +60,6 @@ const useSendOptions = () => {
   ])
 }
 
-/** 翻译提供商的选项 */
-const useTranslateOptions = () => {
-  const { t } = useI18n()
-  return computed(() => [
-    {
-      label: t('setting.general.chat.translate_options.tencent'),
-      value: 'tencent'
-    },
-    {
-      label: t('setting.general.chat.translate_options.youdao'),
-      value: 'youdao'
-    }
-  ])
-}
-
-/** 字体 */
-const useFontOptions = () => {
-  const { t } = useI18n()
-  return computed(() => [
-    {
-      label: t('setting.general.ui.font_options.PingFang'),
-      value: 'PingFang'
-    },
-    {
-      label: t('setting.general.ui.font_options.AliFangYuan'),
-      value: 'AliFangYuan'
-    }
-  ])
-}
-
 const langOptions = [
   {
     label: 'Automatic',
@@ -109,4 +79,4 @@ const langOptions = [
   }
 ]
 
-export { useSideOptions, useSendOptions, useFontOptions, useTranslateOptions, langOptions }
+export { useSideOptions, useSendOptions, langOptions }

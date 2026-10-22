@@ -13,7 +13,10 @@
       <svg class="size-16px flex-shrink-0">
         <use href="#cloudError"></use>
       </svg>
-      <span class="leading-tight">{{ networkBanner.text }}</span>
+      <div class="leading-tight">
+        <div>{{ networkBanner.text }}</div>
+        <div v-if="networkBanner.hint" class="mt-2px">{{ networkBanner.hint }}</div>
+      </div>
     </div>
     <!--  会话列表  -->
     <div v-if="sessionList.length > 0" class="p-[4px_10px_0px_8px]">
@@ -35,7 +38,7 @@
             style="border: 1px solid var(--avatar-border-color)"
             :size="44"
             :color="themes.content === ThemeEnum.DARK ? '' : '#fff'"
-            :fallback-src="themes.content === ThemeEnum.DARK ? '/logoL.png' : '/logoD.png'"
+            :fallback-src="themes.content === ThemeEnum.DARK ? '/avatar-dark.svg' : '/avatar-light.svg'"
             :src="AvatarUtils.getAvatarUrl(item.avatar)"
             round />
 
@@ -46,8 +49,7 @@
                 <n-popover trigger="hover" v-if="item.hotFlag === IsAllUserEnum.Yes">
                   <template #trigger>
                     <svg
-                      :class="[globalStore.currentSessionRoomId === item.roomId ? 'color-#7a9fe2' : 'color-#034fbc']"
-                      class="size-20px select-none outline-none cursor-pointer">
+                      class="color-#034fbc dark:color-#7a9fe2 size-20px select-none outline-none cursor-pointer">
                       <use href="#auth"></use>
                     </svg>
                   </template>
@@ -66,7 +68,7 @@
               <span
                 v-if="item.account !== UserType.BOT"
                 :class="{ 'color-#d5304f90!': item.shield && globalStore.currentSessionRoomId === item.roomId }"
-                class="text text-10px w-fit truncate text-right">
+                class="text smj-data text-11px w-fit truncate text-right">
                 {{ item.lastMsgTime }}
               </span>
             </n-flex>
@@ -109,8 +111,7 @@
               </template>
               <template v-else-if="item.muteNotification === 1 && !item.unreadCount">
                 <svg
-                  :class="[globalStore.currentSessionRoomId === item.roomId ? 'color-#fefefe' : 'color-#909090']"
-                  class="size-14px">
+                  class="size-14px color-[--chat-text-color]">
                   <use href="#close-remind"></use>
                 </svg>
               </template>
@@ -119,7 +120,7 @@
                 :max="99"
                 :value="item.unreadCount"
                 :show="globalStore.unreadReady && item.unreadCount > 0"
-                :color="item.muteNotification === 1 ? 'rgba(128, 128, 128, 0.5)' : undefined" />
+                :color="item.muteNotification === 1 ? '#636c7e' : undefined" />
             </n-flex>
           </n-flex>
         </n-flex>
@@ -201,12 +202,15 @@ const networkBanner = computed(() => {
     return { text: t('home.chat_main.network_offline') }
   }
 
-  if (networkStatus.isWsConnecting.value) {
-    return { text: t('home.chat_main.network_connecting') }
-  }
-
+  // 还没失败过显示“正在连接”；失败后重试中显示“无法连接，正在重试”，持续约 1 分钟再补代理说明
   if (networkStatus.wsOnline.value === false) {
-    return { text: t('home.chat_main.network_ws_offline') }
+    if (!networkStatus.wsRetrying.value) {
+      return { text: t('home.chat_main.network_connecting') }
+    }
+    return {
+      text: t('home.chat_main.network_ws_offline'),
+      hint: networkStatus.wsOutageLong.value ? t('home.chat_main.network_proxy_hint') : undefined
+    }
   }
 
   return null
@@ -302,7 +306,7 @@ const sessionList = computed(() => {
           ...item,
           avatar: latestAvatar,
           name: displayName,
-          lastMsg: displayMsg || '欢迎使用HuLa',
+          lastMsg: displayMsg || '欢迎使用SMJ',
           lastMsgTime: formatTimestamp(item?.activeTime),
           isAtMe
         }

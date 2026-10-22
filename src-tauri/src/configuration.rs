@@ -11,7 +11,6 @@ use tracing::info;
 pub struct Settings {
     pub database: DatabaseSettings,
     pub backend: BackendSettings,
-    pub youdao: Option<Youdao>,
     pub tencent: Option<Tencent>,
     pub minio: Option<MinioSettings>,
     pub ice_server: Option<IceServer>,
@@ -28,12 +27,6 @@ pub struct DatabaseSettings {
 pub struct BackendSettings {
     pub base_url: String,
     pub ws_url: String,
-}
-
-#[derive(serde::Deserialize, serde::Serialize, Clone, Debug)]
-pub struct Youdao {
-    pub app_key: String,
-    pub app_secret: String,
 }
 
 #[derive(serde::Deserialize, serde::Serialize, Clone, Debug)]

@@ -65,6 +65,12 @@
               :href="`#${activeUrl === item.url || openWindowsList.has(item.url) ? item.iconAction : item.icon}`"></use>
           </svg>
         </n-badge>
+        <!-- 邮件未读 -->
+        <n-badge v-if="item.url === 'mail' || item.url === 'todo'" :max="99" :value="item.badge" :show="!!item.badge">
+          <svg class="size-22px">
+            <use :href="`#${item.icon}`"></use>
+          </svg>
+        </n-badge>
         <p v-if="showMode === ShowModeEnum.TEXT && item.title" class="text-(10px center)">
           {{ item.shortTitle }}
         </p>

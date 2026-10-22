@@ -1,0 +1,258 @@
+name: SMJ 桌面版打包与发布
+
+# 打 Windows（NSIS 安装包）和 macOS（通用 .dmg）两个平台的桌面版。
+# - 推送 desktop-v<版本> 标签，或在 Actions 页手动运行并勾选“发布”：打包后上传到 Cloudflare R2（存储桶 smj-desktop），
+#   邮箱站点的下载页和自动更新（/api/desktop/update）随即看到新版本。
+# - 拉取请求只打包不发布，安装包可在本次运行的 Artifacts 里下载试装。
+# 需要的 Secrets / Variables 见 /mnt/project-files/plans/desktop-release.md（项目文件）或 PR 说明。
+
+on:
+  push:
+    tags:
+      - 'desktop-v*'
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: '上传到 R2 并推送给自动更新'
+        type: boolean
+        default: false
+      notes:
+        description: '更新说明，多条用分号隔开'
+        type: string
+        default: ''
+  pull_request:
+    paths:
+      - '.github/workflows/desktop-release.yml'
+      - '.github/scripts/desktop-manifest.mjs'
+      - 'src-tauri/tauri*.conf.json'
+      - 'src-tauri/template/**'
+      - 'src-tauri/Info.plist'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: desktop-release-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PUBLISH: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.publish) }}
+
+jobs:
+  build:
+    name: 打包 ${{ matrix.name }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: windows
+            os: windows-latest
+            args: --bundles nsis
+            bundle: src-tauri/target/release/bundle
+          - name: macos
+            os: macos-latest
+            args: --target universal-apple-darwin --bundles app,dmg
+            bundle: src-tauri/target/universal-apple-darwin/release/bundle
+    runs-on: ${{ matrix.os }}
+    # macOS 打包失败不挡 Windows 发布
+    continue-on-error: ${{ matrix.name == 'macos' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 核对标签与版本号
+        if: github.event_name == 'push'
+        shell: bash
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          if [[ "${GITHUB_REF_NAME}" != "desktop-v${VERSION}" ]]; then
+            echo "标签 ${GITHUB_REF_NAME} 与 package.json 的版本 ${VERSION} 不一致" >&2
+            exit 1
+          fi
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+          run_install: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'pnpm'
+
+      # 仓库的 .npmrc 指向华为云镜像，CI 在海外，直接用 npm 官方源
+      - name: 安装前端依赖
+        run: pnpm install --frozen-lockfile --registry=https://registry.npmjs.org/
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.name == 'macos' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+          key: ${{ matrix.name }}
+
+      # 更新器公钥来自仓库变量 TAURI_UPDATER_PUBKEY，私钥来自 Secret TAURI_SIGNING_PRIVATE_KEY；
+      # 没配私钥时（比如拉取请求试打包）不生成更新包，只出安装包
+      - name: 生成打包配置
+        shell: bash
+        env:
+          HAS_SIGNING_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY != '' }}
+          UPDATER_PUBKEY: ${{ vars.TAURI_UPDATER_PUBKEY || secrets.TAURI_UPDATER_PUBKEY }}
+        run: |
+          if [[ "$PUBLISH" == "true" && ( "$HAS_SIGNING_KEY" != "true" || -z "$UPDATER_PUBKEY" ) ]]; then
+            echo "发布需要 Secret TAURI_SIGNING_PRIVATE_KEY 和变量 TAURI_UPDATER_PUBKEY" >&2
+            exit 1
+          fi
+          node -e '
+            // 前端只打包不做 vue-tsc 类型检查：仓库里有上游遗留的类型错误（与 HuLa 上游 release.yml 一致）
+            const config = {
+              build: { beforeBuildCommand: "pnpm vite build" },
+              bundle: { createUpdaterArtifacts: process.env.HAS_SIGNING_KEY === "true" }
+            }
+            if (process.env.UPDATER_PUBKEY) config.plugins = { updater: { pubkey: process.env.UPDATER_PUBKEY.trim() } }
+            require("fs").writeFileSync("src-tauri/release-config.json", JSON.stringify(config))
+          '
+          cat src-tauri/release-config.json
+
+      - name: 打包
+        shell: bash
+        env:
+          NODE_OPTIONS: --max-old-space-size=6144
+          SIGNING_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          INPUT_NOTES: ${{ inputs.notes }}
+        run: |
+          # 本版本的更新说明写进安装包，“检查更新”里显示（和 latest.json 的 notes 同一来源）
+          if [[ "$GITHUB_EVENT_NAME" == "push" ]]; then
+            git fetch --force origin "refs/tags/${GITHUB_REF_NAME}:refs/tags/${GITHUB_REF_NAME}"
+            export VITE_RELEASE_NOTES="$(git tag -l --format='%(contents)' "$GITHUB_REF_NAME")"
+          else
+            export VITE_RELEASE_NOTES="$INPUT_NOTES"
+          fi
+          # 从记事本复制的私钥常带换行，base64 解码会失败，先去掉空白
+          if [[ -n "$SIGNING_KEY" ]]; then
+            export TAURI_SIGNING_PRIVATE_KEY="$(printf '%s' "$SIGNING_KEY" | tr -d '\r\n\t ')"
+          fi
+          pnpm tauri build ${{ matrix.args }} --config src-tauri/release-config.json
+
+      # 强化运行时下没有麦克风/摄像头权限声明，系统会直接拒绝且不出现在隐私设置里；打包后核对签名里确实带上了
+      - name: 核对 macOS 权限声明
+        if: matrix.name == 'macos' && hashFiles('src-tauri/Entitlements.plist') != ''
+        run: |
+          app="${{ matrix.bundle }}/macos/SMJ.app"
+          codesign -d --entitlements - "$app" > entitlements.txt 2>&1 || true
+          cat entitlements.txt
+          for key in com.apple.security.device.audio-input com.apple.security.device.camera; do
+            grep -q "$key" entitlements.txt || { echo "签名里缺少 $key" >&2; exit 1; }
+          done
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: desktop-${{ matrix.name }}
+          if-no-files-found: error
+          path: |
+            ${{ matrix.bundle }}/nsis/*-setup.exe
+            ${{ matrix.bundle }}/nsis/*-setup.exe.sig
+            ${{ matrix.bundle }}/dmg/*.dmg
+            ${{ matrix.bundle }}/macos/*.app.tar.gz
+            ${{ matrix.bundle }}/macos/*.app.tar.gz.sig
+
+  # 拉取请求里核验发布要用的 Secrets、变量和 R2 令牌，免得推标签时才发现缺东西
+  check-publish:
+    name: 核验发布配置
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    env:
+      # 只能写 smj-desktop 的 R2 令牌走 S3 接口（Cloudflare REST 接口不认按桶限定的令牌）
+      AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: auto
+      AWS_REQUEST_CHECKSUM_CALCULATION: WHEN_REQUIRED
+      AWS_RESPONSE_CHECKSUM_VALIDATION: WHEN_REQUIRED
+      R2_ENDPOINT: https://${{ vars.CLOUDFLARE_ACCOUNT_ID || '35f7abfbdeb4851714ce57f480531c4a' }}.r2.cloudflarestorage.com
+      BUCKET: ${{ vars.DESKTOP_BUCKET || 'smj-desktop' }}
+      HAS_SIGNING_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY != '' }}
+      UPDATER_PUBKEY: ${{ vars.TAURI_UPDATER_PUBKEY || secrets.TAURI_UPDATER_PUBKEY }}
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: 核验
+        run: |
+          missing=0
+          [[ "$HAS_SIGNING_KEY" == "true" ]] || { echo "缺少 Secret TAURI_SIGNING_PRIVATE_KEY" >&2; missing=1; }
+          [[ -n "$UPDATER_PUBKEY" ]] || { echo "缺少变量 TAURI_UPDATER_PUBKEY" >&2; missing=1; }
+          if [[ -z "$AWS_ACCESS_KEY_ID" || -z "$AWS_SECRET_ACCESS_KEY" ]]; then
+            echo "缺少 Secret R2_ACCESS_KEY_ID 或 R2_SECRET_ACCESS_KEY" >&2
+            missing=1
+          else
+            # 写一个小文件再删掉，证明令牌能写这个桶
+            key="ci-check/${GITHUB_RUN_ID}.txt"
+            echo "ok" > check.txt
+            if aws s3api put-object --endpoint-url "$R2_ENDPOINT" --bucket "$BUCKET" --key "$key" --body check.txt --content-type text/plain > /dev/null \
+              && aws s3api delete-object --endpoint-url "$R2_ENDPOINT" --bucket "$BUCKET" --key "$key" > /dev/null; then
+              echo "R2 令牌可写存储桶 $BUCKET"
+            else
+              echo "R2 令牌写不了存储桶 $BUCKET" >&2
+              missing=1
+            fi
+          fi
+          [[ "$missing" == 0 ]] || exit 1
+          echo "签名私钥、更新公钥齐全"
+
+  publish:
+    name: 上传到 R2
+    needs: build
+    if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.publish)
+    runs-on: ubuntu-latest
+    env:
+      # 只能写 smj-desktop 的 R2 令牌走 S3 接口（Cloudflare REST 接口不认按桶限定的令牌）
+      AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: auto
+      AWS_REQUEST_CHECKSUM_CALCULATION: WHEN_REQUIRED
+      AWS_RESPONSE_CHECKSUM_VALIDATION: WHEN_REQUIRED
+      R2_ENDPOINT: https://${{ vars.CLOUDFLARE_ACCOUNT_ID || '35f7abfbdeb4851714ce57f480531c4a' }}.r2.cloudflarestorage.com
+      BUCKET: ${{ vars.DESKTOP_BUCKET || 'smj-desktop' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: 生成 latest.json
+        env:
+          INPUT_NOTES: ${{ inputs.notes }}
+        run: |
+          if [[ "$GITHUB_EVENT_NAME" == "push" ]]; then
+            git fetch --force origin "refs/tags/${GITHUB_REF_NAME}:refs/tags/${GITHUB_REF_NAME}"
+            # 标签说明（git tag -a -m）就是更新说明
+            export RELEASE_NOTES="$(git tag -l --format='%(contents)' "$GITHUB_REF_NAME")"
+          else
+            export RELEASE_NOTES="$INPUT_NOTES"
+          fi
+          node .github/scripts/desktop-manifest.mjs artifacts out
+
+      - name: 上传
+        working-directory: out
+        run: |
+          if [[ -z "$AWS_ACCESS_KEY_ID" || -z "$AWS_SECRET_ACCESS_KEY" ]]; then
+            echo "缺少 Secret R2_ACCESS_KEY_ID 或 R2_SECRET_ACCESS_KEY" >&2
+            exit 1
+          fi
+          put() {
+            aws s3api put-object --endpoint-url "$R2_ENDPOINT" --bucket "$BUCKET" --key "$1" --body "$2" --content-type "$3" > /dev/null
+            echo "已上传 $1"
+          }
+          while read -r file; do
+            [[ -n "$file" ]] && put "releases/$file" "$file" application/octet-stream
+          done < upload-order.txt
+          # 清单最后上传：客户端看到新版本时文件一定已经在了
+          put latest.json latest.json application/json

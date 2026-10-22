@@ -53,7 +53,8 @@ export const getEnhancedFingerprint = async (): Promise<string> => {
 
       // 在主线程中获取基础浏览器指纹
       const fpStart = performance.now()
-      const fp = await FingerprintJS.load()
+      // monitoring: false 关掉 FingerprintJS 向 openfpcdn.io 的抽样上报
+      const fp = await FingerprintJS.load({ monitoring: false })
       const fpResult = await fp.get({
         debug: false
       })

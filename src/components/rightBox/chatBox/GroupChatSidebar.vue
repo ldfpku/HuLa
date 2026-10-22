@@ -3,15 +3,20 @@ import { useI18n } from 'vue-i18n'
 import { NotificationTypeEnum, RoomActEnum, SessionOperateEnum } from '@/enums'
 import { IsAllUserEnum, type UserItem, type SessionItem } from '@/services/types'
 import { useGroupStore } from '@/stores/group'
+import { useUserStore } from '@/stores/user'
 import { AvatarUtils } from '@/utils/AvatarUtils'
+import GroupFiles from './GroupFiles.vue'
+import GroupMailbox from './GroupMailbox.vue'
+import { GROUP_NAME_MAX_LENGTH, openTransferOwnerDialog } from '@/utils/groupDialogs'
 
 const { t } = useI18n()
 const groupStore = useGroupStore()
+const userStore = useUserStore()
 
 const props = defineProps<{
   activeItem: Omit<SessionItem, 'roomId'> | null
   userList: UserItem[]
-  isGroupOwner: boolean
+  canManage: boolean
   isEditingGroupName: boolean
   currentSessionRoomId: string
   messageSettingOptions: { label: string; value: string }[]
@@ -29,13 +34,14 @@ const emit = defineEmits<{
   'group-info-change': []
   'manage-group-member': []
   'show-qr-code': []
-  'update-room-info': [payload: { id: string; allowScanEnter: boolean }]
 }>()
 
 const editingGroupName = defineModel<string>('editingGroupName', { default: '' })
 const localMyName = defineModel<string>('localMyName', { default: '' })
 const localRemark = defineModel<string>('localRemark', { default: '' })
 const messageSettingType = defineModel<string>('messageSettingType', { default: 'notification' })
+
+const isOwner = computed(() => groupStore.isCurrentLord(userStore.userInfo?.uid ?? ''))
 
 const groupNameInputRef = useTemplateRef<HTMLInputElement | null>('groupNameInputRef')
 
@@ -60,7 +66,13 @@ watch(
       :size="groupStore.countInfo!.allowScanEnter ? 0 : 12">
       <!-- 群头像 -->
       <div class="relative group">
-        <div v-if="isGroupOwner" class="group/avatar cursor-pointer relative" @click="emit('upload-avatar')">
+        <div
+          role="button"
+          :title="t('tooltip.change_group_avatar')"
+          :aria-label="t('tooltip.change_group_avatar')"
+          v-if="canManage"
+          class="group/avatar cursor-pointer relative"
+          @click="emit('upload-avatar')">
           <n-avatar round :size="40" :src="AvatarUtils.getAvatarUrl(activeItem?.avatar || '')" />
           <div
             class="absolute size-full rounded-50% flex-center opacity-0 group-hover/avatar:opacity-100 transition-opacity duration-400 ease-in-out backdrop-blur-4px top-0 left-0">
@@ -75,15 +87,15 @@ watch(
       <n-flex vertical :size="6">
         <!-- 群名称 -->
         <n-flex :size="10" align="center">
-          <div v-if="isGroupOwner && isEditingGroupName">
+          <div v-if="canManage && isEditingGroupName">
             <n-input
               ref="groupNameInputRef"
               v-model:value="editingGroupName"
               @blur.stop="emit('group-name-change')"
               @keydown.enter.stop="emit('group-name-change')"
               size="tiny"
-              style="width: 100px; height: 22px"
-              maxlength="12"
+              style="width: 150px; height: 22px"
+              :maxlength="GROUP_NAME_MAX_LENGTH"
               spellCheck="false"
               autoComplete="off"
               autoCorrect="off"
@@ -94,10 +106,11 @@ watch(
           <div
             v-else
             class="text-(14px --text-color) leading-loose cursor-default h-22px flex-center"
-            :class="{ 'cursor-pointer': isGroupOwner }"
-            @click="isGroupOwner && emit('start-edit-group-name')">
-            <p :title="activeItem?.name" class="max-w-100px truncate">{{ activeItem?.name }}</p>
-            <svg v-if="isGroupOwner" class="size-14px ml-1 inline-block color-[--icon-color]">
+            :class="{ 'cursor-pointer': canManage }"
+            :title="canManage ? '修改群名称' : activeItem?.name"
+            @click="canManage && emit('start-edit-group-name')">
+            <p :title="activeItem?.name" class="max-w-150px truncate">{{ activeItem?.name }}</p>
+            <svg v-if="canManage" class="size-14px ml-1 inline-block color-[--icon-color]">
               <use href="#edit"></use>
             </svg>
           </div>
@@ -191,6 +204,12 @@ watch(
     clearable
     @blur.stop="emit('group-info-change')" />
 
+  <!-- 群邮箱：发到群地址的邮件自动发到群里 -->
+  <GroupMailbox v-if="currentSessionRoomId" :room-id="currentSessionRoomId" />
+
+  <!-- 群文件：群里发过的文件，即群在网盘里的文件夹 -->
+  <GroupFiles v-if="currentSessionRoomId" :room-id="currentSessionRoomId" />
+
   <!-- 群设置选项 -->
   <div class="box-item cursor-default">
     <n-flex vertical justify="center" :size="4">
@@ -210,24 +229,6 @@ watch(
           :value="activeItem?.muteNotification === NotificationTypeEnum.NOT_DISTURB"
           @update:value="emit('notification', $event)" />
       </div>
-
-      <template v-if="groupStore.isAdminOrLord()">
-        <div class="h-1px bg-[--setting-item-line] m-[10px_0]"></div>
-        <div class="flex-between-center">
-          <p>{{ t('home.chat_header.sidebar.group.settings.scan') }}</p>
-          <n-switch
-            size="small"
-            :value="groupStore.countInfo!.allowScanEnter"
-            @update:value="
-              (val: any) => {
-                emit('update-room-info', {
-                  id: groupStore.countInfo!.roomId,
-                  allowScanEnter: val
-                })
-              }
-            " />
-        </div>
-      </template>
     </n-flex>
   </div>
 
@@ -249,6 +250,14 @@ watch(
     class="box-item cursor-pointer mb-20px"
     @click="emit('manage-group-member')">
     <p>{{ t('home.chat_header.sidebar.group.manage_members') }}</p>
+  </div>
+
+  <!-- 转让群主（仅群主可见）：转让后才能退出群聊 -->
+  <div
+    v-if="isOwner && activeItem?.hotFlag !== IsAllUserEnum.Yes && currentSessionRoomId !== '1'"
+    class="box-item cursor-pointer mb-20px"
+    @click="openTransferOwnerDialog(currentSessionRoomId, userList)">
+    <p>转让群主</p>
   </div>
 
   <!-- 删除聊天记录 -->

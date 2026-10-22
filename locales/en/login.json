@@ -10,7 +10,7 @@
   },
   "input": {
     "account": {
-      "placeholder": "Email"
+      "placeholder": "Username"
     },
     "pass": {
       "placeholder": "Password"
@@ -46,7 +46,7 @@
   },
   "qr_code_expired": "QR code expired",
   "qr_code_expired_hint": "Please try again later",
-  "qr_code_scan_hint": "Please use HuLa App to scan the QR code",
+  "qr_code_scan_hint": "Please use SMJ App to scan the QR code",
   "qr_code_gen_fail_hint": "Failed to generate QR code",
   "qr_code_scan_success_hint": "Scan successful, waiting for authorization",
   "wait_auth_hint": "Waiting for authorization...",
@@ -74,7 +74,7 @@
     "load_text": {
       "loading": "Loading...",
       "refreshing": "Refreshing...",
-      "scan_hint": "Scan with the HuLa App",
+      "scan_hint": "Scan with the SMJ App",
       "login": "Signing in...",
       "retry": "Please try again later",
       "auth_pending": "Waiting for authorization..."
@@ -87,20 +87,20 @@
   },
   "guide": {
     "welcome": {
-      "title": "🎉 Welcome to HuLa",
-      "desc": "HuLa is built with Tauri and supports Windows, macOS, Linux, iOS, Android"
+      "title": "🎉 Welcome to SMJ",
+      "desc": "SMJ is built with Tauri and supports Windows, macOS, Linux, iOS, Android"
     },
     "privacy": {
       "title": "🤔 Privacy & Service Terms",
-      "desc": "Please review HuLa's privacy policy and terms first"
+      "desc": "Please review SMJ's privacy policy and terms first"
     },
     "network": {
       "title": "⚙️ Network Settings",
-      "desc": "HuLa allows custom service endpoints to replace the official one"
+      "desc": "SMJ allows custom service endpoints to replace the official one"
     },
     "register": {
       "title": "🤓 How to sign in",
-      "desc": "Register an account and complete your profile before using HuLa"
+      "desc": "Register an account and complete your profile before using SMJ"
     },
     "actions": {
       "next": "Next",
@@ -122,7 +122,7 @@
       "suffix": "Suffix"
     },
     "placeholder": {
-      "host": "127.0.0.1 or hulaspark.com",
+      "host": "mail.smjtools.com",
       "port": "443",
       "api_suffix": "api",
       "ws_suffix": "websocket"
@@ -162,7 +162,7 @@
       "login": "Login"
     },
     "input": {
-      "account_placeholder": "Enter HuLa account",
+      "account_placeholder": "Enter SMJ account",
       "code_placeholder": "Enter password"
     },
     "register": {

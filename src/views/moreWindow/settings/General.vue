@@ -58,38 +58,12 @@
       </n-flex>
     </n-flex>
 
-    <!--  聊天设置  -->
-    <n-flex vertical class="text-(14px [--text-color])" :size="16">
-      <span class="pl-10px">{{ t('setting.general.chat.title') }}</span>
-
-      <n-flex class="item" :size="12" vertical>
-        <!-- 双击打开独立会话 -->
-        <!-- <n-flex align="center" justify="space-between">
-          <span>双击会话列表打开独立聊天窗口</span>
-
-          <n-switch size="small" v-model:value="chat.isDouble" />
-        </n-flex> -->
-
-        <!-- 翻译api选项 -->
-        <n-flex align="center" justify="space-between">
-          <span>{{ t('setting.general.chat.translate_service') }}</span>
-
-          <n-select
-            class="w-140px"
-            size="small"
-            label-field="label"
-            v-model:value="chat.translate"
-            :options="translateOptions" />
-        </n-flex>
-      </n-flex>
-    </n-flex>
-
     <!-- 界面设置 -->
     <n-flex vertical class="text-(14px [--text-color])" :size="16">
       <span class="pl-10px">{{ t('setting.general.ui.title') }}</span>
 
       <n-flex class="item" :size="12" vertical>
-        <!-- 字体 -->
+        <!-- 语言 -->
         <n-flex align="center" justify="space-between">
           <span>{{ t('setting.general.ui.language') }}</span>
           <n-select class="w-140px" size="small" label-field="label" v-model:value="page.lang" :options="langOptions" />
@@ -113,19 +87,6 @@
 
         <span class="w-full h-1px bg-[--line-color]"></span>
 
-        <!-- 字体 -->
-        <n-flex align="center" justify="space-between">
-          <span>{{ t('setting.general.ui.font') }}</span>
-          <n-select
-            class="w-140px"
-            size="small"
-            label-field="label"
-            v-model:value="page.fonts"
-            :options="fontOptions" />
-        </n-flex>
-
-        <span class="w-full h-1px bg-[--line-color]"></span>
-
         <!-- 菜单显示模式 -->
         <n-flex align="center" justify="space-between">
           <span>{{ t('setting.general.ui.menu_name') }}</span>
@@ -144,19 +105,17 @@ import { NSwitch } from 'naive-ui'
 import { CloseBxEnum, ShowModeEnum } from '@/enums'
 import { useSettingStore } from '@/stores/setting.ts'
 import { isWindows } from '@/utils/PlatformConstants'
-import { useFontOptions, useTranslateOptions, langOptions } from './config.ts'
+import { langOptions } from './config.ts'
 import { useTopicsList } from './model.tsx'
 import { useI18n } from 'vue-i18n'
 
 const { t } = useI18n()
 const appWindow = WebviewWindow.getCurrent()
 const settingStore = useSettingStore()
-const { themes, tips, chat, page } = settingStore
+const { themes, tips, page } = settingStore
 const { showMode, escClose } = storeToRefs(settingStore)
 const activeItem = ref<string>(themes.pattern)
 const topicsList = useTopicsList()
-const translateOptions = useTranslateOptions()
-const fontOptions = useFontOptions()
 
 const showText = computed({
   get: () => showMode.value === ShowModeEnum.TEXT,

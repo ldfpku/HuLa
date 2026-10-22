@@ -315,6 +315,20 @@ export type MarkItemType = {
   actType: ActEnum
 }
 
+/** 聊天里的文件被删除：消息变成一条系统提示 */
+export type MsgFileDeletedType = {
+  msgId: string
+  roomId: string
+  message?: MessageType
+}
+
+/** 管理员清理聊天数据后本机要删掉的内容：整个会话，或留下的会话里的几条消息 */
+export type ChatPurgeChanges = {
+  /** 最近一次清理的时间（毫秒），本机处理完记下，下次只取之后的 */
+  epoch: number
+  rooms: { roomId: string; all: boolean; msgIds: string[] }[]
+}
+
 export type RevokedMsgType = {
   /** 消息ID */
   msgId: string
@@ -477,10 +491,167 @@ export type LocationBody = {
   timestamp: string
 }
 
+/** 邮件卡片消息体：由斯米伽邮箱的「转发到聊天」生成 */
+export type MailCardBody = {
+  /** 分享 ID */
+  shareId: string
+  /** 邮件主题 */
+  subject: string
+  /** 发件人地址 */
+  from: string
+  /** 发件人名称 */
+  fromName: string
+  /** 邮件时间（毫秒） */
+  date: number
+  /** 正文摘要 */
+  snippet: string
+  /** 附件数量 */
+  attachmentCount: number
+  /** 查看邮件的地址 */
+  url: string
+  /** 'mailbox' 表示由群邮箱收到，而不是有人转发 */
+  via?: 'mailbox'
+  /** 群邮箱地址（via 为 'mailbox' 时） */
+  mailbox?: string
+}
+
+/** 群邮箱状态 */
+export type RoomMailboxState = {
+  /** 群邮箱地址，未创建过时为 null */
+  address: string | null
+  /** 是否开启 */
+  enabled: boolean
+  /** 当前用户能否开启和关闭（群主、管理员） */
+  canManage: boolean
+  /** 未创建时建议的邮箱名 */
+  suggestedLocalPart: string
+  /** 新地址所在的域名，没有可用域名时为 null */
+  domain: string | null
+}
+
+/** 统一搜索的范围 */
+export type UnifiedSearchScope = 'all' | 'chat' | 'mail'
+
+/** 统一搜索：一条命中的聊天消息 */
+export type ChatSearchHit = {
+  msgId: string
+  roomId: string
+  /** 1 群聊，2 单聊 */
+  roomType: number
+  /** 打开会话用的 id：群聊是群 id，单聊是对方 uid */
+  detailId: string
+  roomName: string
+  roomAvatar: string
+  fromUid: string
+  fromName: string
+  fromAvatar: string
+  type: number
+  /** 命中处前后的一行纯文本 */
+  text: string
+  sendTime: number
+}
+
+/** 统一搜索：一封命中的邮件 */
+export type MailSearchHit = {
+  id: string
+  mailboxId: string | null
+  mailboxAddress: string
+  threadId: string | null
+  status: string
+  outbound: boolean
+  subject: string
+  from: string
+  fromName: string
+  to: string
+  text: string
+  read: boolean
+  date: number
+  /** 邮件网页里打开这封邮件的路径 */
+  path: string
+}
+
+export type UnifiedSearchSection<T> = {
+  list: T[]
+  total: number
+  isLast: boolean
+}
+
+/** 统一搜索结果；不在范围内的一侧为 null */
+export type UnifiedSearchResult = {
+  keyword: string
+  page: number
+  size: number
+  chat: UnifiedSearchSection<ChatSearchHit> | null
+  mail: UnifiedSearchSection<MailSearchHit> | null
+}
+
+/** 群文件（群里发过的图片、文件、视频，即群在网盘里的文件夹） */
+export type RoomFile = {
+  id: string
+  roomId: string
+  fileName: string
+  size: number
+  contentType: string
+  /** 消息类型：3 图片、4 文件、6 视频 */
+  msgType: number
+  msgId: string | null
+  uploaderUid: string
+  uploaderName: string
+  /** 发送时间（毫秒） */
+  createdAt: number
+  /** 预览地址 */
+  url: string
+  /** 下载地址 */
+  downloadUrl: string
+  /** 当前用户能否从列表移除（发送者、群主、管理员） */
+  canRemove: boolean
+}
+
+/** 群文件分页 */
+export type RoomFilePage = {
+  list: RoomFile[]
+  cursor: string
+  isLast: boolean
+  /** 文件总数 */
+  total: number
+  /** 文件总大小（字节） */
+  totalSize: number
+}
+
+/** 网盘里的一项（选择发送的文件时用） */
+export type DrivePickerItem = {
+  id: string
+  kind: 'file' | 'folder'
+  name: string
+  size: number
+  contentType: string
+  updatedAt: number
+  /** 是否可以发到聊天（不超过聊天文件大小上限） */
+  sendable: boolean
+}
+
+/** 网盘文件夹内容 */
+export type DrivePickerListing = {
+  items: DrivePickerItem[]
+  /** 从根到当前文件夹的路径，根目录时为空 */
+  path: { id: string; name: string }[]
+  /** 能发到聊天的单个文件大小上限（字节） */
+  limitBytes: number
+}
+
 /**
  * 消息内容
  */
-export type MessageBody = TextBody | ImageBody | VoiceBody | VideoBody | FileBody | EmojiBody | LocationBody | any
+export type MessageBody =
+  | TextBody
+  | ImageBody
+  | VoiceBody
+  | VideoBody
+  | FileBody
+  | EmojiBody
+  | LocationBody
+  | MailCardBody
+  | any
 export type MsgType = {
   /** 消息ID */
   id: string
@@ -496,6 +667,8 @@ export type MsgType = {
   messageMarks: MessageMarkType
   /** 消息发送状态 */
   status: MessageStatusEnum
+  /** 发送端本地的临时 ID：服务端把自己发的消息推给自己的其他设备时带上，发出的那台设备据此去重 */
+  clientMsgId?: string
 }
 
 export type ReplyType = {
@@ -693,7 +866,6 @@ export type MsgReadUnReadCountType = {
 }
 
 /** 支持的翻译服务提供商类型  */
-export type TranslateProvider = 'youdao' | 'tencent'
 
 /** AI模型 */
 export type AIModel = {
@@ -771,6 +943,8 @@ export type ConfigType = {
   logo: string
   /** 系统名称 */
   name: string
+  /** 登录域名：账号框只需输入 @ 前面的用户名 */
+  loginDomain?: string | null
   /** 七牛 */
   qiNiu: {
     /** oss域名 */
@@ -872,4 +1046,45 @@ export enum FeedPermission {
   OPEN = 'open', // 公开
   PART_VISIBLE = 'partVisible', // 部分可见
   NOT_ANYONE = 'notAnyone' // 不给谁看
+}
+
+/** Workers AI 会话摘要：只返回给请求者，不写入聊天记录 */
+export type ChatSummaryResult = {
+  summary: string
+  /** 参与摘要的消息条数（撤回、空消息不计） */
+  messageCount: number
+  firstAt: number | null
+  lastAt: number | null
+  /** 长会话分成的段数 */
+  parts: number
+  /** 会话太长时没读到的较早消息条数 */
+  dropped: number
+}
+
+/** Workers AI 根据邮件生成的待办草稿，确认后才保存 */
+export type MailTodoDraft = {
+  title: string
+  /** 截止时间（毫秒），没有为 null */
+  dueAt: number | null
+  points: string[]
+  notes: string
+  mailId: string
+  mailSubject: string
+}
+
+/** 我的待办 */
+export type TodoItem = {
+  id: string
+  title: string
+  notes: string
+  dueAt: number | null
+  done: boolean
+  doneAt: number | null
+  sourceType: 'manual' | 'mail'
+  sourceId: string | null
+  sourceTitle: string
+  /** 来源邮件在邮件网页里的路径 */
+  sourcePath: string | null
+  createdAt: number
+  updatedAt: number
 }

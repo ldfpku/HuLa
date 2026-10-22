@@ -1,4 +1,6 @@
 use std::str::FromStr;
+use std::sync::Arc;
+use std::time::Duration;
 
 use base64::{Engine, prelude::BASE64_STANDARD};
 use reqwest::header;
@@ -10,12 +12,30 @@ use crate::{
     vo::vo::{LoginReq, LoginResp},
 };
 
+/// 连不上服务器时最多等多久
+const CONNECT_TIMEOUT_SECS: u64 = 10;
+
+/// 一个接口请求最多等多久。请求卡住时不能无限期占着调用方
+const REQUEST_TIMEOUT_SECS: u64 = 30;
+
+/// 最近一次刷新：用哪个 refresh token 换来了哪一对新 token
 #[derive(Debug)]
+struct RefreshRecord {
+    from_refresh_token: String,
+    token: String,
+    refresh_token: String,
+}
+
+/// 可以克隆：调用方在锁里克隆一份，放开锁再发请求，慢请求就不会挡住其他请求。
+/// 刷新 token 经 `refresh_gate` 串行，服务端换发后旧的 refresh token 立即作废，
+/// 同一个 refresh token 只能用一次，其余副本直接取用换来的新 token
+#[derive(Debug, Clone)]
 pub struct ImRequestClient {
     client: reqwest::Client,
     base_url: String,
     pub token: Option<String>,
     pub refresh_token: Option<String>,
+    refresh_gate: Arc<tokio::sync::Mutex<Option<RefreshRecord>>>,
 }
 
 impl ImRequestClient {
@@ -39,6 +59,8 @@ impl ImRequestClient {
 
         let client = reqwest::Client::builder()
             .default_headers(headers)
+            .proxy(crate::websocket::proxy::reqwest_proxy())
+            .connect_timeout(Duration::from_secs(CONNECT_TIMEOUT_SECS))
             .build()
             .map_err(|e| anyhow::anyhow!("Failed to create HTTP client: {}", e))?;
 
@@ -47,6 +69,7 @@ impl ImRequestClient {
             base_url: base_url,
             token: None,
             refresh_token: None,
+            refresh_gate: Arc::new(tokio::sync::Mutex::new(None)),
         })
     }
 
@@ -119,7 +142,9 @@ impl ImRequestClient {
 
         loop {
             // 使用 build_request 构建请求
-            let request_builder = self.build_request(method.clone(), path, &body, &params, None);
+            let request_builder = self
+                .build_request(method.clone(), path, &body, &params, None)
+                .timeout(Duration::from_secs(REQUEST_TIMEOUT_SECS));
 
             // 发送请求，区分网络错误和业务错误
             let response = request_builder
@@ -243,11 +268,24 @@ impl ImRequestClient {
         };
         let old_refresh_token = refresh_token.clone();
 
+        // 同一时间只刷新一次；这个 refresh token 已经被别的请求换过时，直接用换来的新 token
+        let mut gate = self.refresh_gate.lock().await;
+        if let Some(record) = gate.as_ref() {
+            if record.from_refresh_token == refresh_token {
+                self.token = Some(record.token.clone());
+                self.refresh_token = Some(record.refresh_token.clone());
+                return Ok(());
+            }
+        }
+
         let body = json!({
           "refreshToken": refresh_token
         });
 
-        let request_builder = self.client.request(http::Method::POST, &url);
+        let request_builder = self
+            .client
+            .request(http::Method::POST, &url)
+            .timeout(Duration::from_secs(REQUEST_TIMEOUT_SECS));
         let response = request_builder
             .json(&body)
             .send()
@@ -282,11 +320,34 @@ impl ImRequestClient {
 
         let refresh_token = match data.get("refreshToken").and_then(|value| value.as_str()) {
             Some(value) if !value.is_empty() => value.to_owned(),
-            _ => old_refresh_token,
+            _ => old_refresh_token.clone(),
         };
-        self.refresh_token = Some(refresh_token);
+        self.refresh_token = Some(refresh_token.clone());
+        *gate = Some(RefreshRecord {
+            from_refresh_token: old_refresh_token,
+            token: token.to_owned(),
+            refresh_token,
+        });
 
         Ok(())
+    }
+
+    /// 把副本请求期间刷新得到的 token 写回本对象。
+    /// `used_refresh_token` 是取副本时的 refresh token：本对象之后已换成别的（重新登录等）就不覆盖
+    pub fn adopt_refreshed_tokens(
+        &mut self,
+        used_refresh_token: &Option<String>,
+        copy: &ImRequestClient,
+    ) -> bool {
+        if &self.refresh_token != used_refresh_token {
+            return false;
+        }
+        if self.token == copy.token && self.refresh_token == copy.refresh_token {
+            return false;
+        }
+        self.token = copy.token.clone();
+        self.refresh_token = copy.refresh_token.clone();
+        true
     }
 
     pub async fn im_request<
@@ -330,6 +391,23 @@ pub enum ImUrl {
     GetQiniuToken,
     InitConfig,
     StorageProvider,
+    MailSso,
+    MailUnread,
+    RoomMailbox,
+    RoomMailboxEnable,
+    RoomMailboxDisable,
+    UnifiedSearch,
+    RoomFiles,
+    RoomFileRemove,
+    RoomFileSaveToDrive,
+    RoomFileFromDrive,
+    DriveItems,
+    AiSummary,
+    AiMailTodo,
+    TodoList,
+    TodoCreate,
+    TodoUpdate,
+    TodoDelete,
     MapCoordTranslate,
     MapReverseGeocode,
     MapStatic,
@@ -351,6 +429,7 @@ pub enum ImUrl {
     GroupInfo,
     RevokeAdmin,
     AddAdmin,
+    TransferGroupOwner,
     ExitGroup,
     AcceptInvite,
     InviteList,
@@ -380,6 +459,8 @@ pub enum ImUrl {
     DeleteEmoji,
     AddEmoji,
     RecallMsg,
+    DeleteMsgFile,
+    ChatPurges,
     BlockUser,
     MarkMsg,
     SetUserBadge,
@@ -415,6 +496,16 @@ pub enum ImUrl {
     CheckEmail,
     MergeMsg,
     GetUserByIds,
+    // 音视频通话与会议
+    RtcIceServers,
+    MeetingList,
+    MeetingCreate,
+    MeetingDetail,
+    MeetingJoin,
+    MeetingIcs,
+    MeetingCancel,
+    MeetingAvailability,
+    MeetingStatus,
     GenerateQRCode,
     CheckQRStatus,
     ScanQRCode,
@@ -565,6 +656,23 @@ impl ImUrl {
             ImUrl::GetQiniuToken => (http::Method::GET, "system/anyTenant/ossToken"),
             ImUrl::InitConfig => (http::Method::GET, "system/anyTenant/config/init"),
             ImUrl::StorageProvider => (http::Method::GET, "system/anyTenant/storage/provider"),
+            ImUrl::MailSso => (http::Method::GET, "im/mail/sso"),
+            ImUrl::MailUnread => (http::Method::GET, "im/mail/unread"),
+            ImUrl::RoomMailbox => (http::Method::GET, "im/room/mailbox"),
+            ImUrl::RoomMailboxEnable => (http::Method::POST, "im/room/mailbox"),
+            ImUrl::RoomMailboxDisable => (http::Method::POST, "im/room/mailbox/disable"),
+            ImUrl::UnifiedSearch => (http::Method::GET, "im/search"),
+            ImUrl::RoomFiles => (http::Method::GET, "im/room/files"),
+            ImUrl::RoomFileRemove => (http::Method::POST, "im/room/files/remove"),
+            ImUrl::RoomFileSaveToDrive => (http::Method::POST, "im/room/files/saveToDrive"),
+            ImUrl::RoomFileFromDrive => (http::Method::POST, "im/room/files/fromDrive"),
+            ImUrl::DriveItems => (http::Method::GET, "im/drive/items"),
+            ImUrl::AiSummary => (http::Method::POST, "im/ai/summary"),
+            ImUrl::AiMailTodo => (http::Method::POST, "im/ai/mailTodo"),
+            ImUrl::TodoList => (http::Method::GET, "im/todo/list"),
+            ImUrl::TodoCreate => (http::Method::POST, "im/todo"),
+            ImUrl::TodoUpdate => (http::Method::POST, "im/todo/update"),
+            ImUrl::TodoDelete => (http::Method::POST, "im/todo/delete"),
             ImUrl::MapCoordTranslate => (http::Method::GET, "system/anyTenant/map/coord/translate"),
             ImUrl::MapReverseGeocode => {
                 (http::Method::GET, "system/anyTenant/map/geocoder/reverse")
@@ -598,6 +706,7 @@ impl ImUrl {
             // 群聊管理员
             ImUrl::RevokeAdmin => (http::Method::DELETE, "im/room/group/admin"),
             ImUrl::AddAdmin => (http::Method::PUT, "im/room/group/admin"),
+            ImUrl::TransferGroupOwner => (http::Method::PUT, "im/room/group/owner"),
 
             // 群聊成员管理
             ImUrl::ExitGroup => (http::Method::DELETE, "im/room/group/member/exit"),
@@ -657,6 +766,8 @@ impl ImUrl {
 
             // 消息相关
             ImUrl::RecallMsg => (http::Method::PUT, "im/chat/msg/recall"),
+            ImUrl::DeleteMsgFile => (http::Method::POST, "im/chat/msg/file/delete"),
+            ImUrl::ChatPurges => (http::Method::GET, "im/chat/purges"),
             ImUrl::MarkMsg => (http::Method::PUT, "im/chat/msg/mark"),
             ImUrl::GetMsgPage => (http::Method::GET, "im/chat/msg/page"),
             ImUrl::GetMsgList => (http::Method::POST, "im/chat/msg/list"),
@@ -858,6 +969,17 @@ impl ImUrl {
 
             ImUrl::MergeMsg => (http::Method::POST, "im/room/mergeMessage"),
             ImUrl::GetUserByIds => (http::Method::POST, "im/user/getUserByIds"),
+
+            // 音视频通话与会议
+            ImUrl::RtcIceServers => (http::Method::GET, "im/rtc/iceServers"),
+            ImUrl::MeetingList => (http::Method::GET, "im/meeting/list"),
+            ImUrl::MeetingCreate => (http::Method::POST, "im/meeting"),
+            ImUrl::MeetingDetail => (http::Method::GET, "im/meeting/detail"),
+            ImUrl::MeetingJoin => (http::Method::POST, "im/meeting/join"),
+            ImUrl::MeetingIcs => (http::Method::GET, "im/meeting/ics"),
+            ImUrl::MeetingCancel => (http::Method::POST, "im/meeting/cancel"),
+            ImUrl::MeetingAvailability => (http::Method::POST, "im/meeting/availability"),
+            ImUrl::MeetingStatus => (http::Method::GET, "im/meeting/status"),
         }
     }
 
@@ -875,6 +997,23 @@ impl ImUrl {
             "getQiniuToken" => Ok(ImUrl::GetQiniuToken),
             "initConfig" => Ok(ImUrl::InitConfig),
             "storageProvider" => Ok(ImUrl::StorageProvider),
+            "mailSso" => Ok(ImUrl::MailSso),
+            "mailUnread" => Ok(ImUrl::MailUnread),
+            "roomMailbox" => Ok(ImUrl::RoomMailbox),
+            "roomMailboxEnable" => Ok(ImUrl::RoomMailboxEnable),
+            "roomMailboxDisable" => Ok(ImUrl::RoomMailboxDisable),
+            "unifiedSearch" => Ok(ImUrl::UnifiedSearch),
+            "roomFiles" => Ok(ImUrl::RoomFiles),
+            "roomFileRemove" => Ok(ImUrl::RoomFileRemove),
+            "roomFileSaveToDrive" => Ok(ImUrl::RoomFileSaveToDrive),
+            "roomFileFromDrive" => Ok(ImUrl::RoomFileFromDrive),
+            "driveItems" => Ok(ImUrl::DriveItems),
+            "aiSummary" => Ok(ImUrl::AiSummary),
+            "aiMailTodo" => Ok(ImUrl::AiMailTodo),
+            "todoList" => Ok(ImUrl::TodoList),
+            "todoCreate" => Ok(ImUrl::TodoCreate),
+            "todoUpdate" => Ok(ImUrl::TodoUpdate),
+            "todoDelete" => Ok(ImUrl::TodoDelete),
             "mapCoordTranslate" => Ok(ImUrl::MapCoordTranslate),
             "mapReverseGeocode" => Ok(ImUrl::MapReverseGeocode),
             "mapStatic" => Ok(ImUrl::MapStatic),
@@ -905,6 +1044,7 @@ impl ImUrl {
             // 群聊管理员
             "revokeAdmin" => Ok(ImUrl::RevokeAdmin),
             "addAdmin" => Ok(ImUrl::AddAdmin),
+            "transferGroupOwner" => Ok(ImUrl::TransferGroupOwner),
 
             // 群聊成员管理
             "exitGroup" => Ok(ImUrl::ExitGroup),
@@ -954,6 +1094,8 @@ impl ImUrl {
 
             // 消息相关
             "recallMsg" => Ok(ImUrl::RecallMsg),
+            "deleteMsgFile" => Ok(ImUrl::DeleteMsgFile),
+            "chatPurges" => Ok(ImUrl::ChatPurges),
             "markMsg" => Ok(ImUrl::MarkMsg),
             "getMsgList" => Ok(ImUrl::GetMsgList),
             "getMsgPage" => Ok(ImUrl::GetMsgPage),
@@ -988,6 +1130,15 @@ impl ImUrl {
             "checkEmail" => Ok(ImUrl::CheckEmail),
             "mergeMsg" => Ok(ImUrl::MergeMsg),
             "getUserByIds" => Ok(ImUrl::GetUserByIds),
+            "rtcIceServers" => Ok(ImUrl::RtcIceServers),
+            "meetingList" => Ok(ImUrl::MeetingList),
+            "meetingCreate" => Ok(ImUrl::MeetingCreate),
+            "meetingDetail" => Ok(ImUrl::MeetingDetail),
+            "meetingJoin" => Ok(ImUrl::MeetingJoin),
+            "meetingIcs" => Ok(ImUrl::MeetingIcs),
+            "meetingCancel" => Ok(ImUrl::MeetingCancel),
+            "meetingAvailability" => Ok(ImUrl::MeetingAvailability),
+            "meetingStatus" => Ok(ImUrl::MeetingStatus),
             "generateQRCode" => Ok(ImUrl::GenerateQRCode),
             "checkQRStatus" => Ok(ImUrl::CheckQRStatus),
             "scanQRCode" => Ok(ImUrl::ScanQRCode),
@@ -1155,4 +1306,138 @@ impl FromStr for ImUrl {
 
 pub trait ImRequest {
     async fn login(&mut self, login_req: LoginReq) -> Result<Option<LoginResp>, anyhow::Error>;
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+    use tokio::net::TcpListener;
+    use tokio::sync::Mutex;
+
+    struct Server {
+        token: String,
+        refresh_token: String,
+        refreshes: AtomicUsize,
+    }
+
+    /// 只认 oauth/check 和 oauth/anyTenant/refresh 的极简服务端；换发后旧 refresh token 立即作废
+    async fn serve(listener: TcpListener, server: Arc<Mutex<Server>>) {
+        loop {
+            let Ok((mut socket, _)) = listener.accept().await else {
+                return;
+            };
+            let server = server.clone();
+            tokio::spawn(async move {
+                let mut buf = Vec::new();
+                let mut chunk = [0u8; 4096];
+                let (head, body) = loop {
+                    let n = socket.read(&mut chunk).await.unwrap_or(0);
+                    if n == 0 {
+                        return;
+                    }
+                    buf.extend_from_slice(&chunk[..n]);
+                    let text = String::from_utf8_lossy(&buf).to_string();
+                    if let Some(end) = text.find("\r\n\r\n") {
+                        let head = text[..end].to_string();
+                        let length = head
+                            .lines()
+                            .find_map(|l| {
+                                l.to_ascii_lowercase()
+                                    .strip_prefix("content-length:")
+                                    .map(|v| v.trim().parse::<usize>().unwrap_or(0))
+                            })
+                            .unwrap_or(0);
+                        if text.len() >= end + 4 + length {
+                            break (head, text[end + 4..end + 4 + length].to_string());
+                        }
+                    }
+                };
+                let header = |name: &str| {
+                    head.lines().find_map(|l| {
+                        let (k, v) = l.split_once(':')?;
+                        k.trim()
+                            .eq_ignore_ascii_case(name)
+                            .then(|| v.trim().to_string())
+                    })
+                };
+                // 刷新请求故意慢一点，让并发的请求都能撞上过期
+                let reply = if head.starts_with("POST /oauth/anyTenant/refresh") {
+                    tokio::time::sleep(Duration::from_millis(100)).await;
+                    let sent: serde_json::Value = serde_json::from_str(&body).unwrap();
+                    let mut s = server.lock().await;
+                    if sent["refreshToken"] == s.refresh_token.as_str() {
+                        let n = s.refreshes.fetch_add(1, Ordering::SeqCst) + 1;
+                        s.token = format!("access-{n}");
+                        s.refresh_token = format!("refresh-{n}");
+                        json!({"success": true, "code": 200, "data": {"token": s.token, "refreshToken": s.refresh_token}})
+                    } else {
+                        json!({"success": false, "code": 401, "msg": "invalid refresh token"})
+                    }
+                } else {
+                    let s = server.lock().await;
+                    if header("token").as_deref() == Some(s.token.as_str()) {
+                        json!({"success": true, "code": 200, "data": "ok"})
+                    } else {
+                        json!({"success": false, "code": 406, "msg": "expired"})
+                    }
+                };
+                let body = reply.to_string();
+                let response = format!(
+                    "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+                    body.len(),
+                    body
+                );
+                let _ = socket.write_all(response.as_bytes()).await;
+            });
+        }
+    }
+
+    #[tokio::test]
+    async fn copies_share_one_refresh_when_the_token_expires() {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let base = format!("http://{}", listener.local_addr().unwrap());
+        let server = Arc::new(Mutex::new(Server {
+            token: "access-0".into(),
+            refresh_token: "refresh-0".into(),
+            refreshes: AtomicUsize::new(0),
+        }));
+        // 服务端的 access token 已换过一次，客户端手里的已过期
+        server.lock().await.token = "access-new".into();
+        tokio::spawn(serve(listener, server.clone()));
+
+        let mut shared = ImRequestClient::new(base).unwrap();
+        shared.token = Some("expired".into());
+        shared.refresh_token = Some("refresh-0".into());
+
+        let copies: Vec<ImRequestClient> = (0..4).map(|_| shared.clone()).collect();
+        let results = futures::future::join_all(copies.into_iter().map(|mut copy| async move {
+            let result: Result<Option<serde_json::Value>, anyhow::Error> = copy
+                .im_request(
+                    ImUrl::CheckToken,
+                    None::<serde_json::Value>,
+                    None::<serde_json::Value>,
+                )
+                .await;
+            (result, copy)
+        }))
+        .await;
+
+        let s = server.lock().await;
+        assert_eq!(s.refreshes.load(Ordering::SeqCst), 1);
+        for (result, copy) in &results {
+            assert!(result.is_ok(), "{:?}", result);
+            assert_eq!(copy.token.as_deref(), Some("access-1"));
+            assert_eq!(copy.refresh_token.as_deref(), Some("refresh-1"));
+        }
+        drop(s);
+
+        let used = shared.refresh_token.clone();
+        assert!(shared.adopt_refreshed_tokens(&used, &results[0].1));
+        assert_eq!(shared.token.as_deref(), Some("access-1"));
+        // 已经写回过，或本对象换过 refresh token（重新登录），都不再覆盖
+        assert!(!shared.adopt_refreshed_tokens(&used, &results[1].1));
+        assert!(!shared.adopt_refreshed_tokens(&Some("other".into()), &results[1].1));
+    }
 }

@@ -11,7 +11,7 @@
         <n-avatar
           class="welcome size-80px rounded-50% border-(2px solid #fff) dark:border-(2px solid #606060)"
           :color="themes.content === ThemeEnum.DARK ? '#282828' : '#fff'"
-          :fallback-src="themes.content === ThemeEnum.DARK ? '/logoL.png' : '/logoD.png'"
+          :fallback-src="themes.content === ThemeEnum.DARK ? '/avatar-dark.svg' : '/avatar-light.svg'"
           :src="AvatarUtils.getAvatarUrl(info.avatar)" />
       </n-flex>
 
@@ -31,7 +31,15 @@
           autoCapitalize="off"
           clearable>
           <template #suffix>
-            <n-flex v-if="loginHistories.length > 0" @click="arrowStatus = !arrowStatus">
+            <span v-if="accountSuffix" class="login-domain-suffix text-13px color-#909090 select-none">
+              {{ accountSuffix }}
+            </span>
+            <n-flex
+              role="button"
+              :title="arrowStatus ? t('tooltip.hide_accounts') : t('tooltip.show_accounts')"
+              :aria-label="arrowStatus ? t('tooltip.hide_accounts') : t('tooltip.show_accounts')"
+              v-if="loginHistories.length > 0"
+              @click="arrowStatus = !arrowStatus">
               <svg v-if="!arrowStatus" class="down w-18px h-18px color-#505050 dark:color-#909090 cursor-pointer">
                 <use href="#down"></use>
               </svg>
@@ -58,6 +66,7 @@
                 <n-avatar :src="AvatarUtils.getAvatarUrl(item.avatar)" color="#fff" class="size-28px rounded-50%" />
                 <p class="text-14px color-#505050 dark:color-#fefefe">{{ item.account }}</p>
                 <svg @click.stop="delAccount(item)" class="w-12px h-12px dark:color-#fefefe">
+                  <title>{{ t('tooltip.remove_account') }}</title>
                   <use href="#close"></use>
                 </svg>
               </div>
@@ -98,21 +107,6 @@
           @keyup.enter="normalLogin('PC', true, false)"
           clearable />
 
-        <!-- 协议 -->
-        <n-flex align="center" justify="center" :size="6">
-          <n-checkbox v-model:checked="protocol" />
-          <div class="text-12px color-#909090 cursor-default lh-14px agreement">
-            <span>{{ t('login.term.checkout.text1') }}</span>
-            <span class="color-#034fbc cursor-pointer" @click.stop="openServiceAgreement">
-              {{ t('login.term.checkout.text2') }}
-            </span>
-            <span>{{ t('login.term.checkout.text3') }}</span>
-            <span class="color-#034fbc cursor-pointer" @click.stop="openPrivacyAgreement">
-              {{ t('login.term.checkout.text4') }}
-            </span>
-          </div>
-        </n-flex>
-
         <n-button
           :loading="loading"
           :disabled="loginDisabled"
@@ -128,7 +122,7 @@
     <!-- 自动登录样式 -->
     <n-flex v-else-if="uiState === 'auto'" vertical :size="29" data-tauri-drag-region>
       <n-flex justify="center" class="mt-15px">
-        <img src="/hula.png" class="w-140px h-60px" alt="" />
+        <BrandLogo class="w-128px h-auto" on-dark />
       </n-flex>
       <n-flex :size="30" vertical>
         <!-- 头像 -->
@@ -137,7 +131,7 @@
             round
             :size="110"
             :color="themes.content === ThemeEnum.DARK ? '#282828' : '#fff'"
-            :fallback-src="themes.content === ThemeEnum.DARK ? '/logoL.png' : '/logoD.png'"
+            :fallback-src="themes.content === ThemeEnum.DARK ? '/avatar-dark.svg' : '/avatar-light.svg'"
             :src="AvatarUtils.getAvatarUrl(userStore.userInfo?.avatar ?? '')" />
         </n-flex>
 
@@ -234,20 +228,19 @@
   </n-config-provider>
 </template>
 <script setup lang="ts">
+import BrandLogo from '@/components/common/BrandLogo.vue'
 import { useI18n } from 'vue-i18n'
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow'
 import { useNetwork } from '@vueuse/core'
 import { darkTheme, lightTheme } from 'naive-ui'
 import { storeToRefs } from 'pinia'
 import { useCheckUpdate } from '@/hooks/useCheckUpdate'
-import { type DriverStepConfig, useDriver } from '@/hooks/useDriver'
 import { useMitt } from '@/hooks/useMitt'
 import { useWindow } from '@/hooks/useWindow.ts'
 import router from '@/router'
 import type { UserInfoType } from '@/services/types.ts'
 import { WsResponseMessageType } from '@/services/wsType'
 import { useGlobalStore } from '@/stores/global'
-import { useGuideStore } from '@/stores/guide'
 import { useLoginHistoriesStore } from '@/stores/loginHistory.ts'
 import { useSettingStore } from '@/stores/setting.ts'
 import { useUserStore } from '@/stores/user.ts'
@@ -259,6 +252,15 @@ import { formatBottomText } from '@/utils/Formatting'
 import { ThemeEnum } from '@/enums'
 import ThirdPartyLogin, { type ThirdPartyLoginContext } from './ThirdPartyLogin.vue'
 import { ACCOUNT_FEATURES } from '@/common/backend'
+import { ImUrlEnum } from '@/enums'
+import { imRequestSilent } from '@/utils/ImRequestUtils'
+import {
+  completeLoginAccount,
+  LOGIN_DOMAIN_STORAGE_KEY,
+  loginAccountSuffix,
+  normalizeLoginDomain,
+  shortLoginName
+} from '@/utils/LoginAccountUtils'
 
 const { t } = useI18n()
 
@@ -267,16 +269,12 @@ const { themes } = storeToRefs(settingStore)
 const naiveTheme = computed(() => (themes.value.content === 'dark' ? darkTheme : lightTheme))
 const userStore = useUserStore()
 const globalStore = useGlobalStore()
-const guideStore = useGuideStore()
 const { isTrayMenuShow } = storeToRefs(globalStore)
-const { isGuideCompleted } = storeToRefs(guideStore)
 /** 网络连接是否正常 */
 const { isOnline } = useNetwork()
 const loginHistoriesStore = useLoginHistoriesStore()
 const { loginHistories } = loginHistoriesStore
 const { login } = storeToRefs(settingStore)
-/** 协议 */
-const protocol = ref(true)
 const arrowStatus = ref(false)
 const moreShow = ref(false)
 const { createWebviewWindow, createModalWindow, getWindowPayload } = useWindow()
@@ -327,6 +325,15 @@ const startAutoLoginCountdown = () => {
   }, AUTO_LOGIN_DELAY_MS)
 }
 
+/** 登录窗口发现新版本时直接安装；正在登录就不打断，登录后由主窗口后台下载 */
+const canInstallUpdate = () => {
+  if (loading.value) {
+    return false
+  }
+  clearAutoLoginTimer()
+  return true
+}
+
 const cancelAutoLogin = () => {
   if (!autoLoginPending.value) {
     return
@@ -352,65 +359,27 @@ const cancelAutoLoginAndShowManual = () => {
   loginHistories.length > 0 && giveAccount(loginHistories[0])
 }
 
-const driverSteps = computed<DriverStepConfig[]>(() => [
-  {
-    element: '.welcome',
-    popover: {
-      title: t('login.guide.welcome.title'),
-      description: t('login.guide.welcome.desc'),
-      side: 'bottom',
-      align: 'center'
-    }
-  },
-  {
-    element: '.agreement',
-    popover: {
-      title: t('login.guide.privacy.title'),
-      description: t('login.guide.privacy.desc'),
-      onNextClick: () => {
-        if (isMac()) {
-          moreShow.value = true
-        }
-      }
-    }
-  },
-  {
-    element: '.network',
-    popover: {
-      title: t('login.guide.network.title'),
-      description: t('login.guide.network.desc'),
-      onNextClick: () => {
-        moreShow.value = true
-      }
-    }
-  },
-  ...(ACCOUNT_FEATURES.selfRegister
-    ? [
-        {
-          element: '.register',
-          popover: {
-            title: t('login.guide.register.title'),
-            description: t('login.guide.register.desc')
-          }
-        }
-      ]
-    : [])
-])
+/** 登录域名（如 smjtools.com）：账号框只输用户名，域名显示在右侧，服务端补全 */
+const loginDomain = ref(normalizeLoginDomain(localStorage.getItem(LOGIN_DOMAIN_STORAGE_KEY)))
+const accountSuffix = computed(() => loginAccountSuffix(info.value.account || '', loginDomain.value))
 
-const driverConfig = computed(() => ({
-  nextBtnText: t('login.guide.actions.next'),
-  prevBtnText: t('login.guide.actions.prev'),
-  doneBtnText: t('login.guide.actions.done'),
-  progressText: t('login.guide.actions.progress', {
-    current: '{{current}}',
-    total: '{{total}}'
-  })
-}))
+const loadLoginDomain = async () => {
+  const config = await imRequestSilent<{ loginDomain?: string | null }>({ url: ImUrlEnum.INIT_CONFIG })
+  if (!config) return
+  const domain = normalizeLoginDomain(config.loginDomain)
+  loginDomain.value = domain
+  if (domain) {
+    localStorage.setItem(LOGIN_DOMAIN_STORAGE_KEY, domain)
+  } else {
+    localStorage.removeItem(LOGIN_DOMAIN_STORAGE_KEY)
+  }
+}
 
-const { startTour, reinitialize } = useDriver(driverSteps.value, driverConfig.value)
-
-watch([driverSteps, driverConfig], ([steps, config]) => {
-  reinitialize(steps, config)
+// 域名后到时，把已填入的完整地址收成用户名
+watch(loginDomain, (domain) => {
+  if (info.value.account) {
+    info.value.account = shortLoginName(info.value.account, domain)
+  }
 })
 
 // 输入框占位符
@@ -451,7 +420,7 @@ timerWorker.onerror = (error) => {
 timerWorker.onmessage = (e) => {
   const { type } = e.data
   if (type === 'timeout') {
-    checkUpdate('login')
+    checkUpdate('login', canInstallUpdate)
   }
 }
 
@@ -460,7 +429,7 @@ watchEffect(() => {
     loginDisabled.value = !isOnline.value || !userStore.userInfo?.account
     return
   }
-  loginDisabled.value = !(info.value.account && info.value.password && protocol.value && isOnline.value)
+  loginDisabled.value = !(info.value.account && info.value.password && isOnline.value)
 })
 
 watch(
@@ -491,18 +460,19 @@ watch(
   () => info.value.account,
   (newAccount) => {
     if (!newAccount) {
-      info.value.avatar = '/logoD.png'
+      info.value.avatar = '/avatar-light.svg'
       return
     }
 
     // 在登录历史中查找匹配的账号
+    const fullAccount = completeLoginAccount(newAccount, loginDomain.value)
     const matchedAccount = loginHistories.find(
-      (history) => history.account === newAccount || history.email === newAccount
+      (history) => history.account === fullAccount || history.email === fullAccount
     )
     if (matchedAccount) {
       info.value.avatar = matchedAccount.avatar
     } else {
-      info.value.avatar = '/logoD.png'
+      info.value.avatar = '/avatar-light.svg'
     }
   }
 )
@@ -553,7 +523,7 @@ const delAccount = (item: UserInfoType) => {
   }
   info.value.account = ''
   info.value.password = ''
-  info.value.avatar = '/logoD.png'
+  info.value.avatar = '/avatar-light.svg'
 }
 
 /**
@@ -562,7 +532,7 @@ const delAccount = (item: UserInfoType) => {
  * */
 const giveAccount = (item: UserInfoType) => {
   const { account, password, avatar, name, uid } = item
-  info.value.account = account || ''
+  info.value.account = shortLoginName(account || '', loginDomain.value)
   info.value.password = password || ''
   info.value.avatar = avatar
   info.value.name = name
@@ -586,16 +556,6 @@ const removeStoredAccount = () => {
   userStore.userInfo = undefined
   settingStore.setAutoLogin(false)
   cancelAutoLoginAndShowManual()
-}
-
-/** 打开服务协议窗口 */
-const openServiceAgreement = async () => {
-  await createModalWindow('服务协议', 'modal-serviceAgreement', 600, 600, 'login')
-}
-
-/** 打开隐私保护协议窗口 */
-const openPrivacyAgreement = async () => {
-  await createModalWindow('隐私保护指引', 'modal-privacyAgreement', 600, 600, 'login')
 }
 
 const closeMenu = (event: MouseEvent) => {
@@ -632,11 +592,6 @@ onBeforeMount(async () => {
 })
 
 onMounted(async () => {
-  // 检查引导状态，只有未完成时才启动引导
-  if (!isGuideCompleted.value) {
-    startTour()
-  }
-
   // 只有在需要登录的情况下才显示登录窗口
   if (!isJumpDirectly.value) {
     await getCurrentWebviewWindow().show()
@@ -657,13 +612,14 @@ onMounted(async () => {
     loginHistories.length > 0 && giveAccount(loginHistories[0])
   }
 
+  void loadLoginDomain()
   window.addEventListener('click', closeMenu, true)
   window.addEventListener('keyup', enterKey)
   if (isDesktopClient) {
     window.addEventListener('pointerdown', handleAutoLoginActivity, true)
     window.addEventListener('keydown', handleAutoLoginActivity, true)
   }
-  await checkUpdate('login', true)
+  await checkUpdate('login', canInstallUpdate)
   timerWorker.postMessage({
     type: 'startTimer',
     msgId: 'checkUpdate',

@@ -1,7 +1,7 @@
 {
   "common": {
     "provider_label": "Provider",
-    "provider_name": "HuLa",
+    "provider_name": "SMJ",
     "tag_new": "New"
   },
   "footer": {
@@ -10,7 +10,7 @@
     "share_joiner": "and",
     "share_cta": "share your valuable ideas",
     "star_popover_title": "Star us on GitHub",
-    "star_popover_desc": "If you enjoy HuLa and want to support us, could you star the repo on GitHub? This tiny action means a lot and keeps us shipping great features.",
+    "star_popover_desc": "If you enjoy SMJ and want to support us, could you star the repo on GitHub? This tiny action means a lot and keeps us shipping great features.",
     "later": "Later",
     "star_button": "Give a Star",
     "issue_popover_title": "Share feedback on GitHub",
@@ -27,25 +27,12 @@
         "dark": "Dark"
       }
     },
-    "chat": {
-      "title": "Chat",
-      "translate_service": "Translation Service",
-      "translate_options": {
-        "tencent": "Tencent Cloud Translate",
-        "youdao": "Youdao Translate"
-      }
-    },
     "ui": {
       "title": "UI",
       "language": "Language",
       "blur": "Gaussian blur",
       "shadow": "Enable Shadow",
-      "font": "Font Family",
-      "menu_name": "Menu Name",
-      "font_options": {
-        "PingFang": "PingFang",
-        "AliFangYuan": "Alibaba Rounded"
-      }
+      "menu_name": "Menu Name"
     },
     "system": {
       "title": "System",
@@ -123,7 +110,7 @@
     "file_scan_progress": "Scanning Progress",
     "usage": "File Scan Progress",
     "used_space": "Used Space",
-    "app_used_space": "Hula Data",
+    "app_used_space": "SMJ Data",
     "free_space": "Free Space",
     "directory": "Directory",
     "curr_dir": "Current directory",

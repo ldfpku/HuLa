@@ -271,6 +271,34 @@ class RustWebSocketClient {
     )
 
     this.listenerController.add(
+      await listen('ws-msg-file-deleted', (event: any) => {
+        info('聊天文件已删除')
+        useMitt.emit(WsResponseMessageType.MSG_FILE_DELETED, event.payload)
+      })
+    )
+
+    this.listenerController.add(
+      await listen('ws-chat-purged', (event: any) => {
+        info('管理员清理了聊天数据')
+        useMitt.emit(WsResponseMessageType.CHAT_PURGED, event.payload)
+      })
+    )
+
+    this.listenerController.add(
+      await listen('ws-meeting-status', (event: any) => {
+        info('会议状态变化')
+        useMitt.emit(WsResponseMessageType.MEETING_STATUS, event.payload)
+      })
+    )
+
+    this.listenerController.add(
+      await listen('ws-mail-new', (event: any) => {
+        info('新邮件')
+        useMitt.emit(WsResponseMessageType.MAIL_NEW, event.payload)
+      })
+    )
+
+    this.listenerController.add(
       await listen('ws-msg-mark-item', (event: any) => {
         info(`消息标记: ${JSON.stringify(event.payload)}`)
         useMitt.emit(WsResponseMessageType.MSG_MARK_ITEM, event.payload)

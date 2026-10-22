@@ -122,6 +122,135 @@ fn resolve_upload_path(
     Ok(canon)
 }
 
+/// 超过这个大小先尝试分片上传：Cloudflare 单个请求最多 100 MB，服务端（mailflare files.ts）分片为 32 MB
+const MULTIPART_THRESHOLD: u64 = 32 * 1024 * 1024;
+const PART_ATTEMPTS: usize = 3;
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct MultipartStart {
+    upload_id: String,
+    part_size: u64,
+    parts: u64,
+}
+
+#[derive(Deserialize)]
+struct MultipartPart {
+    etag: String,
+}
+
+fn upload_url_with(url: &str, pairs: &[(&str, &str)]) -> Result<reqwest::Url, String> {
+    let mut parsed = reqwest::Url::parse(url).map_err(|e| format!("Invalid upload url: {e}"))?;
+    {
+        let mut query = parsed.query_pairs_mut();
+        for (key, value) in pairs {
+            query.append_pair(key, value);
+        }
+    }
+    Ok(parsed)
+}
+
+/// 聊天文件分片上传：POST ?uploads&size 开始，逐片 PUT（失败重试），再 POST 分片清单完成，出错时 DELETE 放弃。
+/// 服务端不支持分片（旧版本）时返回 Ok(false)，调用方退回整个文件 PUT
+async fn upload_in_parts(
+    client: &reqwest::Client,
+    url: &str,
+    file_path: &PathBuf,
+    total: u64,
+    on_progress: &Channel<UploadProgressPayload>,
+) -> Result<bool, String> {
+    let size = total.to_string();
+    let started = match client
+        .post(upload_url_with(url, &[("uploads", ""), ("size", &size)])?)
+        .send()
+        .await
+    {
+        Ok(response) if response.status().is_success() => {
+            response.json::<MultipartStart>().await.ok()
+        }
+        _ => None,
+    };
+    let Some(started) = started.filter(|s| s.part_size > 0 && s.parts > 0) else {
+        return Ok(false);
+    };
+
+    let result = async {
+        let mut file = File::open(file_path)
+            .await
+            .map_err(|e| format!("Failed to open file: {e}"))?;
+        let mut parts = Vec::with_capacity(started.parts as usize);
+        let mut transferred: u64 = 0;
+        for part_number in 1..=started.parts {
+            let len = std::cmp::min(started.part_size, total.saturating_sub(transferred)) as usize;
+            let mut buf = vec![0u8; len];
+            file.read_exact(&mut buf)
+                .await
+                .map_err(|e| format!("Failed to read file: {e}"))?;
+            let body = Bytes::from(buf);
+            let part_url = upload_url_with(
+                url,
+                &[
+                    ("uploadId", &started.upload_id),
+                    ("partNumber", &part_number.to_string()),
+                ],
+            )?;
+            let mut attempt = 0;
+            let etag = loop {
+                attempt += 1;
+                let sent = client
+                    .put(part_url.clone())
+                    .header(reqwest::header::CONTENT_LENGTH, len)
+                    .body(body.clone())
+                    .send()
+                    .await;
+                let failure = match sent {
+                    Ok(response) if response.status().is_success() => {
+                        match response.json::<MultipartPart>().await {
+                            Ok(part) => break part.etag,
+                            Err(e) => format!("Failed to parse part response: {e}"),
+                        }
+                    }
+                    Ok(response) => {
+                        let status = response.status();
+                        let text = response.text().await.unwrap_or_default();
+                        format!("Part {part_number} failed with status {status}: {text}")
+                    }
+                    Err(e) => format!("Part {part_number} request failed: {e}"),
+                };
+                if attempt >= PART_ATTEMPTS {
+                    return Err(failure);
+                }
+            };
+            parts.push(serde_json::json!({ "partNumber": part_number, "etag": etag }));
+            transferred = transferred.saturating_add(len as u64);
+            let _ = on_progress.send(UploadProgressPayload {
+                progress_total: transferred,
+                total,
+            });
+        }
+        let response = client
+            .post(upload_url_with(url, &[("uploadId", &started.upload_id)])?)
+            .json(&serde_json::json!({ "parts": parts }))
+            .send()
+            .await
+            .map_err(|e| format!("Complete request failed: {e}"))?;
+        if !response.status().is_success() {
+            let status = response.status();
+            let text = response.text().await.unwrap_or_default();
+            return Err(format!("Complete failed with status {status}: {text}"));
+        }
+        Ok(())
+    }
+    .await;
+
+    if result.is_err() {
+        if let Ok(abort_url) = upload_url_with(url, &[("uploadId", &started.upload_id)]) {
+            let _ = client.delete(abort_url).send().await;
+        }
+    }
+    result.map(|_| true)
+}
+
 async fn upload_put(
     url: String,
     file_path: PathBuf,
@@ -136,6 +265,21 @@ async fn upload_put(
         .await
         .map_err(|e| format!("Failed to read file metadata: {e}"))?
         .len();
+
+    // 仅允许 https 上传目标，防止将本地文件外泄到任意/内网地址 (SSRF)
+    if !url.starts_with("https://") {
+        return Err("Upload destination must use https".to_string());
+    }
+
+    let client = reqwest::Client::builder()
+        .proxy(crate::websocket::proxy::reqwest_proxy())
+        .build()
+        .map_err(|e| e.to_string())?;
+    if total > MULTIPART_THRESHOLD
+        && upload_in_parts(&client, &url, &file_path, total, &on_progress).await?
+    {
+        return Ok(());
+    }
 
     let chunk_size: usize = 4 * 1024 * 1024;
     let stream = try_unfold(
@@ -160,12 +304,6 @@ async fn upload_put(
         },
     );
 
-    // 仅允许 https 上传目标，防止将本地文件外泄到任意/内网地址 (SSRF)
-    if !url.starts_with("https://") {
-        return Err("Upload destination must use https".to_string());
-    }
-
-    let client = reqwest::Client::new();
     let mut request = client
         .put(url)
         .header(reqwest::header::CONTENT_LENGTH, total)
@@ -268,7 +406,10 @@ async fn qiniu_resumable_upload(
     let mut hasher = should_hash.then(Md5::new);
     let mut contexts: Vec<String> = Vec::new();
 
-    let client = reqwest::Client::new();
+    let client = reqwest::Client::builder()
+        .proxy(crate::websocket::proxy::reqwest_proxy())
+        .build()
+        .map_err(|e| e.to_string())?;
     let mut transferred: u64 = 0;
 
     while transferred < total {

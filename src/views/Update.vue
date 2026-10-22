@@ -37,11 +37,14 @@
   </n-flex>
 </template>
 <script setup lang="tsx">
+import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow'
 import { relaunch } from '@tauri-apps/plugin-process'
 import { check } from '@tauri-apps/plugin-updater'
 import { NCarousel, NCarouselItem } from 'naive-ui'
 import { changeColor } from 'seemly'
 import { useI18n } from 'vue-i18n'
+import { useWindow } from '@/hooks/useWindow.ts'
+import { splitReleaseNotes } from '@/utils/ReleaseInfo'
 
 const list = ref<string[]>([])
 const updating = ref(false)
@@ -49,64 +52,29 @@ const percentage = ref(0)
 const total = ref(0)
 const downloaded = ref(0)
 const { t } = useI18n()
+const { createWebviewWindow } = useWindow()
 
-// https://gitee.com/api/v5/repos/HuLaSpark/HuLa/releases/tags/v${newVersion.value}?access_token=${import.meta.env.VITE_GITEE_TOKEN}
-
-interface GiteeCommitResultStruct {
-  id: number
-  tag_name: string
-  target_commitish: string
-  prerelease: boolean
-  name: string
-  body: string
-  author: unknown
-  created_at: string
-  assets: unknown
+/** 发布说明（邮箱站点 latest.json 的 notes） */
+const setupCommitList = (notes?: string) => {
+  list.value = splitReleaseNotes(notes)
 }
 
-const fetchGiteeReleaseData = async (version: string) => {
-  const apiEndpoint = new URL(`https://gitee.com/api/v5/repos/HuLaSpark/HuLa/releases/tags/v${version}`)
-
-  apiEndpoint.search = new URLSearchParams({
-    access_token: import.meta.env.VITE_GITEE_TOKEN
-  }).toString()
-
-  const response = await fetch(apiEndpoint.toString())
-
-  if (!response.ok) {
-    throw new Error(`API request failed with status ${response.status}`)
-  }
-
-  return (await response.json()) as GiteeCommitResultStruct
-}
-
-const extractCommitMessages = (releaseBody: string) => {
-  const commitmessageRegex = /^\* (.+)/gm
-  const matchs = releaseBody.matchAll(commitmessageRegex)
-  return Array.from(matchs, (match) => match[1])
-}
-
-const setupCommitList = async (version: string) => {
-  try {
-    const releaseData = await fetchGiteeReleaseData(version)
-    list.value = extractCommitMessages(releaseData.body)
-  } catch (err) {
-    console.error(`${t('message.update_window.fetch_commit_failed', { version })}:`, err)
-    list.value =
-      err instanceof Error
-        ? [t('message.update_window.fetch_release_error_with_reason', { reason: err.message })]
-        : [t('message.update_window.fetch_release_error')]
-  }
+/** 下载或安装失败时回到登录窗口，不让用户卡在更新窗口 */
+const backToLogin = async () => {
+  window.$message?.error(t('message.auto_update.install_failed'))
+  await createWebviewWindow('登录', 'login', 320, 448, undefined, false, 320, 448)
+  await getCurrentWebviewWindow().close()
 }
 
 const doUpdate = async () => {
   await check()
     .then(async (e) => {
       if (!e?.available) {
+        await backToLogin()
         return
       }
 
-      await setupCommitList(e.version)
+      setupCommitList(e.body)
 
       await e.downloadAndInstall((event) => {
         switch (event.event) {
@@ -127,8 +95,9 @@ const doUpdate = async () => {
         console.log(e)
       }
     })
-    .catch((e) => {
+    .catch(async (e) => {
       console.log(e)
+      await backToLogin()
     })
     .finally(() => {
       updating.value = false

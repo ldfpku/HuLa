@@ -3,6 +3,9 @@
     <div class="bg-[--bg-edit] w-480px h-fit box-border flex flex-col">
       <n-flex :size="6" vertical>
         <div
+          role="button"
+          :title="t('tooltip.close')"
+          :aria-label="t('tooltip.close')"
           v-if="isMac()"
           @click="editInfo.show = false"
           class="mac-close size-13px shadow-inner bg-#ed6a5eff rounded-50% mt-6px select-none absolute left-6px">
@@ -19,6 +22,7 @@
           v-if="isWindows()"
           class="size-14px cursor-pointer pt-6px select-none absolute right-6px"
           @click="editInfo.show = false">
+          <title>{{ t('tooltip.close') }}</title>
           <use href="#close"></use>
         </svg>
         <span class="h-1px w-full bg-[--line-color]"></span>

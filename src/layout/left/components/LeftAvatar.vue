@@ -1,7 +1,7 @@
 <template>
   <n-popover
     v-model:show="infoShow"
-    :placement="shrinkStatus ? 'bottom-start' : 'right-start'"
+    :placement="isPhoneLayout ? 'top-start' : shrinkStatus ? 'bottom-start' : 'right-start'"
     :show-arrow="false"
     style="padding: 0; background: rgba(255, 255, 255, 0.2); backdrop-filter: blur(10px)"
     trigger="click">
@@ -12,10 +12,13 @@
           :size="34"
           :src="avatarSrc"
           :color="themes.content === ThemeEnum.DARK ? '' : '#fff'"
-          :fallback-src="themes.content === ThemeEnum.DARK ? '/logoL.png' : '/logoD.png'"
+          :fallback-src="themes.content === ThemeEnum.DARK ? '/avatar-dark.svg' : '/avatar-light.svg'"
           round />
 
         <div
+          role="button"
+          :title="t('home.profile_card.online_status')"
+          :aria-label="t('home.profile_card.online_status')"
           class="bg-[--left-bg-color] text-10px rounded-50% size-12px absolute bottom--2px right--2px border-(2px solid [--left-bg-color])"
           @click.stop="openContent(t('home.profile_card.online_status'), 'onlineStatus', 320, 480)">
           <img :src="statusIcon" alt="" class="rounded-50% size-full" />
@@ -35,7 +38,7 @@
             :src="avatarSrc"
             round
             :color="themes.content === ThemeEnum.DARK ? '' : '#fff'"
-            :fallback-src="themes.content === ThemeEnum.DARK ? '/logoL.png' : '/logoD.png'"
+            :fallback-src="themes.content === ThemeEnum.DARK ? '/avatar-dark.svg' : '/avatar-light.svg'"
             class="size-68px text-20px select-none cursor-default" />
 
           <n-flex :size="10" class="text-[--text-color]" justify="center" vertical>
@@ -64,22 +67,6 @@
         <span class="text-[--info-text-color]">{{ t('home.profile_card.labels.location') }}</span>
         <span>{{ currentUserLocation || t('home.profile_card.location_unknown') }}</span>
       </n-flex>
-      <!-- 动态 -->
-      <n-flex :size="40" class="select-none">
-        <span class="text-[--info-text-color]">{{ t('home.profile_card.labels.activities') }}</span>
-        <n-image-group>
-          <n-flex :class="shrinkStatus ? 'overflow-hidden w-180px' : ''" :size="6" :wrap="false">
-            <n-image
-              v-for="n in 4"
-              :key="n"
-              class="rounded-8px"
-              preview-disabled
-              src="https://07akioni.oss-cn-beijing.aliyuncs.com/07akioni.jpeg"
-              width="50" />
-          </n-flex>
-        </n-image-group>
-      </n-flex>
-
       <n-flex :size="40" align="center" justify="center">
         <n-button secondary @click="handleEditing">{{ t('home.profile_card.buttons.edit') }}</n-button>
       </n-flex>
@@ -87,6 +74,7 @@
   </n-popover>
 </template>
 <script setup lang="ts">
+import { isPhoneLayout } from '@/hooks/usePhoneLayout'
 import { storeToRefs } from 'pinia'
 import { useI18n } from 'vue-i18n'
 import { ThemeEnum } from '@/enums'

@@ -7,12 +7,18 @@
       :class="
         groupStore.getUserInfo(uid)?.wearingItemId === '6' ? 'object-contain bg-#e9e9e980 dark:bg-#111' : 'object-cover'
       "
-      :src="groupStore.getUserInfo(uid)?.wearingItemId === '6' ? '/hula.png' : '/img/dispersion-bg.png'"
+      :src="'/img/dispersion-bg.png'"
       alt="" />
     <div class="h-20px"></div>
     <n-flex vertical :size="20" class="size-full p-10px box-border z-10 relative">
       <n-flex vertical :size="20">
-        <div class="avatar-wrapper relative" :class="{ 'cursor-pointer': isCurrentUserUid }" @click="openEditInfo">
+        <div
+          role="button"
+          :title="isCurrentUserUid ? t('tooltip.edit_profile') : undefined"
+          :aria-label="isCurrentUserUid ? t('tooltip.edit_profile') : undefined"
+          class="avatar-wrapper relative"
+          :class="{ 'cursor-pointer': isCurrentUserUid }"
+          @click="openEditInfo">
           <div v-if="isCurrentUserUid" class="hover-area absolute top-8px left-8px w-80px h-80px rounded-full z-20">
             <div class="avatar-hover absolute inset-0 rounded-full"></div>
           </div>
@@ -23,7 +29,7 @@
             :size="80"
             :src="avatarSrc"
             :color="themes.content === ThemeEnum.DARK ? '' : '#fff'"
-            :fallback-src="themes.content === ThemeEnum.DARK ? '/logoL.png' : '/logoD.png'" />
+            :fallback-src="themes.content === ThemeEnum.DARK ? '/avatar-dark.svg' : '/avatar-light.svg'" />
         </div>
 
         <!-- 在线状态点 -->
@@ -159,7 +165,7 @@
                   :height="38"
                   :src="cachedStore.badgeById(id)?.img"
                   :color="themes.content === ThemeEnum.DARK ? '' : '#c8c8c8'"
-                  :fallback-src="themes.content === ThemeEnum.DARK ? '/logoL.png' : '/logoD.png'"
+                  :fallback-src="themes.content === ThemeEnum.DARK ? '/avatar-dark.svg' : '/avatar-light.svg'"
                   @load="badgeLoadedMap[id] = true"
                   @error="badgeLoadedMap[id] = true" />
                 <n-popover trigger="hover" :show-arrow="false" placement="top">
@@ -176,22 +182,6 @@
           </template>
         </n-flex>
       </n-flex>
-      <!-- 动态 -->
-      <n-flex :size="40" class="select-none">
-        <span class="text-[--info-text-color]">{{ t('home.profile_card.labels.activities') }}</span>
-        <n-image-group>
-          <n-flex :size="6" :wrap="false">
-            <n-image
-              v-for="n in 4"
-              :key="n"
-              preview-disabled
-              class="rounded-8px"
-              width="50"
-              src="https://07akioni.oss-cn-beijing.aliyuncs.com/07akioni.jpeg" />
-          </n-flex>
-        </n-image-group>
-      </n-flex>
-
       <n-flex justify="center" align="center" :size="40">
         <n-button v-if="isCurrentUserUid" secondary type="info" @click="openEditInfo">
           {{ t('home.profile_card.buttons.edit') }}

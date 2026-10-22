@@ -18,6 +18,7 @@
             @click="handleVoiceClick"
             :class="mobilePanelState === MobilePanelStateEnum.VOICE ? 'text-#034fbc' : ''"
             class="w-25px h-25px mt-2px outline-none">
+            <title>{{ t('tooltip.voice_input') }}</title>
             <use href="#voice"></use>
           </svg>
         </div>
@@ -75,9 +76,11 @@
                   trigger="click"
                   placement="top-end">
                   <svg @click="arrow = true" v-if="!arrow" class="w-22px h-22px mt-2px outline-none">
+                    <title>{{ t('tooltip.send_options') }}</title>
                     <use href="#down"></use>
                   </svg>
                   <svg @click="arrow = false" v-else class="w-22px h-22px mt-2px outline-none">
+                    <title>{{ t('tooltip.send_options') }}</title>
                     <use href="#up"></use>
                   </svg>
                   <template #action>
@@ -135,7 +138,7 @@
                   :size="22"
                   :src="AvatarUtils.getAvatarUrl(item.avatar)"
                   :color="themes.content === ThemeEnum.DARK ? '' : '#fff'"
-                  :fallback-src="themes.content === ThemeEnum.DARK ? '/logoL.png' : '/logoD.png'"
+                  :fallback-src="themes.content === ThemeEnum.DARK ? '/avatar-dark.svg' : '/avatar-light.svg'"
                   :render-placeholder="() => null"
                   :intersection-observer-options="{
                     root: '#image-chat-ait'
@@ -188,6 +191,7 @@
           :class="msgInput ? 'grid-cols-[2rem_3rem]' : 'grid-cols-[2rem_2rem]'">
           <div class="w-full flex-center h-full">
             <svg @click="handleEmojiClick" class="w-25px h-25px mt-2px outline-none iconpark-icon">
+              <title>{{ t('tooltip.emoji') }}</title>
               <use :href="mobilePanelState === MobilePanelStateEnum.EMOJI ? '#face' : '#smiling-face'"></use>
             </svg>
           </div>
@@ -209,6 +213,7 @@
               @click="handleMoreClick"
               :class="mobilePanelState === MobilePanelStateEnum.MORE ? 'rotate-45' : 'rotate-0'"
               class="w-25px h-25px mt-2px outline-none iconpark-icon transition-transform duration-300 ease">
+              <title>{{ t('tooltip.more_features') }}</title>
               <use href="#add-one"></use>
             </svg>
           </div>

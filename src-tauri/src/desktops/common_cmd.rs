@@ -24,6 +24,7 @@ use std::sync::atomic::AtomicU64;
 #[cfg(target_os = "macos")]
 use std::sync::atomic::Ordering;
 use std::thread;
+#[cfg(target_os = "macos")]
 use std::time::Duration;
 use tauri::AppHandle;
 use tauri::LogicalSize;

@@ -63,6 +63,12 @@ export const getReplyContent = (message: MsgType): string => {
       break
     }
 
+    case MsgEnum.MAIL_CARD: {
+      // 邮件卡片：显示邮件主题
+      content = `[邮件] ${message.body.subject || ''}`
+      break
+    }
+
     case MsgEnum.AI: {
       // AI消息
       content = `'[AI消息]'${message.body.content || ''}`

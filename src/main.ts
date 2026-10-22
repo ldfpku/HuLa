@@ -1,5 +1,6 @@
 import 'uno.css'
 import '@unocss/reset/eric-meyer.css' // unocss提供的浏览器默认样式重置
+import '@/styles/scss/global/fonts.scss' // 品牌字体只在入口加载一次，不放进每个组件都会注入的 variable.scss
 import TlbsMap from 'tlbs-map-vue'
 import { setupI18n } from '@/services/i18n'
 import { AppException } from '@/common/exception.ts'

@@ -1,13 +1,6 @@
 <template>
   <component
-    v-memo="[
-      message.message.id,
-      message.message.status,
-      message.message.body?.translatedText?.text || '',
-      uploadProgress,
-      searchKeyword,
-      historyMode
-    ]"
+    v-memo="[message.message.id, message.message.status, uploadProgress, searchKeyword, historyMode]"
     v-if="historyMode || !hasBubble(message.message.type)"
     :is="componentMap[message.message.type]"
     :body="message.message.body"
@@ -74,7 +67,7 @@
                 @click="handleAvatarClick(message.fromUser.uid, message.message.id)"
                 class="select-none"
                 :color="themes.content === ThemeEnum.DARK ? '' : '#fff'"
-                :fallback-src="themes.content === ThemeEnum.DARK ? '/logoL.png' : '/logoD.png'"
+                :fallback-src="themes.content === ThemeEnum.DARK ? '/avatar-dark.svg' : '/avatar-light.svg'"
                 :src="getAvatarSrc(message.fromUser.uid)"
                 :class="isMe ? '' : 'mr-10px'" />
             </ContextMenu>
@@ -108,7 +101,7 @@
                       class="select-none"
                       :size="18"
                       round
-                      :fallback-src="themes.content === ThemeEnum.DARK ? '/logoL.png' : '/logoD.png'"
+                      :fallback-src="themes.content === ThemeEnum.DARK ? '/avatar-dark.svg' : '/avatar-light.svg'"
                       :src="cachedStore.badgeById(groupStore.getUserInfo(fromUser.uid)?.wearingItemId)?.img" />
                   </template>
                   <span>
@@ -166,14 +159,7 @@
             @reply-emoji="handleEmojiSelect($event, message)"
             @click="handleMsgClick(message)">
             <component
-              v-memo="[
-                message.message.id,
-                message.message.status,
-                message.message.body?.translatedText?.text || '',
-                uploadProgress,
-                searchKeyword,
-                historyMode
-              ]"
+              v-memo="[message.message.id, message.message.status, uploadProgress, searchKeyword, historyMode]"
               :class="[
                 message.message.type === MsgEnum.VOICE ? 'select-none cursor-pointer' : 'select-text cursor-text',
                 !isSpecialMsgType(message.message.type) ? (isMe ? 'bubble-oneself' : 'bubble') : '',
@@ -198,41 +184,15 @@
               :search-keyword="searchKeyword"
               :history-mode="historyMode" />
 
-            <!-- 显示翻译文本 -->
-            <Transition name="fade-translate" appear mode="out-in">
-              <div v-if="message.message.body.translatedText" class="translated-text cursor-default flex flex-col">
-                <n-flex align="center" justify="space-between" class="mb-6px">
-                  <n-flex align="center" :size="4">
-                    <span class="text-(12px #909090)">{{ message.message.body.translatedText.provider }}</span>
-                    <svg class="size-12px">
-                      <use href="#success"></use>
-                    </svg>
-
-                    <n-tooltip trigger="hover">
-                      <template #trigger>
-                        <svg
-                          class="pl-6px size-10px cursor-pointer hover:color-#909090 hover:transition-colors"
-                          @click="handleCopyTranslation(message.message.body.translatedText.text)">
-                          <use href="#copy"></use>
-                        </svg>
-                      </template>
-                      <span>复制翻译</span>
-                    </n-tooltip>
-                  </n-flex>
-                  <svg class="size-10px cursor-pointer" @click="message.message.body.translatedText = null">
-                    <use href="#close"></use>
-                  </svg>
-                </n-flex>
-                <p class="select-text cursor-text">{{ message.message.body.translatedText.text }}</p>
-              </div>
-            </Transition>
-
             <!-- 消息状态指示器 -->
             <div v-if="isMe" class="absolute -left-6 top-2">
               <n-icon v-if="message.message.status === MessageStatusEnum.SENDING" class="text-gray-400">
                 <img class="size-16px" src="@/assets/img/loading-one.svg" alt="" />
               </n-icon>
               <n-icon
+                role="button"
+                :title="t('tooltip.retry_send')"
+                :aria-label="t('tooltip.retry_send')"
                 v-if="message.message.status === MessageStatusEnum.FAILED"
                 class="text-#d5304f cursor-pointer"
                 @click.stop="handleRetry(message)">
@@ -260,7 +220,7 @@
               round
               :size="20"
               :color="themes.content === ThemeEnum.DARK ? '' : '#fff'"
-              :fallback-src="themes.content === ThemeEnum.DARK ? '/logoL.png' : '/logoD.png'"
+              :fallback-src="themes.content === ThemeEnum.DARK ? '/avatar-dark.svg' : '/avatar-light.svg'"
               :src="getAvatarSrc(message.message.body.reply.uid)" />
             <span>{{ `${message.message.body.reply.username}: ` }}</span>
             <span class="content-span">
@@ -322,6 +282,7 @@ import Emoji from './Emoji.vue'
 import File from './File.vue'
 import Image from './Image.vue'
 import Location from './Location.vue'
+import MailCard from './MailCard.vue'
 import MergeMessage from './MergeMessage.vue'
 import BotMessage from './special/BotMessage.vue'
 import RecallMessage from './special/RecallMessage.vue'
@@ -472,7 +433,8 @@ const componentMap: Partial<Record<MsgEnum, Component>> = {
   [MsgEnum.RECALL]: RecallMessage,
   [MsgEnum.BOT]: BotMessage,
   [MsgEnum.MERGE]: MergeMessage,
-  [MsgEnum.LOCATION]: Location
+  [MsgEnum.LOCATION]: Location,
+  [MsgEnum.MAIL_CARD]: MailCard
 }
 
 const isSpecialMsgType = (type: number): boolean => {
@@ -483,7 +445,8 @@ const isSpecialMsgType = (type: number): boolean => {
     type === MsgEnum.VIDEO ||
     type === MsgEnum.FILE ||
     type === MsgEnum.MERGE ||
-    type === MsgEnum.LOCATION
+    type === MsgEnum.LOCATION ||
+    type === MsgEnum.MAIL_CARD
   )
 }
 
@@ -553,13 +516,6 @@ const handleRetry = (item: MessageType): void => {
 }
 
 // 处理复制翻译文本
-const handleCopyTranslation = (text: string) => {
-  if (text) {
-    navigator.clipboard.writeText(text)
-    window.$message.success('复制成功')
-  }
-}
-
 const hasBubble = (type: MsgEnum) => {
   return !(type === MsgEnum.RECALL || type === MsgEnum.SYSTEM || type === MsgEnum.BOT)
 }

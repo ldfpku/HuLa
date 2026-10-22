@@ -1,13 +1,13 @@
 /// <reference types="vite/client" />
 interface ImportMetaEnv {
-  /** 后端项目地址 */
-  readonly VITE_SERVICE_URL: string
-  /** 客户端项目地址 */
-  readonly VITE_PC_URL: string
   /** 项目名称 */
   readonly VITE_APP_NAME: string
-  /** giteeToken */
-  readonly VITE_GITEE_TOKEN: string
+  /** 网页版开发时 /api 代理到的服务端 */
+  readonly VITE_WEB_PROXY_TARGET?: string
+  /** 桌面版发布说明，打包流程从发布标签写入 */
+  readonly VITE_RELEASE_NOTES?: string
+  /** 打包时间（vite.config.ts 写入），作为桌面版发布日期 */
+  readonly VITE_BUILD_TIME?: string
 }
 
 interface ImportMeta {

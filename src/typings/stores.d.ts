@@ -50,7 +50,6 @@ declare namespace STO {
       /** 是否双击打开独立会话窗口 */
       isDouble: boolean
       /** 翻译提供商 */
-      translate: 'youdao' | 'tencent'
     }
     /** 快捷键设置 */
     shortcuts: {
@@ -65,8 +64,6 @@ declare namespace STO {
     page: {
       /** 是否开启阴影 */
       shadow: boolean
-      /** 字体 */
-      fonts: string
       /** 高斯模糊 */
       blur: boolean
       lang: string

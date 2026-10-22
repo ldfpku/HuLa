@@ -1340,5 +1340,7 @@ export const messageStrategyMap: Record<MsgEnum, MessageStrategy> = {
   [MsgEnum.BOT]: unsupportedMessageStrategy,
   [MsgEnum.VIDEO_CALL]: videoCallMessageStrategy,
   [MsgEnum.AUDIO_CALL]: audioCallMessageStrategy,
-  [MsgEnum.LOCATION]: locationMessageStrategy
+  [MsgEnum.LOCATION]: locationMessageStrategy,
+  // 邮件卡片只由服务端生成，客户端不发送
+  [MsgEnum.MAIL_CARD]: unsupportedMessageStrategy
 }
