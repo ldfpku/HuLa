@@ -5,6 +5,7 @@ use serde::Deserialize;
 use serde::Serialize;
 use std::{collections::HashMap, path::PathBuf};
 use tauri::{AppHandle, Manager, ipc::Channel, path::BaseDirectory};
+use tauri_plugin_fs::FsExt;
 use tokio::{fs::File, io::AsyncReadExt};
 
 #[derive(Clone, Serialize)]
@@ -76,9 +77,16 @@ fn resolve_upload_path(
     path: &str,
     base_dir: Option<&str>,
 ) -> Result<PathBuf, String> {
-    // 禁止绝对路径：上传文件必须位于受控的应用目录内，防止读取任意本地文件
+    // 绝对路径只允许已在文件系统作用域内的文件（例如用户在文件选择框里选中的文件，
+    // dialog 插件会把它们加入作用域），防止前端读取任意本地文件
     if PathBuf::from(path).is_absolute() {
-        return Err("Absolute paths are not allowed for upload".to_string());
+        let canon = PathBuf::from(path)
+            .canonicalize()
+            .map_err(|e| format!("Failed to canonicalize upload path: {e}"))?;
+        if !app_handle.fs_scope().is_allowed(&canon) {
+            return Err("Upload path is outside the allowed file scope".to_string());
+        }
+        return Ok(canon);
     }
     // 必须显式指定受控基础目录
     let Some(base_dir) = base_dir else {

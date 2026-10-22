@@ -2,7 +2,11 @@
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default-capability",
   "description": "Capability for the main window",
-  "platforms": ["macOS", "windows", "linux"],
+  "platforms": [
+    "macOS",
+    "windows",
+    "linux"
+  ],
   "windows": [
     "*"
   ],
@@ -115,21 +119,43 @@
       "identifier": "fs:write-files",
       "allow": [
         {
-          "path": [
-        "$APPCONFIG/**",
-        "$APPDATA/**",
-        "$APPLOCALDATA/**",
-        "$APPCACHE/**",
-        "$APPLOG/**",
-        "$RESOURCE/**",
-        "$TEMP/**",
-        "$DOWNLOAD/**",
-        "$DOCUMENT/**",
-        "$PICTURE/**",
-        "$VIDEO/**",
-        "$MUSIC/**",
-        "$PUBLIC/**"
-      ]
+          "path": "$APPCONFIG/**"
+        },
+        {
+          "path": "$APPDATA/**"
+        },
+        {
+          "path": "$APPLOCALDATA/**"
+        },
+        {
+          "path": "$APPCACHE/**"
+        },
+        {
+          "path": "$APPLOG/**"
+        },
+        {
+          "path": "$RESOURCE/**"
+        },
+        {
+          "path": "$TEMP/**"
+        },
+        {
+          "path": "$DOWNLOAD/**"
+        },
+        {
+          "path": "$DOCUMENT/**"
+        },
+        {
+          "path": "$PICTURE/**"
+        },
+        {
+          "path": "$VIDEO/**"
+        },
+        {
+          "path": "$MUSIC/**"
+        },
+        {
+          "path": "$PUBLIC/**"
         }
       ]
     },
@@ -137,21 +163,43 @@
       "identifier": "fs:allow-mkdir",
       "allow": [
         {
-          "path": [
-        "$APPCONFIG/**",
-        "$APPDATA/**",
-        "$APPLOCALDATA/**",
-        "$APPCACHE/**",
-        "$APPLOG/**",
-        "$RESOURCE/**",
-        "$TEMP/**",
-        "$DOWNLOAD/**",
-        "$DOCUMENT/**",
-        "$PICTURE/**",
-        "$VIDEO/**",
-        "$MUSIC/**",
-        "$PUBLIC/**"
-      ]
+          "path": "$APPCONFIG/**"
+        },
+        {
+          "path": "$APPDATA/**"
+        },
+        {
+          "path": "$APPLOCALDATA/**"
+        },
+        {
+          "path": "$APPCACHE/**"
+        },
+        {
+          "path": "$APPLOG/**"
+        },
+        {
+          "path": "$RESOURCE/**"
+        },
+        {
+          "path": "$TEMP/**"
+        },
+        {
+          "path": "$DOWNLOAD/**"
+        },
+        {
+          "path": "$DOCUMENT/**"
+        },
+        {
+          "path": "$PICTURE/**"
+        },
+        {
+          "path": "$VIDEO/**"
+        },
+        {
+          "path": "$MUSIC/**"
+        },
+        {
+          "path": "$PUBLIC/**"
         }
       ]
     },
@@ -159,21 +207,43 @@
       "identifier": "fs:read-dirs",
       "allow": [
         {
-          "path": [
-        "$APPCONFIG/**",
-        "$APPDATA/**",
-        "$APPLOCALDATA/**",
-        "$APPCACHE/**",
-        "$APPLOG/**",
-        "$RESOURCE/**",
-        "$TEMP/**",
-        "$DOWNLOAD/**",
-        "$DOCUMENT/**",
-        "$PICTURE/**",
-        "$VIDEO/**",
-        "$MUSIC/**",
-        "$PUBLIC/**"
-      ]
+          "path": "$APPCONFIG/**"
+        },
+        {
+          "path": "$APPDATA/**"
+        },
+        {
+          "path": "$APPLOCALDATA/**"
+        },
+        {
+          "path": "$APPCACHE/**"
+        },
+        {
+          "path": "$APPLOG/**"
+        },
+        {
+          "path": "$RESOURCE/**"
+        },
+        {
+          "path": "$TEMP/**"
+        },
+        {
+          "path": "$DOWNLOAD/**"
+        },
+        {
+          "path": "$DOCUMENT/**"
+        },
+        {
+          "path": "$PICTURE/**"
+        },
+        {
+          "path": "$VIDEO/**"
+        },
+        {
+          "path": "$MUSIC/**"
+        },
+        {
+          "path": "$PUBLIC/**"
         }
       ]
     },
@@ -181,21 +251,43 @@
       "identifier": "fs:read-files",
       "allow": [
         {
-          "path": [
-        "$APPCONFIG/**",
-        "$APPDATA/**",
-        "$APPLOCALDATA/**",
-        "$APPCACHE/**",
-        "$APPLOG/**",
-        "$RESOURCE/**",
-        "$TEMP/**",
-        "$DOWNLOAD/**",
-        "$DOCUMENT/**",
-        "$PICTURE/**",
-        "$VIDEO/**",
-        "$MUSIC/**",
-        "$PUBLIC/**"
-      ]
+          "path": "$APPCONFIG/**"
+        },
+        {
+          "path": "$APPDATA/**"
+        },
+        {
+          "path": "$APPLOCALDATA/**"
+        },
+        {
+          "path": "$APPCACHE/**"
+        },
+        {
+          "path": "$APPLOG/**"
+        },
+        {
+          "path": "$RESOURCE/**"
+        },
+        {
+          "path": "$TEMP/**"
+        },
+        {
+          "path": "$DOWNLOAD/**"
+        },
+        {
+          "path": "$DOCUMENT/**"
+        },
+        {
+          "path": "$PICTURE/**"
+        },
+        {
+          "path": "$VIDEO/**"
+        },
+        {
+          "path": "$MUSIC/**"
+        },
+        {
+          "path": "$PUBLIC/**"
         }
       ]
     },
@@ -203,21 +295,43 @@
       "identifier": "fs:allow-copy-file",
       "allow": [
         {
-          "path": [
-        "$APPCONFIG/**",
-        "$APPDATA/**",
-        "$APPLOCALDATA/**",
-        "$APPCACHE/**",
-        "$APPLOG/**",
-        "$RESOURCE/**",
-        "$TEMP/**",
-        "$DOWNLOAD/**",
-        "$DOCUMENT/**",
-        "$PICTURE/**",
-        "$VIDEO/**",
-        "$MUSIC/**",
-        "$PUBLIC/**"
-      ]
+          "path": "$APPCONFIG/**"
+        },
+        {
+          "path": "$APPDATA/**"
+        },
+        {
+          "path": "$APPLOCALDATA/**"
+        },
+        {
+          "path": "$APPCACHE/**"
+        },
+        {
+          "path": "$APPLOG/**"
+        },
+        {
+          "path": "$RESOURCE/**"
+        },
+        {
+          "path": "$TEMP/**"
+        },
+        {
+          "path": "$DOWNLOAD/**"
+        },
+        {
+          "path": "$DOCUMENT/**"
+        },
+        {
+          "path": "$PICTURE/**"
+        },
+        {
+          "path": "$VIDEO/**"
+        },
+        {
+          "path": "$MUSIC/**"
+        },
+        {
+          "path": "$PUBLIC/**"
         }
       ]
     },
@@ -225,21 +339,43 @@
       "identifier": "fs:allow-read-text-file",
       "allow": [
         {
-          "path": [
-        "$APPCONFIG/**",
-        "$APPDATA/**",
-        "$APPLOCALDATA/**",
-        "$APPCACHE/**",
-        "$APPLOG/**",
-        "$RESOURCE/**",
-        "$TEMP/**",
-        "$DOWNLOAD/**",
-        "$DOCUMENT/**",
-        "$PICTURE/**",
-        "$VIDEO/**",
-        "$MUSIC/**",
-        "$PUBLIC/**"
-      ]
+          "path": "$APPCONFIG/**"
+        },
+        {
+          "path": "$APPDATA/**"
+        },
+        {
+          "path": "$APPLOCALDATA/**"
+        },
+        {
+          "path": "$APPCACHE/**"
+        },
+        {
+          "path": "$APPLOG/**"
+        },
+        {
+          "path": "$RESOURCE/**"
+        },
+        {
+          "path": "$TEMP/**"
+        },
+        {
+          "path": "$DOWNLOAD/**"
+        },
+        {
+          "path": "$DOCUMENT/**"
+        },
+        {
+          "path": "$PICTURE/**"
+        },
+        {
+          "path": "$VIDEO/**"
+        },
+        {
+          "path": "$MUSIC/**"
+        },
+        {
+          "path": "$PUBLIC/**"
         }
       ]
     },
