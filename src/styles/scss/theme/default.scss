@@ -2,23 +2,23 @@
 :root {
   .default {
     // 侧边栏样式
-    --left-bg-color: #64a29c;
+    --left-bg-color: #034fbc;
     --left-active-bg-color: rgba(222, 222, 222, 0.2);
     --left-text-color: #e3e3e3;
     --left-icon-color: #e3e3e3;
     --left-active-hover: #f1f1f1;
     --left-bg-hover: rgba(255, 255, 255, 0.2);
-    --left-active-icon-color: #f1f1f1;
+    --left-active-icon-color: #fa8c1f; // BIS B21：橙色只用于选中状态
     --left-win-icon-color: rgba(255, 255, 255, 0.4);
 
     // 包含边框的选中样式
-    --border-active-color: #64a29c;
+    --border-active-color: #034fbc;
 
     // 右边布局内容背景
     --right-theme-bg-color: radial-gradient(
       circle at top left,
-      rgba(255, 209, 255, 0.3) 20%,
-      rgba(130, 193, 187, 0.3) 100%
+      rgba(237, 242, 251, 1) 20%,
+      rgba(210, 223, 246, 0.6) 100%
     );
 
     // 聊天框主体样式
@@ -27,7 +27,7 @@
     --right-chat-footer-line-color: rgba(99, 99, 99, 0.1);
 
     // 消息列表样式
-    --msg-active-color: #13987f;
+    --msg-active-color: #034fbc;
     // 群公告消息背景色
     --group-notice-bg: #fff;
 
@@ -42,23 +42,23 @@
 html[data-theme='dark'] {
   .default {
     // 侧边栏样式
-    --left-bg-color: rgba(62, 101, 100, 0.8);
+    --left-bg-color: #0a1f54;
     --left-active-bg-color: rgba(222, 222, 222, 0.1);
     --left-text-color: #ccc;
     --left-icon-color: #ccc;
-    --left-active-hover: rgba(26, 178, 146, 0.8);
+    --left-active-hover: rgba(3, 79, 188, 0.8);
     --left-bg-hover: rgba(133, 133, 133, 0.2);
-    --left-active-icon-color: #1ab292;
-    --left-win-icon-color: #1ab292;
+    --left-active-icon-color: #fa8c1f;
+    --left-win-icon-color: #7a9fe2;
 
     // 包含边框的选中样式
-    --border-active-color: #64a29c;
+    --border-active-color: #7a9fe2;
 
     // 右边布局内容背景
     --right-theme-bg-color: radial-gradient(
       circle at top left,
-      rgba(255, 209, 255, 0.2) 0%,
-      rgba(130, 193, 187, 0.2) 150%
+      rgba(10, 31, 84, 0.35) 0%,
+      rgba(3, 79, 188, 0.15) 150%
     );
 
     // 聊天框主体样式
@@ -67,7 +67,7 @@ html[data-theme='dark'] {
     --right-chat-footer-line-color: #555;
 
     // 消息列表样式
-    --msg-active-color: rgba(19, 152, 127, 0.4);
+    --msg-active-color: rgba(3, 79, 188, 0.4);
     // 群公告消息背景色
     --group-notice-bg: rgba(133, 133, 133, 0.2);
 

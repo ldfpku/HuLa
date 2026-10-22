@@ -38,7 +38,7 @@
 
             <template #header-extra>
               <div class="justify-self-end self-center text-12px text-right flex gap-1 items-center">
-                <span class="text-#13987F">{{ announcement.readCount || 0 }}人已读</span>
+                <span class="text-#034FBC">{{ announcement.readCount || 0 }}人已读</span>
               </div>
             </template>
 

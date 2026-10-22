@@ -3071,8 +3071,8 @@ watch(
 
   :deep(.link-node),
   :deep(.footnote-link) {
-    --link-color: #13987f;
-    color: #13987f;
+    --link-color: #034fbc;
+    color: #034fbc;
   }
 }
 
@@ -3241,8 +3241,8 @@ watch(
         }
 
         &.model-item-active {
-          border-color: #13987f;
-          background: rgba(19, 152, 127, 0.1);
+          border-color: #034fbc;
+          background: rgba(3, 79, 188, 0.1);
         }
 
         .model-info {
@@ -3358,8 +3358,8 @@ watch(
         }
 
         &.active {
-          border-color: #13987f;
-          background: rgba(19, 152, 127, 0.1);
+          border-color: #034fbc;
+          background: rgba(3, 79, 188, 0.1);
         }
 
         .role-name {

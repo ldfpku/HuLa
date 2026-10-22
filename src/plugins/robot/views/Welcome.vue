@@ -148,8 +148,8 @@ const examplesList: Example = [
             </NFlex>
 
             <svg
-              style={{ filter: 'drop-shadow(0 0 0.6em #13987f)' }}
-              class="color-#13987f p-[10px_4px] size-26px opacity-0 absolute top-1/2 right-24px transform -translate-x-1/2 -translate-y-1/2">
+              style={{ filter: 'drop-shadow(0 0 0.6em #034fbc)' }}
+              class="color-#034fbc p-[10px_4px] size-26px opacity-0 absolute top-1/2 right-24px transform -translate-x-1/2 -translate-y-1/2">
               <use href="#Up-GPT"></use>
             </svg>
           </NFlex>
@@ -180,8 +180,8 @@ const examplesList: Example = [
 
         <NFlex vertical justify="center" align="center" class="foot">
           <svg
-            style={{ filter: 'drop-shadow(0 0 0.6em #13987f)' }}
-            class="color-#13987f p-[10px_4px] size-26px opacity-0">
+            style={{ filter: 'drop-shadow(0 0 0.6em #034fbc)' }}
+            class="color-#034fbc p-[10px_4px] size-26px opacity-0">
             <use href="#Up-GPT"></use>
           </svg>
           <p class="text-(14px [--chat-text-color]) opacity-0">前往阅读</p>
@@ -210,7 +210,7 @@ const examplesList: Example = [
 
         <NFlex justify={'space-between'} align={'center'} class={'foot'}>
           <p class={'text-(14px [--chat-text-color]) font-500 pl-6px opacity-0'}>试一试</p>
-          <svg style={{ filter: 'drop-shadow(0 0 0.6em #13987f)' }} class="color-#13987f pr-6px size-26px opacity-0">
+          <svg style={{ filter: 'drop-shadow(0 0 0.6em #034fbc)' }} class="color-#034fbc pr-6px size-26px opacity-0">
             <use href="#Up-GPT"></use>
           </svg>
         </NFlex>
@@ -227,7 +227,7 @@ const examplesList: Example = [
     .search-item:not(:hover) {
       @apply blur-md scale-94;
     }
-    @apply outline outline-2 outline-#13987f outline-offset;
+    @apply outline outline-2 outline-#034fbc outline-offset;
   }
 }
 

@@ -5,7 +5,7 @@
       <p class="text-(12px #777)">{{ t('setting.footer.like_product') }}</p>
       <n-popover v-model:show="isStar" style="padding: 0" trigger="hover" placement="top">
         <template #trigger>
-          <p class="text-(12px #13987f) cursor-pointer">{{ t('setting.footer.star_cta') }}</p>
+          <p class="text-(12px #034fbc) cursor-pointer">{{ t('setting.footer.star_cta') }}</p>
         </template>
         <n-flex vertical class="w-360px h-fit">
           <video class="w-full h-240px rounded-t-8px object-cover" src="../../../assets/video/star.mp4" autoplay loop />
@@ -34,7 +34,7 @@
       <p class="text-(12px #777)">{{ t('setting.footer.share_joiner') }}</p>
       <n-popover v-model:show="isIssue" style="padding: 0" trigger="hover" placement="top-end">
         <template #trigger>
-          <p class="text-(12px #13987f) cursor-pointer">{{ t('setting.footer.share_cta') }}</p>
+          <p class="text-(12px #034fbc) cursor-pointer">{{ t('setting.footer.share_cta') }}</p>
         </template>
         <n-flex vertical class="w-360px h-fit">
           <video

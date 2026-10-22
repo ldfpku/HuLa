@@ -129,7 +129,7 @@
               class="w-full flex items-center px-12px"
               :class="[
                 'cursor-pointer select-none transition-colors duration-150',
-                selectedList.includes(item.uid) ? 'bg-#13987f18' : ''
+                selectedList.includes(item.uid) ? 'bg-#034fbc18' : ''
               ]">
               <template #default>
                 <div class="flex items-center gap-10px px-8px py-10px">

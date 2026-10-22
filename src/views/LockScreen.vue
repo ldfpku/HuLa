@@ -50,7 +50,7 @@
             style="
               width: 320px;
               border: 2px solid rgba(255, 255, 255, 0.1);
-              border-bottom-color: rgba(19, 152, 127, 1);
+              border-bottom-color: rgba(3, 79, 188, 1);
               background-color: #404040;
               color: #fff;
             "
@@ -68,7 +68,7 @@
                 <template #trigger>
                   <svg
                     @click.stop="unlock"
-                    class="size-16px color-#e3e3e3 mr-6px p-[4px_6px] rounded-8px cursor-pointer transition-all duration-300 ease-in-out hover:bg-#13987fe6">
+                    class="size-16px color-#e3e3e3 mr-6px p-[4px_6px] rounded-8px cursor-pointer transition-all duration-300 ease-in-out hover:bg-#034fbce6">
                     <use href="#arrow-right"></use>
                   </svg>
                 </template>

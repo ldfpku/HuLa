@@ -103,14 +103,14 @@ const isBotUser = computed(() => currentSession.value?.account === UserType.BOT)
     &::before {
       opacity: 1;
       transform: scaleY(1.2);
-      background: #13987f80;
+      background: #034fbc80;
     }
 
     &::after {
       opacity: 1;
       box-shadow:
-        0 -3px 0 0 #13987f80,
-        0 3px 0 0 #13987f80;
+        0 -3px 0 0 #034fbc80,
+        0 3px 0 0 #034fbc80;
     }
   }
 }

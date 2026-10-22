@@ -104,7 +104,7 @@ watch(
 
           <n-popover trigger="hover" v-if="activeItem?.hotFlag === IsAllUserEnum.Yes && !isEditingGroupName">
             <template #trigger>
-              <svg class="size-20px select-none outline-none cursor-pointer color-#13987f">
+              <svg class="size-20px select-none outline-none cursor-pointer color-#034fbc">
                 <use href="#auth"></use>
               </svg>
             </template>
@@ -278,7 +278,7 @@ watch(
   </div>
 
   <!-- 举报 -->
-  <p v-if="activeItem?.hotFlag !== IsAllUserEnum.Yes" class="text-(12px #13987f center) my-20px cursor-pointer">
+  <p v-if="activeItem?.hotFlag !== IsAllUserEnum.Yes" class="text-(12px #034fbc center) my-20px cursor-pointer">
     {{ t('home.chat_header.sidebar.group.report') }}
   </p>
 </template>

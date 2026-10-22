@@ -18,7 +18,7 @@
       class="mt-5px flex justify-end pb-10px"
       :class="props.message.type === 'reply' || props.message.type === 'comment' ? ['custom-border-b-1'] : ['']"
       v-if="props.message.type === 'reply' || props.message.type === 'comment'">
-      <div class="bg-#EFF5F4 text-14px rounded-25px w-82px line-height-32px text-center">回复</div>
+      <div class="bg-#edf2fb text-14px rounded-25px w-82px line-height-32px text-center">回复</div>
     </div>
   </div>
 </template>

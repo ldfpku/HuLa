@@ -14,13 +14,13 @@
           <div class="text-26px">登录</div>
         </div>
 
-        <van-checkbox-group v-model="checkedValues" checked-color="#487D68" class="flex flex-col gap-14px text-14px">
+        <van-checkbox-group v-model="checkedValues" checked-color="#034FBC" class="flex flex-col gap-14px text-14px">
           <van-checkbox name="syncRecentMessages">同步最近的消息</van-checkbox>
           <van-checkbox name="autoLogin">自动登录该设备</van-checkbox>
         </van-checkbox-group>
       </div>
       <div class="flex w-45% gap-30px justify-center items-center flex-col">
-        <van-button @click="handleConfirmLogin" color="#487D68" class="w-full" type="primary">确定登录</van-button>
+        <van-button @click="handleConfirmLogin" color="#034FBC" class="w-full" type="primary">确定登录</van-button>
         <div @click="handleCancelLogin" class="w-full text-center text-gray-600">取消登录</div>
       </div>
     </div>

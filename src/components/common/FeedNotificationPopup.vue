@@ -106,7 +106,7 @@
       <!-- 评论内容 -->
       <div
         v-if="selectedNotification.type === 'comment'"
-        class="p-12px bg-#f9f9f9 rounded-8px border-l-4 border-#13987F">
+        class="p-12px bg-#f9f9f9 rounded-8px border-l-4 border-#034FBC">
         <div class="text-13px text-#666">{{ selectedNotification.commentContent }}</div>
       </div>
 

@@ -18,9 +18,13 @@
           v-else-if="detailsContent && isDetails && detailsContent.type === 'apply'"
           :type="detailsContent.applyType" />
 
-        <!-- 聊天界面背景图标 -->
-        <div v-else class="flex-center size-full select-none">
-          <img class="w-150px h-140px" src="/logoD.png" alt="" />
+        <!-- 聊天界面背景图标：按 BIS v1.7，标志不降透明度，单独出现时需配品牌名 -->
+        <div v-else class="flex-center flex-col gap-16px size-full select-none">
+          <img
+            class="h-72px"
+            :src="imgTheme === ThemeEnum.DARK ? '/brand/smj-symbol-reverse.svg' : '/brand/smj-symbol-color.svg'"
+            alt="" />
+          <p class="text-(16px [--text-color]) font-600 tracking-2px">斯米伽 SMJ</p>
         </div>
       </div>
     </div>

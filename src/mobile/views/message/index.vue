@@ -136,7 +136,7 @@
                   <div class="text-12px pt-9px text-right flex flex-col gap-1 items-end justify-center">
                     <div class="flex items-center gap-1">
                       <span v-if="item.hotFlag === IsAllUserEnum.Yes">
-                        <svg class="size-22px select-none outline-none cursor-pointer color-#13987f">
+                        <svg class="size-22px select-none outline-none cursor-pointer color-#034fbc">
                           <use href="#auth"></use>
                         </svg>
                       </span>
@@ -154,7 +154,7 @@
                 <template #right>
                   <div class="flex w-auto flex-wrap h-full">
                     <div
-                      class="h-full text-14px w-80px bg-#13987f text-white flex items-center justify-center"
+                      class="h-full text-14px w-80px bg-#034fbc text-white flex items-center justify-center"
                       @click="handleToggleTop(item)">
                       {{ item.top ? t('mobile_home.chat.unpin') : t('mobile_home.chat.pintop') }}
                     </div>

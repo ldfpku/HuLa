@@ -56,7 +56,7 @@
                 cy="22" />
               <circle
                 class="progress-ring-circle progress-ring-fill"
-                stroke="#13987f"
+                stroke="#034fbc"
                 stroke-width="3"
                 fill="transparent"
                 r="18"

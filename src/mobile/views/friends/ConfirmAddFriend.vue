@@ -38,7 +38,7 @@
                 type="textarea"
                 placeholder="输入几句话，对TA说些什么吧" />
 
-              <n-button class="mt-30px" color="#13987f" @click="addFriend">添加好友</n-button>
+              <n-button class="mt-30px" color="#034fbc" @click="addFriend">添加好友</n-button>
             </n-flex>
           </div>
         </div>

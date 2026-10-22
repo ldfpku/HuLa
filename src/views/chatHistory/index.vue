@@ -399,15 +399,15 @@ onMounted(async () => {
 </style>
 <style lang="scss">
 .n-date-panel .n-date-panel-dates .n-date-panel-date.n-date-panel-date--selected::after {
-  background-color: #13987f;
+  background-color: #034fbc;
 }
 .n-date-panel.n-date-panel--daterange {
   border-radius: 14px;
 }
 
 .n-date-panel-actions .n-button {
-  background-color: rgba(19, 152, 127, 0.1) !important;
+  background-color: rgba(3, 79, 188, 0.1) !important;
   border: none !important;
-  color: #13987f !important;
+  color: #034fbc !important;
 }
 </style>

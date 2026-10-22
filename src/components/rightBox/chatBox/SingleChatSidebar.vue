@@ -57,7 +57,7 @@ const emit = defineEmits<{
   </div>
 
   <!-- 举报 -->
-  <p v-if="!isBotUser" class="m-[0_auto] text-(12px #13987f center) mt-20px cursor-pointer">
+  <p v-if="!isBotUser" class="m-[0_auto] text-(12px #034fbc center) mt-20px cursor-pointer">
     {{ t('home.chat_header.sidebar.single.report') }}
   </p>
 </template>

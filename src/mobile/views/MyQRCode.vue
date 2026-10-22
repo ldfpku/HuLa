@@ -34,7 +34,7 @@
                   :size="250"
                   class="rounded-12px"
                   :value="qrCodeValue"
-                  color="#14997E"
+                  color="#034FBC"
                   :bg-color="qrCodeBgColor"
                   :type="qrCodeType"
                   :icon-src="AvatarUtils.getAvatarUrl(userStore.userInfo?.avatar ?? '')"

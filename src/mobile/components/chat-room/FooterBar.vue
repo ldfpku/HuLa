@@ -60,7 +60,7 @@ defineExpose({ root })
   position: relative;
 
   svg {
-    color: #13987f;
+    color: #034fbc;
     /* 主题色 */
     transition: color 0.3s ease;
   }
@@ -74,7 +74,7 @@ defineExpose({ root })
     width: 5px;
     height: 5px;
     border-radius: 50%;
-    background-color: #13987f;
+    background-color: #034fbc;
     animation: pulse 1.5s infinite;
   }
 }

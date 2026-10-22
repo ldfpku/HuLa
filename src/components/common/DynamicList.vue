@@ -138,18 +138,18 @@
           <!-- 点赞人名称显示 - 仅有点赞时渲染 -->
           <div
             v-if="(item.likeList || []).length > 0"
-            class="mb-8px flex items-start gap-6px leading-relaxed text-(12px #13987f)">
-            <svg class="size-16px color-##13987f"><use href="#thumbs-up"></use></svg>
+            class="mb-8px flex items-start gap-6px leading-relaxed text-(12px #034fbc)">
+            <svg class="size-16px color-##034fbc"><use href="#thumbs-up"></use></svg>
             <span>{{ (item.likeList || []).map((like) => like.userName).join('、') }}</span>
           </div>
 
           <!-- 评论列表显示 - 仅有评论时渲染 -->
           <div v-if="item.commentList && item.commentList.length > 0" class="rounded-8px p-12px pb-6px pl-0">
             <div v-for="comment in item.commentList.slice(0, 3)" :key="comment.id" class="mb-12px last:mb-0">
-              <div class="text-14px text-#13987f">
+              <div class="text-14px text-#034fbc">
                 <span class="font-bold">{{ comment.userName }}</span>
                 <!-- 如果是回复评论，显示被回复人信息 -->
-                <span v-if="comment.replyUserName" class="text-#13987f">
+                <span v-if="comment.replyUserName" class="text-#034fbc">
                   {{ t('dynamic.detail.actions.reply') }}
                   <span class="font-bold">{{ comment.replyUserName }}</span>
                 </span>

@@ -119,7 +119,7 @@
                 <span
                   :class="[
                     'text-12px select-none color-#909090 inline-block align-top',
-                    !isMe ? 'cursor-pointer hover:color-#13987f transition-colors' : ''
+                    !isMe ? 'cursor-pointer hover:color-#034fbc transition-colors' : ''
                   ]"
                   @click.stop="handleMentionUser">
                   {{ senderDisplayName }}
@@ -138,7 +138,7 @@
             <div
               v-if="groupStore.isAdmin(fromUser.uid)"
               class="flex px-4px py-3px rounded-4px bg-#1a7d6b30 size-fit select-none">
-              <span class="text-(9px #008080)">{{ t('home.chat_sidebar.roles.admin') }}</span>
+              <span class="text-(9px #1d5fc9)">{{ t('home.chat_sidebar.roles.admin') }}</span>
             </div>
             <!-- 信息时间(群聊) -->
             <Transition name="fade-group">

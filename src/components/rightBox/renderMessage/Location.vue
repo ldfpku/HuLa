@@ -3,13 +3,13 @@
     <!-- 位置图标和标题 -->
     <n-flex align="center" justify="space-between" class="pb-8px">
       <div class="flex-y-center gap-8px">
-        <svg class="size-14px color-#13987f">
+        <svg class="size-14px color-#034fbc">
           <use href="#local"></use>
         </svg>
         <p class="text-14px font-medium color-[--text-color]">位置</p>
       </div>
 
-      <div class="text-(10px #13987f) p-4px rounded-4px border-(1px solid #13987f)">
+      <div class="text-(10px #034fbc) p-4px rounded-4px border-(1px solid #034fbc)">
         <p v-if="body?.precision">{{ body.precision }}</p>
       </div>
     </n-flex>

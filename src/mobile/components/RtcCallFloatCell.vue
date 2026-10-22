@@ -224,8 +224,8 @@ useMitt.on(WsResponseMessageType.RoomClosed, handleCallEnd)
   }
 
   &.accept {
-    background: rgba(19, 152, 127, 0.68);
-    box-shadow: 0 12px 26px rgba(19, 152, 127, 0.3);
+    background: rgba(3, 79, 188, 0.68);
+    box-shadow: 0 12px 26px rgba(3, 79, 188, 0.3);
   }
 }
 

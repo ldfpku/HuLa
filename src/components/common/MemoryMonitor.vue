@@ -317,7 +317,7 @@ const detachDragListeners = () => {
 .title {
   font-weight: bold;
   margin-bottom: 8px;
-  color: #13987f;
+  color: #034fbc;
   border-bottom: 1px solid #333;
   padding-bottom: 4px;
 }
