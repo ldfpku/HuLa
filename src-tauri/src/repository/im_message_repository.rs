@@ -27,6 +27,27 @@ pub fn reset_table_initialization_flags() {
     info!("Table initialization flags have been reset");
 }
 
+/// 刚打开一个用户的数据库时没有任何消息还在发送中：上次没发完的（应用退出、崩溃）标成失败，
+/// 这样它们读出来带着失败标记，而不是永远转圈或看起来已发出
+pub async fn fail_stale_pending_messages<C: ConnectionTrait>(
+    conn: &C,
+    login_uid: &str,
+) -> Result<u64, CommonError> {
+    let result = im_message::Entity::update_many()
+        .col_expr(im_message::Column::SendStatus, Expr::value("fail"))
+        .filter(im_message::Column::LoginUid.eq(login_uid))
+        .filter(im_message::Column::SendStatus.eq("pending"))
+        .exec(conn)
+        .await?;
+    if result.rows_affected > 0 {
+        info!(
+            "Marked {} unsent messages as failed for user {}",
+            result.rows_affected, login_uid
+        );
+    }
+    Ok(result.rows_affected)
+}
+
 #[derive(Clone)]
 pub struct MessageWithThumbnail {
     pub message: im_message::Model,
@@ -440,6 +461,49 @@ where
     Ok(())
 }
 
+/// 翻页游标：上一页最后一条消息的 ID，以及它在本地记录的发送时间（已被删掉时为 None）
+pub struct PageCursor {
+    pub id: String,
+    pub send_time: Option<i64>,
+}
+
+/// 一页消息的查询：按发送时间降序，同一时刻再按 ID 的数值降序。
+/// 发送中或失败的消息带着临时 ID（如 T1792634055628），只按 ID 排会把它们排到最早；
+/// ID 作为文本比较也会把 "999" 排在 "1000" 之后。
+fn page_query(
+    room_id: &str,
+    login_uid: &str,
+    page_size: u64,
+    cursor: Option<&PageCursor>,
+) -> sea_orm::Select<im_message::Entity> {
+    let numeric_id = Expr::col(im_message::Column::Id).cast_as(Alias::new("INTEGER"));
+    let mut query = im_message::Entity::find()
+        .filter(im_message::Column::RoomId.eq(room_id))
+        .filter(im_message::Column::LoginUid.eq(login_uid))
+        .order_by_desc(im_message::Column::SendTime)
+        .order_by_desc(numeric_id.clone())
+        .limit(page_size);
+
+    if let Some(cursor) = cursor {
+        let cursor_id = Expr::val(cursor.id.clone()).cast_as(Alias::new("INTEGER"));
+        query = match cursor.send_time {
+            // 游标之前：更早，或同一时刻但 ID 更小
+            Some(cursor_time) => query.filter(
+                Condition::any()
+                    .add(im_message::Column::SendTime.lt(cursor_time))
+                    .add(
+                        Condition::all()
+                            .add(im_message::Column::SendTime.eq(cursor_time))
+                            .add(Expr::expr(numeric_id).lt(cursor_id)),
+                    ),
+            ),
+            // 游标消息已不在本地（被清空或删除）时退回按 ID 数值翻页
+            None => query.filter(Expr::expr(numeric_id).lt(cursor_id)),
+        };
+    }
+    query
+}
+
 /// 根据房间ID进行游标分页查询消息（包含消息标记）
 pub async fn cursor_page_messages(
     db: &DatabaseConnection,
@@ -455,18 +519,30 @@ pub async fn cursor_page_messages(
         .await
         .map_err(|e| anyhow::anyhow!("Failed to query message count: {}", e))?;
 
-    // 先查询消息主表，按 id 数值降序排序
-    let mut message_query = im_message::Entity::find()
-        .filter(im_message::Column::RoomId.eq(&room_id))
-        .filter(im_message::Column::LoginUid.eq(login_uid))
-        .order_by_desc(Expr::col(im_message::Column::Id).cast_as(Alias::new("INTEGER")))
-        .limit(cursor_page_param.page_size as u64);
-
-    // 如果提供了游标，添加过滤条件
-    if !cursor_page_param.cursor.is_empty() {
-        // 使用游标值过滤，获取小于该ID的记录（因为是降序排列）
-        message_query = message_query.filter(im_message::Column::Id.lt(&cursor_page_param.cursor));
-    }
+    // 按发送时间降序，同一时刻再按 ID 的数值降序。发送中或失败的消息带着临时 ID（如 T1792634055628），
+    // 只按 ID 排会把它们排到最早；ID 作为文本比较也会把 "999" 排在 "1000" 之后。
+    // 游标是上一页最后一条消息的 ID：先查出它的发送时间，再取它之前的消息
+    let cursor = if cursor_page_param.cursor.is_empty() {
+        None
+    } else {
+        let cursor_message = im_message::Entity::find_by_id((
+            cursor_page_param.cursor.clone(),
+            login_uid.to_string(),
+        ))
+        .one(db)
+        .await
+        .map_err(|e| anyhow::anyhow!("Failed to find cursor message: {}", e))?;
+        Some(PageCursor {
+            id: cursor_page_param.cursor.clone(),
+            send_time: cursor_message.and_then(|m| m.send_time),
+        })
+    };
+    let message_query = page_query(
+        &room_id,
+        login_uid,
+        cursor_page_param.page_size as u64,
+        cursor.as_ref(),
+    );
 
     // 先查询消息列表
     let messages = message_query
@@ -757,6 +833,8 @@ pub async fn update_message_status(
 
     active_model.send_status = Set(status.to_string());
     active_model.body = Set(record.message.body.clone());
+    // 发送成功后记录里是服务端的发送时间，本地按它排序才和别人收到的位置一致
+    active_model.send_time = Set(record.message.send_time);
 
     let original_id = record.message.id.clone();
 
@@ -1008,4 +1086,54 @@ pub async fn query_file_messages(
         .map_err(|e| anyhow::anyhow!("查询文件消息失败: {}", e))?;
 
     enrich_models_with_thumbnails(db, messages).await
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use sea_orm::{DbBackend, QueryTrait};
+
+    #[test]
+    fn page_query_orders_by_send_time_then_numeric_id() {
+        let sql = page_query("1", "u1", 20, None)
+            .build(DbBackend::Sqlite)
+            .to_string();
+        assert!(
+            sql.contains(r#"ORDER BY "im_message"."send_time" DESC, CAST("id" AS INTEGER) DESC LIMIT 20"#),
+            "{sql}"
+        );
+    }
+
+    #[test]
+    fn page_query_cursor_takes_messages_before_the_cursor_message() {
+        let cursor = PageCursor {
+            id: "1000".to_string(),
+            send_time: Some(5),
+        };
+        let sql = page_query("1", "u1", 20, Some(&cursor))
+            .build(DbBackend::Sqlite)
+            .to_string();
+        assert!(
+            sql.contains(
+                r#"("im_message"."send_time" < 5 OR ("im_message"."send_time" = 5 AND CAST("id" AS INTEGER) < CAST('1000' AS INTEGER)))"#
+            ),
+            "{sql}"
+        );
+    }
+
+    #[test]
+    fn page_query_falls_back_to_numeric_id_when_cursor_message_is_gone() {
+        let cursor = PageCursor {
+            id: "1000".to_string(),
+            send_time: None,
+        };
+        let sql = page_query("1", "u1", 20, Some(&cursor))
+            .build(DbBackend::Sqlite)
+            .to_string();
+        assert!(
+            sql.contains(r#"CAST("id" AS INTEGER) < CAST('1000' AS INTEGER)"#)
+                && !sql.contains(r#""send_time" <"#),
+            "{sql}"
+        );
+    }
 }

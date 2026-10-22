@@ -1,7 +1,9 @@
 use crate::AppData;
 use crate::configuration::get_configuration;
 use crate::error::CommonError;
-use crate::repository::im_message_repository::reset_table_initialization_flags;
+use crate::repository::im_message_repository::{
+    fail_stale_pending_messages, reset_table_initialization_flags,
+};
 use migration::{Migrator, MigratorTrait};
 use tauri::{AppHandle, State};
 use tracing::info;
@@ -48,6 +50,14 @@ pub async fn switch_user_database(
 
         // 重置表初始化标志，确保新数据库会创建必要的表
         reset_table_initialization_flags();
+
+        if let Err(e) = fail_stale_pending_messages(&new_db, &uid).await {
+            tracing::warn!(
+                "Could not mark unsent messages as failed for user {}: {}",
+                uid,
+                e
+            );
+        }
 
         // 替换数据库连接
         {

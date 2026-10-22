@@ -20,6 +20,7 @@ import { useSessionUnreadStore } from '@/stores/sessionUnread'
 import { unreadCountManager } from '@/utils/UnreadCountManager'
 import { useMitt } from '@/hooks/useMitt'
 import { isMentioned } from '@/utils/mention'
+import { compareMessages, sortMessages } from '@/utils/MessageOrder'
 
 type RecalledMessage = {
   messageId: string
@@ -416,13 +417,13 @@ export const useChatStore = defineStore(
       if (!currentMessageMap.value || Object.keys(currentMessageMap.value).length === 0) return []
 
       // 直接使用 Rust 后端计算的 timeBlock，不做前端计算
-      return Object.values(currentMessageMap.value).sort((a, b) => Number(a.message.id) - Number(b.message.id))
+      return sortMessages(Object.values(currentMessageMap.value))
     })
 
     const chatMessageListByRoomId = computed(() => (roomId: string) => {
       if (!messageMap[roomId] || Object.keys(messageMap[roomId]).length === 0) return []
 
-      return Object.values(messageMap[roomId]).sort((a, b) => Number(a.message.id) - Number(b.message.id))
+      return sortMessages(Object.values(messageMap[roomId]))
     })
 
     const findRoomIdByMsgId = (msgId: string) => {
@@ -1129,6 +1130,7 @@ export const useChatStore = defineStore(
       body,
       uploadProgress,
       timeBlock,
+      sendTime,
       roomId
     }: {
       msgId: string
@@ -1137,6 +1139,8 @@ export const useChatStore = defineStore(
       body?: any
       uploadProgress?: number
       timeBlock?: number
+      /** 服务端记下的发送时间；发送成功后换上它，和别人收到的这条消息排在同一位置 */
+      sendTime?: number
       roomId?: string
     }) => {
       const resolvedRoomId =
@@ -1156,6 +1160,9 @@ export const useChatStore = defineStore(
       // 只在 timeBlock 有值时才更新，避免覆盖原有值
       if (timeBlock !== undefined) {
         msg.timeBlock = timeBlock
+      }
+      if (typeof sendTime === 'number' && Number.isFinite(sendTime) && sendTime > 0) {
+        msg.message.sendTime = sendTime
       }
       if (body) {
         msg.message.body = body
@@ -1355,8 +1362,8 @@ export const useChatStore = defineStore(
       const currentMessages = messageMap[roomId]
       if (!currentMessages) return
 
-      // 将消息转换为数组并按消息ID倒序排序，前面的元素代表最新的消息
-      const sortedMessages = Object.values(currentMessages).sort((a, b) => Number(b.message.id) - Number(a.message.id))
+      // 将消息转换为数组并按时间倒序排序，前面的元素代表最新的消息
+      const sortedMessages = Object.values(currentMessages).sort((a, b) => compareMessages(b, a))
 
       if (sortedMessages.length <= limit) {
         return

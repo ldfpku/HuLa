@@ -28,7 +28,8 @@ export const useMessageSender = () => {
           status: MessageStatusEnum.SUCCESS,
           newMsgId: response?.message?.id,
           body: response?.message?.body,
-          timeBlock: response?.timeBlock
+          timeBlock: response?.timeBlock,
+          sendTime: response?.message?.sendTime
         })
         if (scrollOnUpdate) {
           useMitt.emit(MittEnum.CHAT_SCROLL_BOTTOM)

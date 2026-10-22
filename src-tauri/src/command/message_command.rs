@@ -102,6 +102,9 @@ pub struct Message {
     pub body: Option<serde_json::Value>,
     pub message_marks: Option<HashMap<String, MessageMark>>,
     pub send_time: Option<i64>,
+    /// 本地记录的发送状态（`failed` / `sending`），只在从本机数据库读出时带上；服务端消息没有
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub status: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -283,9 +286,19 @@ pub fn convert_message_to_resp(
             body,
             message_marks,
             send_time: msg.send_time,
+            status: local_send_status(&msg.send_status),
         },
         old_msg_id: old_msg_id,
         time_block: msg.time_block,
+    }
+}
+
+/// 本机数据库里的 send_status 换成前端 MessageStatusEnum 的值；已发出的消息不带状态
+fn local_send_status(send_status: &str) -> Option<String> {
+    match send_status {
+        "fail" | "failed" => Some("failed".to_string()),
+        "pending" | "sending" => Some("sending".to_string()),
+        _ => None,
     }
 }
 
@@ -694,6 +707,9 @@ pub async fn send_msg(
             Ok(Some(mut resp)) => {
                 resp.old_msg_id = Some(msg_id.clone());
                 id = resp.message.id.clone();
+                if let Some(server_time) = resp.message.send_time.filter(|t| *t > 0) {
+                    record_for_send.message.send_time = Some(server_time);
+                }
                 record_for_send.message.body = resp.message.body.as_ref().and_then(|body| {
                     if body.is_null() {
                         None
@@ -721,6 +737,11 @@ pub async fn send_msg(
 
         match model {
             Ok(model) => {
+                if status == "fail" {
+                    // 服务端没有收下这条消息：告诉前端发送失败，而不是当成功处理
+                    error_channel.send(msg_id.clone()).unwrap();
+                    return;
+                }
                 let resp = convert_message_to_resp(model, Some(msg_id));
                 success_channel.send(resp).unwrap();
             }

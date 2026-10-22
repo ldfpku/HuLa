@@ -7,7 +7,10 @@ use crate::{
     command::token_helper::capture_token_snapshot_direct,
     configuration::get_configuration,
     im_request_client::{ImRequest, ImUrl},
-    repository::{im_message_repository::reset_table_initialization_flags, im_user_repository},
+    repository::{
+        im_message_repository::{fail_stale_pending_messages, reset_table_initialization_flags},
+        im_user_repository,
+    },
     vo::vo::{LoginReq, LoginResp},
 };
 
@@ -151,6 +154,14 @@ async fn switch_to_user_database(
 
     // 重置表初始化标志，确保新数据库会创建必要的表
     reset_table_initialization_flags();
+
+    if let Err(e) = fail_stale_pending_messages(&new_db, uid).await {
+        tracing::warn!(
+            "Could not mark unsent messages as failed for user {}: {}",
+            uid,
+            e
+        );
+    }
 
     // 替换数据库连接
     {
