@@ -783,8 +783,13 @@ watch(
 
 <style scoped lang="scss">
 @use '@/styles/scss/msg-input';
-// 传递 props 到子组件是新增了一个div 适配样式
+// 保留实际布局容器，避免 display: contents 在 WebView 中丢失表单尺寸和点击区域
 .msg-input-container {
-  display: contents;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
 }
 </style>
