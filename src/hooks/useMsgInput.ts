@@ -180,7 +180,7 @@ export const useMsgInput = (messageInputDom: Ref) => {
   const personList = computed(() => {
     // 群主和管理员可以 @全体成员，排在最前
     const atAll =
-      globalStore.currentSessionRoomId !== '1' && groupStore.isAdminOrLord()
+      globalStore.currentSessionRoomId !== '1' && chatStore.isGroup && groupStore.isAdminOrLord()
         ? [{ uid: AT_ALL_UID, name: AT_ALL_NAME, avatar: '' } as UserItem]
         : []
     if (aitKey.value && !isChinese.value) {

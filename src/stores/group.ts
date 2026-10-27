@@ -366,8 +366,8 @@ export const useGroupStore = defineStore(
       return userList.value.filter((member: UserItem) => adminUidList.value.includes(member.uid))
     })
 
-    const getCurrentUser = (): UserItem => {
-      return userList.value.find((member: UserItem) => member.uid === userStore.userInfo!.uid)!
+    const getCurrentUser = (): UserItem | undefined => {
+      return userList.value.find((member: UserItem) => member.uid === userStore.userInfo!.uid)
     }
 
     const removeGroupDetail = (roomId: string) => {
@@ -376,6 +376,7 @@ export const useGroupStore = defineStore(
 
     const isAdminOrLord = () => {
       const currentUser = getCurrentUser()
+      if (!currentUser) return false
       return isAdmin.value(currentUser.uid) || isCurrentLord.value(currentUser.uid)
     }
 
