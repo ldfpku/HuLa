@@ -20,6 +20,10 @@ on:
         description: '更新说明，多条用分号隔开'
         type: string
         default: ''
+      source_ref:
+        description: '可选：重新发布时检出的 desktop-v<版本> 标签'
+        type: string
+        default: ''
   pull_request:
     paths:
       - '.github/workflows/desktop-release.yml'
@@ -50,7 +54,7 @@ jobs:
             args: --bundles nsis
             bundle: src-tauri/target/release/bundle
           - name: macos
-            os: macos-latest
+            os: macos-15-intel
             args: --target universal-apple-darwin --bundles app,dmg
             bundle: src-tauri/target/universal-apple-darwin/release/bundle
     runs-on: ${{ matrix.os }}
@@ -58,14 +62,19 @@ jobs:
     continue-on-error: ${{ matrix.name == 'macos' }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.source_ref || github.ref }}
 
       - name: 核对标签与版本号
-        if: github.event_name == 'push'
+        if: github.event_name == 'push' || inputs.source_ref != ''
         shell: bash
+        env:
+          SOURCE_REF: ${{ inputs.source_ref }}
         run: |
           VERSION=$(node -p "require('./package.json').version")
-          if [[ "${GITHUB_REF_NAME}" != "desktop-v${VERSION}" ]]; then
-            echo "标签 ${GITHUB_REF_NAME} 与 package.json 的版本 ${VERSION} 不一致" >&2
+          TAG="${SOURCE_REF:-$GITHUB_REF_NAME}"
+          if [[ "$TAG" != "desktop-v${VERSION}" ]]; then
+            echo "标签 ${TAG} 与 package.json 的版本 ${VERSION} 不一致" >&2
             exit 1
           fi
 
@@ -122,11 +131,13 @@ jobs:
           SIGNING_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
           INPUT_NOTES: ${{ inputs.notes }}
+          SOURCE_REF: ${{ inputs.source_ref }}
         run: |
           # 本版本的更新说明写进安装包，“检查更新”里显示（和 latest.json 的 notes 同一来源）
-          if [[ "$GITHUB_EVENT_NAME" == "push" ]]; then
-            git fetch --force origin "refs/tags/${GITHUB_REF_NAME}:refs/tags/${GITHUB_REF_NAME}"
-            export VITE_RELEASE_NOTES="$(git tag -l --format='%(contents)' "$GITHUB_REF_NAME")"
+          if [[ "$GITHUB_EVENT_NAME" == "push" || -n "$SOURCE_REF" ]]; then
+            TAG="${SOURCE_REF:-$GITHUB_REF_NAME}"
+            git fetch --force origin "refs/tags/${TAG}:refs/tags/${TAG}"
+            export VITE_RELEASE_NOTES="$(git tag -l --format='%(contents)' "$TAG")"
           else
             export VITE_RELEASE_NOTES="$INPUT_NOTES"
           fi
@@ -218,6 +229,8 @@ jobs:
       BUCKET: ${{ vars.DESKTOP_BUCKET || 'smj-desktop' }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.source_ref || github.ref }}
 
       - uses: actions/download-artifact@v4
         with:
@@ -230,11 +243,13 @@ jobs:
       - name: 生成 latest.json
         env:
           INPUT_NOTES: ${{ inputs.notes }}
+          SOURCE_REF: ${{ inputs.source_ref }}
         run: |
-          if [[ "$GITHUB_EVENT_NAME" == "push" ]]; then
-            git fetch --force origin "refs/tags/${GITHUB_REF_NAME}:refs/tags/${GITHUB_REF_NAME}"
+          if [[ "$GITHUB_EVENT_NAME" == "push" || -n "$SOURCE_REF" ]]; then
+            TAG="${SOURCE_REF:-$GITHUB_REF_NAME}"
+            git fetch --force origin "refs/tags/${TAG}:refs/tags/${TAG}"
             # 标签说明（git tag -a -m）就是更新说明
-            export RELEASE_NOTES="$(git tag -l --format='%(contents)' "$GITHUB_REF_NAME")"
+            export RELEASE_NOTES="$(git tag -l --format='%(contents)' "$TAG")"
           else
             export RELEASE_NOTES="$INPUT_NOTES"
           fi
