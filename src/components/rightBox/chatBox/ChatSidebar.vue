@@ -22,7 +22,7 @@
       class="contraction transition-all duration-600 ease-in-out absolute top-35% left--14px cursor-pointer opacity-0 bg-#c8c8c833 h-60px w-14px">
       <svg
         :class="isCollapsed ? 'rotate-0' : 'rotate-180'"
-        class="size-16px color-#909090 dark:color-#303030 absolute top-38%">
+        class="size-16px color-[--icon-color] absolute top-38%">
         <use href="#left-arrow"></use>
       </svg>
     </div>
@@ -33,7 +33,7 @@
         <p class="text-(14px [--text-color]) font-500 truncate flex-1 min-w-0" :title="groupName">{{ groupName }}</p>
         <svg
           v-if="canRename"
-          class="size-14px shrink-0 cursor-pointer color-[--icon-color] hover:color-#034fbc"
+          class="size-14px shrink-0 cursor-pointer color-[--icon-color] hover:color-[--link-color]"
           @click="openRenameGroupDialog(globalStore.currentSessionRoomId, groupName)">
           <title>修改群名称</title>
           <use href="#edit"></use>
@@ -62,7 +62,7 @@
         <!-- 公告加载失败提示 -->
         <n-flex v-if="announError" class="h-74px" align="center" justify="center">
           <div class="text-center">
-            <p class="text-(12px #909090) mb-8px">{{ t('home.chat_sidebar.announcement.load_failed') }}</p>
+            <p class="text-(12px [--text-muted-color]) mb-8px">{{ t('home.chat_sidebar.announcement.load_failed') }}</p>
             <n-button size="tiny" @click="announcementStore.loadGroupAnnouncements()">
               {{ t('home.chat_sidebar.actions.retry') }}
             </n-button>
@@ -71,18 +71,18 @@
 
         <!-- 公告内容 -->
         <n-scrollbar v-else class="h-74px">
-          <p class="text-(12px #909090) leading-6 line-clamp-4 max-w-99%" v-if="announNum === 0">
+          <p class="text-(12px [--text-muted-color]) leading-6 line-clamp-4 max-w-99%" v-if="announNum === 0">
             {{ t('home.chat_sidebar.announcement.default') }}
           </p>
           <p
             v-else
             style="user-select: text"
-            class="announcement-text text-(12px #909090) leading-6 line-clamp-4 max-w-99% break-words">
+            class="announcement-text text-(12px [--text-muted-color]) leading-6 line-clamp-4 max-w-99% break-words">
             <template v-if="announcementSegments.length > 0">
               <template v-for="(segment, index) in announcementSegments" :key="index">
                 <span
                   v-if="segment.isLink"
-                  class="cursor-pointer hover:underline hover:opacity-80 text-#034fbc"
+                  class="cursor-pointer hover:underline text-[--link-color]"
                   @click.stop="openAnnouncementLink(segment.text)">
                   {{ segment.text }}
                 </span>
@@ -163,7 +163,7 @@
                         :size="26"
                         :color="themes.content === ThemeEnum.DARK ? '' : '#fff'"
                         :fallback-src="themes.content === ThemeEnum.DARK ? '/avatar-dark.svg' : '/avatar-light.svg'"
-                        :src="AvatarUtils.getAvatarUrl(item.avatar)"
+                        :src="AvatarUtils.getAvatarUrl(item.avatar, item.uid)"
                         @load="userLoadedMap[item.uid] = true"
                         @error="userLoadedMap[item.uid] = true" />
                     </div>
@@ -188,13 +188,13 @@
 
                   <div
                     v-if="item.roleId === RoleEnum.LORD"
-                    class="flex px-4px bg-#d5304f30 py-3px rounded-4px size-fit select-none">
-                    <p class="text-(10px #d5304f)">{{ t('home.chat_sidebar.roles.owner') }}</p>
+                    class="flex px-4px bg-[--danger-bg] py-3px rounded-4px size-fit select-none">
+                    <p class="text-(11px [--danger-text])">{{ t('home.chat_sidebar.roles.owner') }}</p>
                   </div>
                   <div
                     v-if="item.roleId === RoleEnum.ADMIN"
-                    class="flex px-4px bg-#1a7d6b30 py-3px rounded-4px size-fit select-none">
-                    <p class="text-(10px #1d5fc9)">{{ t('home.chat_sidebar.roles.admin') }}</p>
+                    class="flex px-4px bg-[--bg-msg-hover] py-3px rounded-4px size-fit select-none">
+                    <p class="text-(11px [--link-color])">{{ t('home.chat_sidebar.roles.admin') }}</p>
                   </div>
                 </n-flex>
               </ContextMenu>
@@ -209,8 +209,8 @@
 </template>
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
+import { useDebounceFn, useMediaQuery } from '@vueuse/core'
 import { WebviewWindow } from '@tauri-apps/api/webviewWindow'
-import { useDebounceFn } from '@vueuse/core'
 import type { InputInst } from 'naive-ui'
 import { storeToRefs } from 'pinia'
 import { MittEnum, OnlineEnum, RoleEnum, ThemeEnum, RoomTypeEnum } from '@/enums'
@@ -273,6 +273,20 @@ const searchRequestId = ref(0)
 const infoPopoverRefs = ref<Record<string, any>>([])
 const inputInstRef = ref<InputInst | null>(null)
 const isCollapsed = ref(false)
+const narrowWindow = useMediaQuery('(max-width: 1050px)')
+let previousCollapsed = false
+watch(
+  narrowWindow,
+  (narrow) => {
+    if (narrow) {
+      previousCollapsed = isCollapsed.value
+      isCollapsed.value = true
+    } else {
+      isCollapsed.value = previousCollapsed
+    }
+  },
+  { immediate: true }
+)
 const { optionsList, report, selectKey } = useChatMain()
 const { handlePopoverUpdate, enableScroll } = usePopover(selectKey, 'image-chat-sidebar')
 provide('popoverControls', { enableScroll })

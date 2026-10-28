@@ -4,7 +4,7 @@
     <ChatHeader />
 
     <div class="flex-1 flex min-h-0">
-      <div class="flex-1 min-h-0">
+      <div class="flex-1 min-h-0 min-w-0">
         <!-- bot用户时显示Bot组件 -->
         <template v-if="isBotUser">
           <Bot />

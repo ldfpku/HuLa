@@ -1,6 +1,6 @@
 <template>
   <n-config-provider
-    :theme-overrides="themes.content === ThemeEnum.DARK ? darkThemeOverrides : lightThemeOverrides"
+    :theme-overrides="activeThemeOverrides"
     :theme="globalTheme"
     :locale="currentNaiveLocale"
     :date-locale="currentNaiveDateLocale">
@@ -37,6 +37,8 @@ import {
 import { useI18n } from 'vue-i18n'
 import { ThemeEnum } from '@/enums'
 import { useSettingStore } from '@/stores/setting.ts'
+import { isDesktop, isWeb } from '@/utils/PlatformConstants'
+import { desktopThemeAccessibility } from '@/styles/desktopTheme'
 
 const { notificMax, messageMax } = defineProps<{
   notificMax?: number
@@ -46,6 +48,7 @@ defineOptions({ name: 'NaiveProvider' })
 const settingStore = useSettingStore()
 const { themes } = storeToRefs(settingStore)
 const { locale } = useI18n()
+const isDesktopApp = isDesktop() && !isWeb()
 
 type NaiveLocalePack = {
   locale: NLocale
@@ -339,6 +342,193 @@ const darkThemeOverrides: GlobalThemeOverrides = {
     colorEnd: '#0f2560'
   }
 }
+
+const disabledButtonTheme = (mutedText: string, background: string, border: string): NonNullable<GlobalThemeOverrides['Button']> => ({
+  ...commonTheme.Button,
+  opacityDisabled: '1',
+  colorDisabled: background,
+  colorDisabledPrimary: background,
+  colorDisabledInfo: background,
+  colorDisabledSuccess: background,
+  colorDisabledWarning: background,
+  colorDisabledError: background,
+  textColorDisabled: mutedText,
+  textColorDisabledPrimary: mutedText,
+  textColorDisabledInfo: mutedText,
+  textColorDisabledSuccess: mutedText,
+  textColorDisabledWarning: mutedText,
+  textColorDisabledError: mutedText,
+  textColorTextDisabled: mutedText,
+  textColorTextDisabledPrimary: mutedText,
+  textColorTextDisabledInfo: mutedText,
+  textColorTextDisabledSuccess: mutedText,
+  textColorTextDisabledWarning: mutedText,
+  textColorTextDisabledError: mutedText,
+  textColorGhostDisabled: mutedText,
+  textColorGhostDisabledPrimary: mutedText,
+  textColorGhostDisabledInfo: mutedText,
+  textColorGhostDisabledSuccess: mutedText,
+  textColorGhostDisabledWarning: mutedText,
+  textColorGhostDisabledError: mutedText,
+  borderDisabled: `1px solid ${border}`,
+  borderDisabledPrimary: `1px solid ${border}`,
+  borderDisabledInfo: `1px solid ${border}`,
+  borderDisabledSuccess: `1px solid ${border}`,
+  borderDisabledWarning: `1px solid ${border}`,
+  borderDisabledError: `1px solid ${border}`
+})
+
+const desktopLightThemeOverrides: GlobalThemeOverrides = {
+  ...lightThemeOverrides,
+  common: {
+    ...lightThemeOverrides.common,
+    textColor3: '#526177',
+    placeholderColor: desktopThemeAccessibility.light.mutedText,
+    inputColor: desktopThemeAccessibility.light.inputBackground,
+    infoColor: desktopThemeAccessibility.light.info,
+    infoColorHover: '#03419b',
+    infoColorPressed: '#06327a',
+    infoColorSuppl: desktopThemeAccessibility.light.info,
+    successColor: desktopThemeAccessibility.light.success,
+    successColorHover: desktopThemeAccessibility.light.successHover,
+    successColorPressed: desktopThemeAccessibility.light.successPressed,
+    successColorSuppl: desktopThemeAccessibility.light.success,
+    warningColor: desktopThemeAccessibility.light.warning,
+    warningColorHover: desktopThemeAccessibility.light.warning,
+    warningColorPressed: '#713800',
+    warningColorSuppl: desktopThemeAccessibility.light.warning,
+    errorColor: desktopThemeAccessibility.light.error,
+    errorColorHover: desktopThemeAccessibility.light.error,
+    errorColorPressed: '#851c30',
+    errorColorSuppl: desktopThemeAccessibility.light.error
+  },
+  Input: {
+    ...commonTheme.Input,
+    border: `1px solid ${desktopThemeAccessibility.light.inputBorder}`,
+    borderHover: '1px solid #034fbc',
+    borderFocus: '1px solid #034fbc',
+    boxShadowFocus: '0 0 0 2px rgba(3, 79, 188, 0.3)',
+    colorDisabled: desktopThemeAccessibility.light.disabledBackground,
+    textColorDisabled: desktopThemeAccessibility.light.mutedText,
+    placeholderColorDisabled: desktopThemeAccessibility.light.mutedText,
+    borderDisabled: `1px solid ${desktopThemeAccessibility.light.inputBorder}`
+  },
+  Button: {
+    ...disabledButtonTheme(
+      desktopThemeAccessibility.light.mutedText,
+      desktopThemeAccessibility.light.disabledBackground,
+      desktopThemeAccessibility.light.inputBorder
+    ),
+    colorPrimary: desktopThemeAccessibility.light.primary,
+    colorHoverPrimary: desktopThemeAccessibility.light.primaryHover,
+    colorPressedPrimary: desktopThemeAccessibility.light.primaryPressed,
+    colorFocusPrimary: desktopThemeAccessibility.light.primaryHover,
+    textColorPrimary: desktopThemeAccessibility.light.primaryText,
+    textColorHoverPrimary: desktopThemeAccessibility.light.primaryText,
+    textColorPressedPrimary: desktopThemeAccessibility.light.primaryText,
+    textColorFocusPrimary: desktopThemeAccessibility.light.primaryText,
+    borderPrimary: `1px solid ${desktopThemeAccessibility.light.primaryBorder}`,
+    borderHoverPrimary: `1px solid ${desktopThemeAccessibility.light.primaryHover}`,
+    borderPressedPrimary: `1px solid ${desktopThemeAccessibility.light.primaryPressed}`,
+    borderFocusPrimary: `1px solid ${desktopThemeAccessibility.light.primaryHover}`
+  },
+  Tabs: {
+    ...commonTheme.Tabs,
+    tabTextColorSegment: '#526177'
+  },
+  Empty: { ...lightThemeOverrides.Empty, textColor: '#526177' }
+}
+
+const desktopDarkThemeOverrides: GlobalThemeOverrides = {
+  ...darkThemeOverrides,
+  common: {
+    ...darkThemeOverrides.common,
+    primaryColor: desktopThemeAccessibility.dark.primary,
+    primaryColorHover: '#c0d8ff',
+    primaryColorPressed: '#7fa9e7',
+    primaryColorSuppl: desktopThemeAccessibility.dark.primary,
+    infoColor: desktopThemeAccessibility.dark.info,
+    infoColorHover: '#c0d8ff',
+    infoColorPressed: '#7fa9e7',
+    infoColorSuppl: desktopThemeAccessibility.dark.info,
+    successColor: desktopThemeAccessibility.dark.success,
+    warningColor: desktopThemeAccessibility.dark.warning,
+    warningColorHover: desktopThemeAccessibility.dark.warning,
+    warningColorPressed: desktopThemeAccessibility.dark.warning,
+    warningColorSuppl: desktopThemeAccessibility.dark.warning,
+    errorColor: desktopThemeAccessibility.dark.error,
+    errorColorHover: desktopThemeAccessibility.dark.error,
+    errorColorPressed: desktopThemeAccessibility.dark.error,
+    errorColorSuppl: desktopThemeAccessibility.dark.error,
+    textColorBase: '#f2f6fa',
+    textColor1: '#f2f6fa',
+    textColor2: '#e4edf7',
+    textColor3: '#c5d0dc',
+    placeholderColor: desktopThemeAccessibility.dark.mutedText,
+    borderColor: '#526273',
+    dividerColor: '#526273',
+    actionColor: '#263443',
+    bodyColor: '#111821',
+    cardColor: '#202d3b',
+    modalColor: '#202d3b',
+    popoverColor: '#263443',
+    tableColor: '#202d3b',
+    tableHeaderColor: '#263443',
+    inputColor: desktopThemeAccessibility.dark.inputBackground,
+    tagColor: '#263443',
+    codeColor: '#263443',
+    tabColor: '#263443'
+  },
+  Badge: { color: '#2455a4' },
+  Input: {
+    ...commonTheme.Input,
+    border: `1px solid ${desktopThemeAccessibility.dark.inputBorder}`,
+    borderHover: '1px solid #a4c7ff',
+    borderFocus: '1px solid #a4c7ff',
+    boxShadowFocus: '0 0 0 2px rgba(164, 199, 255, 0.35)',
+    colorDisabled: desktopThemeAccessibility.dark.disabledBackground,
+    textColorDisabled: desktopThemeAccessibility.dark.mutedText,
+    placeholderColorDisabled: desktopThemeAccessibility.dark.mutedText,
+    borderDisabled: `1px solid ${desktopThemeAccessibility.dark.inputBorder}`
+  },
+  Button: {
+    ...disabledButtonTheme(
+      desktopThemeAccessibility.dark.mutedText,
+      desktopThemeAccessibility.dark.disabledBackground,
+      desktopThemeAccessibility.dark.inputBorder
+    ),
+    colorPrimary: desktopThemeAccessibility.dark.primary,
+    colorHoverPrimary: desktopThemeAccessibility.dark.primaryHover,
+    colorPressedPrimary: desktopThemeAccessibility.dark.primaryPressed,
+    colorFocusPrimary: desktopThemeAccessibility.dark.primaryHover,
+    textColorPrimary: desktopThemeAccessibility.dark.primaryText,
+    textColorHoverPrimary: desktopThemeAccessibility.dark.primaryText,
+    textColorPressedPrimary: desktopThemeAccessibility.dark.primaryText,
+    textColorFocusPrimary: desktopThemeAccessibility.dark.primaryText,
+    borderPrimary: `1px solid ${desktopThemeAccessibility.dark.primaryBorder}`,
+    borderHoverPrimary: `1px solid ${desktopThemeAccessibility.dark.primaryBorder}`,
+    borderPressedPrimary: `1px solid ${desktopThemeAccessibility.dark.primaryBorder}`,
+    borderFocusPrimary: `1px solid ${desktopThemeAccessibility.dark.primaryBorder}`
+  },
+  Tabs: {
+    ...darkThemeOverrides.Tabs,
+    tabTextColorSegment: '#c5d0dc',
+    tabTextColorActiveLine: '#a4c7ff',
+    tabTextColorHoverLine: '#a4c7ff',
+    tabTextColorActiveBar: '#a4c7ff',
+    tabTextColorHoverBar: '#a4c7ff',
+    barColor: '#a4c7ff'
+  },
+  Empty: { ...darkThemeOverrides.Empty, textColor: '#c5d0dc' },
+  Skeleton: { color: '#263443', colorEnd: '#30465b' }
+}
+
+const activeThemeOverrides = computed(() => {
+  if (themes.value.content === ThemeEnum.DARK) {
+    return isDesktopApp ? desktopDarkThemeOverrides : darkThemeOverrides
+  }
+  return isDesktopApp ? desktopLightThemeOverrides : lightThemeOverrides
+})
 
 // 挂载naive组件的方法至window, 以便在路由钩子函数和请求函数里面调用
 const registerNaiveTools = () => {

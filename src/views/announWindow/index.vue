@@ -93,7 +93,7 @@
                       <div class="text-(12px [--chat-text-color])">
                         {{ groupStore.getUserInfo(announcement.uid)?.name }}
                       </div>
-                      <div class="text-(12px [#909090])">{{ formatTimestamp(announcement?.createTime) }}</div>
+                      <div class="text-(12px [--text-muted-color])">{{ formatTimestamp(announcement?.createTime) }}</div>
                     </n-flex>
                   </n-flex>
                   <div
@@ -188,7 +188,7 @@
         <div v-if="announList.length > 0" class="w-full h-40px flex-center mt-10px">
           <!-- <n-button v-if="!isLast" class="bg-[--button-bg]" @click="handleLoadMore">加载更多</n-button> -->
           <img v-if="isLoading" class="size-16px" src="@/assets/img/loading.svg" alt="" />
-          <span v-if="isLast && !isLoading" class="text-[12px] color-[#909090]">
+          <span v-if="isLast && !isLoading" class="text-[12px] color-[--text-muted-color]">
             {{ t('announcement.list.noMore') }}
           </span>
         </div>
@@ -269,7 +269,7 @@ watch(
   }
 )
 
-const avatarSrc = (uid: string) => AvatarUtils.getAvatarUrl(groupStore.getUserInfo(uid)!.avatar as string)
+const avatarSrc = (uid: string) => AvatarUtils.getAvatarUrl(groupStore.getUserInfo(uid)?.avatar, uid)
 
 // 初始化函数，获取群公告列表
 const handleInit = async () => {

@@ -13,7 +13,7 @@
         <n-flex align="center">
           <n-flex align="center">
             <p class="text-[--text-color]">{{ t('message.check_update.current_version') }}:</p>
-            <p class="text-(20px #909090) font-500">{{ currentVersion }}</p>
+            <p class="text-(20px [--text-muted-color]) font-500">{{ currentVersion }}</p>
           </n-flex>
 
           <n-flex v-if="newVersion" align="center" class="relative">
@@ -21,7 +21,7 @@
               <use href="#RightArrow"></use>
             </svg>
 
-            <p class="relative text-(20px #034fbc) font-500">{{ newVersion }}</p>
+            <p class="relative text-(20px [--link-color]) font-500">{{ newVersion }}</p>
 
             <span class="absolute top--10px right--44px p-[4px_8px] bg-#f6dfe3ff rounded-6px text-(12px #ce304f)">
               {{ t('message.check_update.new_tag') }}
@@ -30,21 +30,21 @@
         </n-flex>
         <n-flex align="center" size="medium">
           <div v-if="formatReleaseDate(newVersionTime)">
-            <span class="text-(12px #909090)">{{ t('message.check_update.new_release_date') }}</span>
-            <span class="text-(12px #034fbc)">{{ formatReleaseDate(newVersionTime) }}</span>
+            <span class="text-(12px [--text-muted-color])">{{ t('message.check_update.new_release_date') }}</span>
+            <span class="text-(12px [--link-color])">{{ formatReleaseDate(newVersionTime) }}</span>
           </div>
 
           <div v-else-if="formatReleaseDate(versionTime)">
-            <span class="text-(12px #909090)">{{ t('message.check_update.release_date') }}</span>
-            <span class="text-(12px #034fbc)">{{ formatReleaseDate(versionTime) }}</span>
+            <span class="text-(12px [--text-muted-color])">{{ t('message.check_update.release_date') }}</span>
+            <span class="text-(12px [--link-color])">{{ formatReleaseDate(versionTime) }}</span>
           </div>
         </n-flex>
       </n-flex>
       <n-flex justify="space-between" align="center" class="mb-2px">
-        <p class="text-(14px #909090)">{{ t('message.check_update.log_title') }}</p>
+        <p class="text-(14px [--text-muted-color])">{{ t('message.check_update.log_title') }}</p>
         <n-button text @click="toggleLogVisible">
           <n-flex align="center">
-            <span class="text-(12px #034fbc)">
+            <span class="text-(12px [--link-color])">
               {{ logVisible ? t('message.check_update.collapse') : t('message.check_update.expand') }}
             </span>
             <svg
@@ -81,12 +81,12 @@
                   <use href="#RightArrow"></use>
                 </svg>
 
-                <span class="p-[4px_8px] w-fit bg-#f1f1f1 rounded-6px text-(12px #999)">{{ currentVersion }}</span>
+                <span class="p-[4px_8px] w-fit bg-[--button-bg-color] rounded-6px text-(12px [--text-muted-color])">{{ currentVersion }}</span>
               </n-flex>
             </n-flex>
           </div>
 
-          <p v-if="commitLog.length === 0" class="p-[10px_16px] text-(12px #909090)">
+          <p v-if="commitLog.length === 0" class="p-[10px_16px] text-(12px [--text-muted-color])">
             {{ t('message.auto_update.no_notes') }}
           </p>
 

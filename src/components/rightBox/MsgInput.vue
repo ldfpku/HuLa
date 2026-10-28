@@ -49,8 +49,8 @@
               class="n-input"
               :class="
                 isMobile()
-                  ? 'empty:before:content-[attr(data-placeholder)] before:text-(12px #777) p-2 min-h-2rem ps-10px! text-14px! rounded-10px! max-h-8rem! flex items-center'
-                  : 'empty:before:content-[attr(data-placeholder)] before:text-(12px #777) p-2'
+                  ? 'empty:before:content-[attr(data-placeholder)] before:text-(12px [--text-muted-color]) p-2 min-h-2rem ps-10px! text-14px! rounded-10px! max-h-8rem! flex items-center'
+                  : 'empty:before:content-[attr(data-placeholder)] before:text-(12px [--text-muted-color]) p-2'
               "></div>
           </n-scrollbar>
         </ContextMenu>
@@ -62,12 +62,13 @@
           <n-button-group size="small">
             <n-button
               color="#034fbc"
+              text-color="#ffffff"
               :disabled="props.isAIMode && props.isAIStreaming ? false : disabledSend"
               class="w-65px"
               @click="handleDesktopSend">
               {{ props.isAIMode && props.isAIStreaming ? '停止思考' : t('editor.send') }}
             </n-button>
-            <n-button color="#034fbc" class="p-[0_6px]">
+            <n-button color="#034fbc" text-color="#ffffff" class="p-[0_6px]">
               <template #icon>
                 <n-popselect
                   v-model:show="arrow"
@@ -88,7 +89,7 @@
                       justify="center"
                       align="center"
                       :size="4"
-                      class="text-(12px #777) cursor-default tracking-1 select-none">
+                      class="text-(12px [--text-muted-color]) cursor-default tracking-1 select-none">
                       <i18n-t keypath="editor.send_or_newline">
                         <template #send>
                           <span v-if="chatKey !== 'Enter'">
@@ -136,7 +137,7 @@
                   lazy
                   round
                   :size="22"
-                  :src="AvatarUtils.getAvatarUrl(item.avatar)"
+                  :src="AvatarUtils.getAvatarUrl(item.avatar, item.uid)"
                   :color="themes.content === ThemeEnum.DARK ? '' : '#fff'"
                   :fallback-src="themes.content === ThemeEnum.DARK ? '/avatar-dark.svg' : '/avatar-light.svg'"
                   :render-placeholder="() => null"
@@ -201,6 +202,7 @@
             <n-button-group size="small" :class="isMobile() ? 'h-full' : 'pr-20px'">
               <n-button
                 color="#034fbc"
+                text-color="#ffffff"
                 :disabled="props.isAIMode && props.isAIStreaming ? false : disabledSend"
                 class="w-3rem h-full"
                 @click="handleMobileSend">

@@ -28,7 +28,7 @@ export const options = computed(() => {
         label: userInfo?.name || item.remark,
         value: item.uid,
         account: userInfo?.account || '',
-        avatar: AvatarUtils.getAvatarUrl(userInfo?.avatar || '/avatar-light.svg')
+        avatar: AvatarUtils.getAvatarUrl(userInfo?.avatar, item.uid)
       }
     })
     .filter(Boolean) as any

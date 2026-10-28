@@ -3,13 +3,13 @@
     <!-- 位置图标和标题 -->
     <n-flex align="center" justify="space-between" class="pb-8px">
       <div class="flex-y-center gap-8px">
-        <svg class="size-14px color-#034fbc">
+        <svg class="size-14px color-[--link-color]">
           <use href="#local"></use>
         </svg>
         <p class="text-14px font-medium color-[--text-color]">位置</p>
       </div>
 
-      <div class="text-(10px #034fbc) p-4px rounded-4px border-(1px solid #034fbc)">
+      <div class="text-(10px [--link-color]) p-4px rounded-4px border-(1px solid [--link-color])">
         <p v-if="body?.precision">{{ body.precision }}</p>
       </div>
     </n-flex>
@@ -90,9 +90,9 @@ watch(
 .location-message {
   cursor: default;
   user-select: none;
-  @apply: w-260px flex flex-col h-fit bg-[--group-notice-bg]
-  border-(1px solid #e3e3e3) dark:border-(1px solid #404040)
-  hover:bg-#fefefe99 dark:hover:bg-#60606040 rounded-8px p-8px box-border
+  @apply w-260px flex flex-col h-fit bg-[--group-notice-bg]
+  border-(1px solid [--line-color])
+  hover:bg-[--list-hover-color] rounded-8px p-8px box-border
   custom-shadow transition-colors duration-200;
 }
 </style>

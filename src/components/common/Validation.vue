@@ -20,7 +20,7 @@
     <p
       :class="[
         'text-12px',
-        { 'color-#131313 dark:color-#fefefe': isValid, 'color-#909090 dark:color-#707070': !isValid }
+        { 'color-[--text-color]': isValid, 'color-[--text-muted-color]': !isValid }
       ]">
       {{ message }}
     </p>

@@ -69,7 +69,7 @@
 
         <n-flex justify="end">
           <n-button secondary :disabled="submitting" @click="visible = false">取消</n-button>
-          <n-button color="#034fbc" :loading="submitting" @click="submit">预约</n-button>
+          <n-button color="#034fbc" text-color="#ffffff" :loading="submitting" @click="submit">预约</n-button>
         </n-flex>
       </template>
 
@@ -80,13 +80,13 @@
           <p class="m-0 text-[--chat-text-color]">
             {{ created.invited.length ? `邀请邮件已发给 ${created.invited.length} 人` : '未发送邀请邮件' }}
           </p>
-          <p class="m-0 text-12px break-all text-#034fbc select-text">{{ created.url }}</p>
+          <p class="m-0 text-12px break-all text-[--link-color] select-text">{{ created.url }}</p>
         </div>
         <n-flex justify="end">
           <n-button secondary type="error" :loading="cancelling" @click="cancel">取消会议</n-button>
           <n-button secondary @click="copyLink">复制链接</n-button>
           <n-button secondary @click="addToCalendar(created.id)">加入日历</n-button>
-          <n-button color="#034fbc" @click="joinNow">进入会议</n-button>
+          <n-button color="#034fbc" text-color="#ffffff" @click="joinNow">进入会议</n-button>
         </n-flex>
       </template>
     </div>

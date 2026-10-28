@@ -34,7 +34,7 @@
               </div>
             </n-flex>
             <div class="flex-shrink-0 w-60px select-none" @click="handleViewAnnouncement">
-              <p class="text-(12px #034fbc) cursor-pointer">{{ t('home.chat_main.announcement.view_all') }}</p>
+              <p class="text-(12px [--link-color]) cursor-pointer">{{ t('home.chat_main.announcement.view_all') }}</p>
             </div>
           </n-flex>
         </div>
@@ -58,7 +58,7 @@
           <div
             v-show="chatStore.shouldShowNoMoreMessage"
             class="flex-center gap-6px h-32px flex-shrink-0 cursor-default select-none">
-            <p class="text-(12px #909090)">{{ t('home.chat_main.no_more') }}</p>
+            <p class="text-(12px [--text-muted-color])">{{ t('home.chat_main.no_more') }}</p>
           </div>
           <n-flex
             v-for="(item, index) in chatStore.chatMessageList"
@@ -68,7 +68,7 @@
             :data-message-id="item.message.id"
             :data-message-index="index">
             <!-- 信息间隔时间 -->
-            <span class="text-(12px #909090) select-none p-4px" v-if="item.timeBlock" @click.stop>
+            <span class="text-(12px [--text-muted-color]) select-none p-4px" v-if="item.timeBlock" @click.stop>
               {{ timeToStr(item.message.sendTime) }}
             </span>
             <!-- 消息内容容器 -->
@@ -149,7 +149,7 @@
         <span class="text-14px">{{ tips }}</span>
 
         <n-flex justify="end">
-          <n-button @click="handleConfirm" class="w-78px" color="#034fbc">{{ t('home.chat_main.confirm') }}</n-button>
+          <n-button @click="handleConfirm" class="w-78px" color="#034fbc" text-color="#ffffff">{{ t('home.chat_main.confirm') }}</n-button>
           <n-button @click="modalShow = false" class="w-78px" secondary>{{ t('home.chat_main.cancel') }}</n-button>
         </n-flex>
       </div>
@@ -192,7 +192,7 @@
           <n-button @click="groupNicknameModalVisible = false" :disabled="groupNicknameSubmitting" secondary>
             {{ t('home.chat_main.cancel') }}
           </n-button>
-          <n-button color="#034fbc" :loading="groupNicknameSubmitting" @click="handleGroupNicknameConfirm">
+          <n-button color="#034fbc" text-color="#ffffff" :loading="groupNicknameSubmitting" @click="handleGroupNicknameConfirm">
             {{ t('home.chat_main.confirm') }}
           </n-button>
         </n-flex>

@@ -1,5 +1,5 @@
 <template>
-  <main class="size-full rounded-8px bg-#fff dark:bg-#303030" data-tauri-drag-region>
+  <main class="size-full rounded-8px bg-[--center-bg-color]" data-tauri-drag-region>
     <!-- 头像栏 -->
     <div class="flex flex-col h-32vh relative" data-tauri-drag-region>
       <div class="flex h-95% w-full relative" data-tauri-drag-region>
@@ -45,7 +45,7 @@
             </div>
           </div>
         </ActionBar>
-        <div data-tauri-drag-region class="size-full flex-center bg-#90909048 dark:bg-[#202020]">
+        <div data-tauri-drag-region class="size-full flex-center bg-#2455a4 dark:bg-#202d3b">
           <!-- TODO: 默认的图片是这个格式，如果动态替换需要更改对应其他的格式 -->
           <BrandLogo data-tauri-drag-region class="size-76% object-contain" />
         </div>
@@ -55,7 +55,11 @@
           {{ userStore.userInfo?.name }}
         </div>
         <div>
-          <n-avatar :size="65" round bordered :src="AvatarUtils.getAvatarUrl(userStore.userInfo!.avatar)" />
+          <n-avatar
+            :size="65"
+            round
+            bordered
+            :src="AvatarUtils.getAvatarUrl(userStore.userInfo!.avatar, userStore.userInfo!.uid)" />
         </div>
       </div>
     </div>
@@ -199,7 +203,7 @@
                     <n-avatar
                       :size="36"
                       round
-                      :src="AvatarUtils.getAvatarUrl(groupStore.getUserInfo(user.uid)?.avatar || '')" />
+                      :src="AvatarUtils.getAvatarUrl(groupStore.getUserInfo(user.uid)?.avatar, user.uid)" />
                     <div>
                       <p class="text-14px font-medium text-[--text-color]">
                         {{ groupStore.getUserInfo(user.uid)?.name || user.remark || user.uid }}

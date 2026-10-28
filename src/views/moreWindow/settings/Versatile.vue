@@ -19,7 +19,7 @@
     <n-flex vertical align="start" :size="20" class="variation-item">
       <n-flex :size="20" align="end">
         <p class="text-(16px [--text-color])">{{ t('setting.theme.versatile.title') }}</p>
-        <p class="text-(12px #999)">{{ t('setting.theme.versatile.description') }}</p>
+        <p class="text-(12px [--text-muted-color])">{{ t('setting.theme.versatile.description') }}</p>
       </n-flex>
 
       <n-flex align="center" :size="20">

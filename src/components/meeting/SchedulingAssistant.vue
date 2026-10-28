@@ -23,7 +23,7 @@
         </n-button>
       </div>
       <span v-if="loading && !participants.length" class="text-12px text-[--chat-text-color]">正在查询日程…</span>
-      <span v-else-if="conflicts.length" class="text-12px text-#d03050" data-test="schedule-verdict">
+      <span v-else-if="conflicts.length" class="text-12px text-[--danger-text]" data-test="schedule-verdict">
         {{ participants.length }} 人中 {{ conflicts.length }} 人有冲突：{{ conflictNames }}
       </span>
       <span v-else-if="participants.length" class="text-12px text-#18a058" data-test="schedule-verdict">
@@ -55,7 +55,7 @@
           class="flex items-center h-30px border-b border-b-solid border-[--line-color] last:border-b-0">
           <div class="w-112px shrink-0 flex items-center gap-6px px-6px box-border">
             <n-avatar round :size="20" :src="avatarOf(person)" fallback-src="/avatar-light.svg" />
-            <span class="truncate text-12px" :class="{ 'text-#d03050': conflicts.includes(person.uid) }">
+            <span class="truncate text-12px" :class="{ 'text-[--danger-text]': conflicts.includes(person.uid) }">
               {{ person.uid === selfUid ? `${person.name}（我）` : person.name }}
             </span>
           </div>
@@ -126,6 +126,7 @@
             size="tiny"
             :secondary="slot.start !== startAt"
             :color="slot.start === startAt ? '#034fbc' : undefined"
+            :text-color="slot.start === startAt ? '#ffffff' : undefined"
             data-test="schedule-suggestion"
             @click="emit('pick', slot.start)">
             {{ formatSuggestion(slot.start, slot.end) }}
@@ -222,7 +223,7 @@ const offHours = computed(() => {
 
 const avatarOf = (person: MeetingAvailabilityParticipant) => {
   const avatar = groupStore.getUserInfo(person.uid)?.avatar
-  return avatar ? AvatarUtils.getAvatarUrl(avatar) : person.avatar
+  return AvatarUtils.getAvatarUrl(avatar || person.avatar, person.uid)
 }
 
 const pick = (event: MouseEvent) => {

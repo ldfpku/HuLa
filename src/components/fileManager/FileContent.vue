@@ -7,7 +7,7 @@
           <h2 class="text-18px font-600 text-[--text-color] m-0">
             {{ getContentTitle() }}
           </h2>
-          <p class="text-14px text-[--text-color] opacity-60 m-0 mt-4px">
+          <p class="text-14px text-[--text-muted-color] m-0 mt-4px">
             {{ getContentSubtitle() }}
           </p>
         </n-flex>
@@ -61,7 +61,7 @@
                     <p>{{ t('fileManager.list.meta.from') }}</p>
                     <p class="file-sender">{{ getUserDisplayName(file.sender) }}</p>
                   </div>
-                  <p class="opacity-80">{{ file.uploadTime }}</p>
+                  <p>{{ file.uploadTime }}</p>
                 </div>
               </ContextMenu>
             </div>
@@ -82,7 +82,7 @@
             {{ t('fileManager.search.clear') }}
           </n-button>
 
-          <n-button v-if="selectedUser" @click="clearUserFilter" ghost color="#034fbc" size="small">
+          <n-button v-if="selectedUser" @click="clearUserFilter" ghost type="primary" size="small">
             {{ t('fileManager.search.showAllUsers') }}
           </n-button>
         </template>
@@ -376,11 +376,11 @@ const convertToFileBody = (file: any): FileBody => {
   align-items: center;
   padding: 0 4px;
   font-size: 12px;
-  color: #909090;
+  color: var(--text-muted-color);
 }
 
 .file-sender {
-  color: #034fbc;
+  color: var(--link-color);
   cursor: pointer;
 
   &:hover {

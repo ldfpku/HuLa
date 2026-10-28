@@ -129,7 +129,7 @@ const enrichedContactsList = computed(() => {
     return {
       ...item,
       name: userInfo?.name || item.remark || t('fileManager.common.unknownUser'),
-      avatar: AvatarUtils.getAvatarUrl(userInfo?.avatar || '/avatar-light.svg'),
+      avatar: AvatarUtils.getAvatarUrl(userInfo?.avatar, item.uid),
       activeStatus: item.activeStatus
     }
   })
@@ -283,7 +283,7 @@ const loadSessions = async () => {
     // 使用联系人作为会话列表，并处理头像
     sessionList.value = contactList.value.map((item) => ({
       ...item,
-      avatar: AvatarUtils.getAvatarUrl(item.avatar)
+      avatar: AvatarUtils.getAvatarUrl(item.avatar, item.uid)
     }))
   } catch (error) {
     console.error('加载会话失败:', error)

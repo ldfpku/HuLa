@@ -16,8 +16,8 @@
               fallback-src="/default-avatar.png" />
 
             <div class="flex-y-center gap-12px h-fit">
-              <p class="text-(14px #909090)">{{ getUserDisplayName(item.fromUser.uid) }}</p>
-              <p class="text-(12px #909090)">{{ formatTimestamp(item.message.sendTime) }}</p>
+              <p class="text-(14px [--text-muted-color])">{{ getUserDisplayName(item.fromUser.uid) }}</p>
+              <p class="text-(12px [--text-muted-color])">{{ formatTimestamp(item.message.sendTime) }}</p>
             </div>
           </div>
 
@@ -97,7 +97,7 @@ const getUserDisplayName = computed(() => (uid: string) => {
 // 获取用户头像
 const getAvatarSrc = (uid: string) => {
   const avatar = uid === userUid.value ? userStore.userInfo!.avatar : groupStore.getUserInfo(uid)?.avatar
-  return AvatarUtils.getAvatarUrl(avatar as string)
+  return AvatarUtils.getAvatarUrl(avatar, uid)
 }
 
 // 获取当前页面的所有图片和表情URL

@@ -164,7 +164,7 @@ watch(
       <n-flex align="center" justify="start" :size="[24, 20]">
         <template v-for="(item, index) in userList" :key="index">
           <n-flex vertical justify="center" align="center" :size="10">
-            <n-avatar round :size="30" :src="AvatarUtils.getAvatarUrl(item.avatar)" />
+            <n-avatar round :size="30" :src="AvatarUtils.getAvatarUrl(item.avatar, item.uid)" />
             <p class="text-(10px --text-color center) w-30px truncate">
               {{ item.name }}
             </p>
@@ -192,7 +192,7 @@ watch(
   <!-- 群备注 -->
   <p class="flex-start-center gap-10px text-(12px [--chat-text-color]) mt-20px mb-10px">
     {{ t('home.chat_header.sidebar.group.remark') }}
-    <span class="text-(10px #909090)">{{ t('home.chat_header.sidebar.group.remark_desc') }}</span>
+    <span class="text-(10px [--text-muted-color])">{{ t('home.chat_header.sidebar.group.remark_desc') }}</span>
   </p>
   <n-input
     class="border-(solid 1px [--line-color]) custom-shadow"
@@ -213,7 +213,7 @@ watch(
   <!-- 群设置选项 -->
   <div class="box-item cursor-default">
     <n-flex vertical justify="center" :size="4">
-      <p class="text-(12px #909090) pb-14px">{{ t('home.chat_header.sidebar.group.settings.title') }}</p>
+      <p class="text-(12px [--text-muted-color]) pb-14px">{{ t('home.chat_header.sidebar.group.settings.title') }}</p>
 
       <div class="flex-between-center">
         <p>{{ t('home.chat_header.sidebar.group.settings.pin') }}</p>
@@ -235,7 +235,7 @@ watch(
   <!-- 群消息设置（仅在消息免打扰开启时显示） -->
   <div v-if="activeItem?.muteNotification === NotificationTypeEnum.NOT_DISTURB" class="box-item cursor-default">
     <n-flex vertical justify="center" :size="4">
-      <p class="text-(12px #909090) pb-14px">
+      <p class="text-(12px [--text-muted-color]) pb-14px">
         {{ t('home.chat_header.sidebar.group.message_settings.title') }}
       </p>
       <div class="flex-between-center">
@@ -287,7 +287,7 @@ watch(
   </div>
 
   <!-- 举报 -->
-  <p v-if="activeItem?.hotFlag !== IsAllUserEnum.Yes" class="text-(12px #034fbc center) my-20px cursor-pointer">
+  <p v-if="activeItem?.hotFlag !== IsAllUserEnum.Yes" class="text-(12px [--link-color] center) my-20px cursor-pointer">
     {{ t('home.chat_header.sidebar.group.report') }}
   </p>
 </template>

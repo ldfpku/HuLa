@@ -49,7 +49,7 @@
                 autoCapitalize="off"
                 maxlength="6" />
               <n-button
-                color="#034fbc"
+                type="primary"
                 ghost
                 :disabled="sendBtnDisabled"
                 :loading="sendingEmailCode"
@@ -63,8 +63,8 @@
           <n-button
             :loading="verifyLoading"
             :disabled="nextDisabled"
-            tertiary
-            style="color: #fff"
+            color="#034fbc"
+            text-color="#ffffff"
             @click="verifyEmail"
             class="mt-10px w-full gradient-button">
             {{ t('auth.forget.buttons.next') }}
@@ -137,8 +137,8 @@
             <n-button @click="goBack" class="flex-1">{{ t('auth.forget.buttons.prev') }}</n-button>
             <n-button
               :loading="submitLoading"
-              tertiary
-              style="color: #fff"
+              color="#034fbc"
+              text-color="#ffffff"
               @click="submitNewPassword"
               class="flex-1 gradient-button">
               {{ t('auth.forget.buttons.submit') }}
@@ -157,7 +157,7 @@
         <img class="size-98px" src="/emoji/party-popper.webp" alt="" />
 
         <div class="mt-16px text-18px">{{ t('auth.forget.success.title') }}</div>
-        <div class="mt-16px text-14px text-#666">{{ t('auth.forget.success.desc') }}</div>
+        <div class="mt-16px text-14px text-[--text-muted-color]">{{ t('auth.forget.success.desc') }}</div>
       </div>
     </n-flex>
   </n-config-provider>

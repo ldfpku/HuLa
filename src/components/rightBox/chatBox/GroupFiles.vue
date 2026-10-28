@@ -4,7 +4,7 @@
     <div class="flex-between-center">
       <p class="text-(14px --text-color)">{{ t('home.chat_header.sidebar.group.files.title') }}</p>
       <n-flex align="center" :size="6">
-        <p v-if="total !== null" class="text-(12px #909090)">
+        <p v-if="total !== null" class="text-(12px [--text-muted-color])">
           {{ t('home.chat_header.sidebar.group.files.count', { count: total }) }}
         </p>
         <svg class="size-12px color-#909090"><use href="#right"></use></svg>
@@ -32,18 +32,18 @@
               <svg class="size-14px color-#909090"><use href="#search"></use></svg>
             </template>
           </n-input>
-          <n-button size="small" color="#034fbc" @click="showPicker = true">
+          <n-button size="small" color="#034fbc" text-color="#ffffff" @click="showPicker = true">
             {{ t('home.chat_header.sidebar.group.files.send_from_drive') }}
           </n-button>
         </n-flex>
 
-        <p v-if="totalSize !== null && !keyword.trim()" class="text-(12px #909090)">
+        <p v-if="totalSize !== null && !keyword.trim()" class="text-(12px [--text-muted-color])">
           {{ t('home.chat_header.sidebar.group.files.summary', { count: total ?? 0, size: formatBytes(totalSize) }) }}
         </p>
 
         <n-scrollbar class="max-h-[min(60vh,480px)]">
           <n-spin :show="loading && !files.length">
-            <div v-if="!files.length && !loading" class="py-40px text-(13px center #909090)">
+            <div v-if="!files.length && !loading" class="py-40px text-(13px center [--text-muted-color])">
               {{
                 keyword.trim()
                   ? t('home.chat_header.sidebar.group.files.no_match')
@@ -57,7 +57,7 @@
               <img :src="fileIcon(file.fileName)" class="size-32px shrink-0" alt="" @error="onIconError" />
               <div class="flex-1 min-w-0 cursor-pointer" @click="handlePreview(file)">
                 <p class="truncate text-(13px --text-color)" :title="file.fileName">{{ file.fileName }}</p>
-                <p class="truncate text-(12px #909090) mt-2px">
+                <p class="truncate text-(12px [--text-muted-color]) mt-2px">
                   {{ formatBytes(file.size) }} · {{ file.uploaderName }} · {{ formatTime(file.createdAt) }}
                 </p>
               </div>

@@ -7,11 +7,11 @@
     @mouseenter="handleMouseEnter"
     @mouseleave="handleMouseLeave">
     <n-flex v-if="!isLoadingMore && isLast" justify="center" class="box-border absolute-x-center pt-10px">
-      <span class="text-(12px #909090)">以下是全部消息内容</span>
+      <span class="text-(12px [--text-muted-color])">以下是全部消息内容</span>
     </n-flex>
     <n-flex v-if="isLoadingMore && !isLast" justify="center" class="box-border absolute-x-center pt-10px">
       <img class="size-16px" src="@/assets/img/loading.svg" alt="" />
-      <span class="text-(14px #909090)">加载中</span>
+      <span class="text-(14px [--text-muted-color])">加载中</span>
     </n-flex>
     <div ref="phantomRef" class="virtual-list-phantom"></div>
     <div ref="contentRef" class="virtual-list-content">

@@ -236,7 +236,7 @@ const { stateList } = storeToRefs(userStatusStore)
 const resolvedUserInfo = computed(() => groupStore.getUserInfo(uid) ?? null)
 /** 头像加载状态 */
 const badgeLoadedMap = ref<Record<string, boolean>>({})
-const avatarSrc = computed(() => AvatarUtils.getAvatarUrl((resolvedUserInfo.value?.avatar as string) || ''))
+const avatarSrc = computed(() => AvatarUtils.getAvatarUrl(resolvedUserInfo.value?.avatar, uid))
 /** 是否是当前登录的用户 */
 const isCurrentUserUid = computed(() => userUid.value === uid)
 

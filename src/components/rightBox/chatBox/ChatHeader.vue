@@ -21,24 +21,24 @@
         <label class="flex-y-center gap-6px min-w-0">
           <p
             class="text-(16px [--text-color]) truncate"
-            :class="{ 'cursor-pointer hover:color-#034fbc': canManageGroup }"
+            :class="{ 'cursor-pointer hover:color-[--link-color]': canManageGroup }"
             :title="canManageGroup ? '点击修改群名称' : undefined"
             @click="canManageGroup && openRenameGroupDialog(currentSessionRoomId, activeItem?.name || '')">
             {{ groupStore.countInfo?.remark || activeItem?.name }}
           </p>
           <p
             v-if="activeItem?.type === RoomTypeEnum.GROUP && groupStore.countInfo?.memberNum"
-            class="text-(11px #808080)">
+            class="text-(11px [--text-muted-color])">
             [{{ groupStore.countInfo?.memberNum }}]
           </p>
           <!-- bot用户标签 -->
           <div
             v-if="isBotUser"
             class="dark:bg-[#034fbc40] bg-[#edf2fb] dark:border-(1px solid #034fbc) border-(1px solid #034fbc) flex-center px-8px py-4px rounded-6px">
-            <p class="text-(11px #034fbc)">{{ t('home.chat_header.bot_tag') }}</p>
+            <p class="text-(11px [--link-color])">{{ t('home.chat_header.bot_tag') }}</p>
           </div>
         </label>
-        <svg v-if="activeItem?.hotFlag === IsAllUserEnum.Yes" class="size-20px color-#034fbc select-none outline-none">
+        <svg v-if="activeItem?.hotFlag === IsAllUserEnum.Yes" class="size-20px color-[--link-color] select-none outline-none">
           <use href="#auth"></use>
         </svg>
         <n-flex v-else-if="activeItem?.type === RoomTypeEnum.SINGLE && !isBotUser" align="center">
@@ -242,7 +242,7 @@
         <span class="text-14px">{{ tips }}</span>
 
         <n-flex justify="end">
-          <n-button @click="handleConfirm" class="w-78px" color="#034fbc">
+          <n-button @click="handleConfirm" class="w-78px" color="#034fbc" text-color="#ffffff">
             {{ t('home.chat_header.modal.confirm') }}
           </n-button>
           <n-button @click="handleCancel" class="w-78px" secondary>{{ t('home.chat_header.modal.cancel') }}</n-button>
@@ -504,7 +504,7 @@ const currentUserAvatar = computed(() => {
   }
   if (session.detailId) {
     const detailUser = groupStore.getUserInfo(session.detailId)
-    return AvatarUtils.getAvatarUrl(detailUser?.avatar || session.avatar)
+    return AvatarUtils.getAvatarUrl(detailUser?.avatar || session.avatar, session.detailId)
   }
   return AvatarUtils.getAvatarUrl(session.avatar)
 })

@@ -32,16 +32,16 @@
         <n-flex v-if="isWindows()" align="center" justify="space-between" :wrap="false">
           <span>{{ t('setting.general.system.close_panel') }}</span>
 
-          <label class="text-(14px #707070) flex gap-6px lh-16px items-center">
+          <label class="text-(14px [--text-muted-color]) flex gap-6px lh-16px items-center">
             <n-radio :value="CloseBxEnum.HIDE" />
             <span>{{ t('setting.general.system.close_options.minimize_to_tray') }}</span>
           </label>
-          <label class="text-(14px #707070) flex gap-6px lh-16px items-center">
+          <label class="text-(14px [--text-muted-color]) flex gap-6px lh-16px items-center">
             <n-radio :value="CloseBxEnum.CLOSE" />
             <span>{{ t('setting.general.system.close_options.exit_program') }}</span>
           </label>
 
-          <label class="text-(12px #909090) flex gap-6px justify-end items-center">
+          <label class="text-(12px [--text-muted-color]) flex gap-6px justify-end items-center">
             <n-checkbox size="small" v-model:checked="tips.notTips" />
             <span>{{ t('setting.general.system.close_prompt') }}</span>
           </label>

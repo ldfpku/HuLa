@@ -186,7 +186,7 @@
                   :size="34"
                   class="select-none rounded-8px flex-shrink-0"
                   :class="message.type === 'user' ? 'ml-2px' : 'mr-2px'"
-                  :src="userStore.userInfo?.avatar ? AvatarUtils.getAvatarUrl(userStore.userInfo.avatar) : ''"
+                  :src="AvatarUtils.getAvatarUrl(userStore.userInfo?.avatar, userStore.userInfo?.uid)"
                   :fallback-src="getDefaultAvatar()" />
                 <n-avatar
                   v-else

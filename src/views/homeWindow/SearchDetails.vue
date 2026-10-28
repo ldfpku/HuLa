@@ -1,10 +1,10 @@
 <template>
-  <n-flex :size="14" vertical justify="center" class="p-14px text-(12px #909090)">
+  <n-flex :size="14" vertical justify="center" class="p-14px text-(12px [--text-muted-color])">
     <!-- 没有输入时显示历史记录 -->
     <template v-if="!searchQuery">
       <n-flex v-if="historyList.length > 0" align="center" justify="space-between">
-        <p class="text-(12px #909090)">{{ t('home.search_history') }}</p>
-        <p class="cursor-pointer text-(12px #034fbc)" @click="clearHistory">{{ t('home.clear_search_history') }}</p>
+        <p class="text-(12px [--text-muted-color])">{{ t('home.search_history') }}</p>
+        <p class="cursor-pointer text-(12px [--link-color])" @click="clearHistory">{{ t('home.clear_search_history') }}</p>
       </n-flex>
 
       <n-flex
@@ -23,7 +23,7 @@
             :size="14"
             class="p-6px mb-6px mr-10px cursor-pointer rounded-8px hover:bg-[--list-hover-color]"
             @click="openConversation(item)">
-            <n-avatar :size="38" round bordered :src="AvatarUtils.getAvatarUrl(item.avatar)" />
+            <n-avatar :size="38" round bordered :src="AvatarUtils.getAvatarUrl(item.avatar, item.type === RoomTypeEnum.SINGLE ? item.detailId : undefined)" />
             <p class="text-(14px [--text-color]) flex-1 truncate">{{ item.name }}</p>
           </n-flex>
         </template>
@@ -35,7 +35,7 @@
       <n-scrollbar style="max-height: calc(100vh / var(--page-scale, 1) - 118px)">
         <div class="pr-10px">
           <template v-if="peopleResults.length > 0">
-            <p class="text-(12px #909090) mb-6px">{{ t('home.search_contacts') }}</p>
+            <p class="text-(12px [--text-muted-color]) mb-6px">{{ t('home.search_contacts') }}</p>
             <template v-for="person in peopleResults" :key="person.uid">
               <n-flex
                 align="center"
@@ -43,14 +43,14 @@
                 :wrap="false"
                 class="person-item p-6px mb-6px cursor-pointer rounded-8px hover:bg-[--list-hover-color]"
                 @click="openPersonChat(person)">
-                <n-avatar :size="38" round bordered class="shrink-0" :src="AvatarUtils.getAvatarUrl(person.avatar)" />
+                <n-avatar :size="38" round bordered class="shrink-0" :src="AvatarUtils.getAvatarUrl(person.avatar, person.uid)" />
                 <n-flex vertical :size="2" class="flex-1 min-w-0">
                   <p class="text-(14px [--text-color]) truncate">
                     <template v-for="(part, index) in highlightParts(person.name)" :key="index">
                       <span :class="{ 'smj-search-hit': part.hit }">{{ part.text }}</span>
                     </template>
                   </p>
-                  <p v-if="personDetail(person)" class="text-(12px #909090) truncate">
+                  <p v-if="personDetail(person)" class="text-(12px [--text-muted-color]) truncate">
                     <template v-for="(part, index) in highlightParts(personDetail(person))" :key="index">
                       <span :class="{ 'smj-search-hit': part.hit }">{{ part.text }}</span>
                     </template>
@@ -62,21 +62,21 @@
                   :aria-label="t('home.search_view_profile')"
                   class="person-profile shrink-0 size-28px flex-center rounded-6px hover:bg-[--bg-msg-hover]"
                   @click.stop="openPersonProfile(person)">
-                  <svg class="size-16px color-#909090"><use href="#avatar"></use></svg>
+                  <svg class="size-16px color-[--text-muted-color]"><use href="#avatar"></use></svg>
                 </div>
               </n-flex>
             </template>
           </template>
 
           <template v-if="searchResults.length > 0">
-            <p class="text-(12px #909090) mt-8px mb-6px">{{ t('home.search_sessions') }}</p>
+            <p class="text-(12px [--text-muted-color]) mt-8px mb-6px">{{ t('home.search_sessions') }}</p>
             <template v-for="item in searchResults" :key="item.roomId">
               <n-flex
                 align="center"
                 :size="14"
                 class="p-6px mb-6px cursor-pointer rounded-8px hover:bg-[--list-hover-color]"
                 @click="openConversation(item)">
-                <n-avatar :size="38" round bordered :src="AvatarUtils.getAvatarUrl(item.avatar)" />
+                <n-avatar :size="38" round bordered :src="AvatarUtils.getAvatarUrl(item.avatar, item.type === RoomTypeEnum.SINGLE ? item.detailId : undefined)" />
                 <p class="text-(14px [--text-color]) flex-1 truncate">
                   <template v-for="(part, index) in highlightParts(item.name)" :key="index">
                     <span :class="{ 'smj-search-hit': part.hit }">{{ part.text }}</span>
@@ -87,7 +87,7 @@
           </template>
 
           <template v-if="chatHits.length > 0">
-            <p class="text-(12px #909090) mt-8px mb-6px">{{ t('home.search_chat_records') }} · {{ chatTotal }}</p>
+            <p class="text-(12px [--text-muted-color]) mt-8px mb-6px">{{ t('home.search_chat_records') }} · {{ chatTotal }}</p>
             <template v-for="hit in chatHits" :key="hit.msgId">
               <n-flex
                 align="center"
@@ -108,7 +108,7 @@
                         <span :class="{ 'smj-search-hit': part.hit }">{{ part.text }}</span>
                       </template>
                     </p>
-                    <p class="text-(11px #909090) shrink-0">{{ timeToStr(hit.sendTime) }}</p>
+                    <p class="text-(11px [--text-muted-color]) shrink-0">{{ timeToStr(hit.sendTime) }}</p>
                   </n-flex>
                   <p class="text-(12px [--chat-text-color]) truncate">
                     <span v-if="hit.roomType === RoomTypeEnum.GROUP">{{ hit.fromName }}：</span>
@@ -119,13 +119,13 @@
                 </n-flex>
               </n-flex>
             </template>
-            <p v-if="!chatLast" class="text-(12px #034fbc) cursor-pointer px-6px mb-8px" @click="loadMore('chat')">
+            <p v-if="!chatLast" class="text-(12px [--link-color]) cursor-pointer px-6px mb-8px" @click="loadMore('chat')">
               {{ loadingMore === 'chat' ? t('home.search_searching') : t('home.search_load_more') }}
             </p>
           </template>
 
           <template v-if="mailHits.length > 0">
-            <p class="text-(12px #909090) mt-8px mb-6px">{{ t('home.search_mail') }} · {{ mailTotal }}</p>
+            <p class="text-(12px [--text-muted-color]) mt-8px mb-6px">{{ t('home.search_mail') }} · {{ mailTotal }}</p>
             <template v-for="mail in mailHits" :key="mail.id">
               <n-flex
                 align="center"
@@ -147,9 +147,9 @@
                         <span :class="{ 'smj-search-hit': part.hit }">{{ part.text }}</span>
                       </template>
                     </p>
-                    <p class="text-(11px #909090) shrink-0">{{ timeToStr(mail.date) }}</p>
+                    <p class="text-(11px [--text-muted-color]) shrink-0">{{ timeToStr(mail.date) }}</p>
                   </n-flex>
-                  <p class="text-(12px #909090) truncate">
+                  <p class="text-(12px [--text-muted-color]) truncate">
                     <template
                       v-for="(part, index) in highlightParts(
                         mail.outbound ? t('home.search_mail_to', { to: mail.to }) : mail.fromName || mail.from
@@ -166,19 +166,19 @@
                 </n-flex>
               </n-flex>
             </template>
-            <p v-if="!mailLast" class="text-(12px #034fbc) cursor-pointer px-6px mb-8px" @click="loadMore('mail')">
+            <p v-if="!mailLast" class="text-(12px [--link-color]) cursor-pointer px-6px mb-8px" @click="loadMore('mail')">
               {{ loadingMore === 'mail' ? t('home.search_searching') : t('home.search_load_more') }}
             </p>
           </template>
 
-          <p v-if="searching" class="text-(12px #909090) px-6px">{{ t('home.search_searching') }}</p>
+          <p v-if="searching" class="text-(12px [--text-muted-color]) px-6px">{{ t('home.search_searching') }}</p>
         </div>
       </n-scrollbar>
     </template>
 
     <!-- 搜索中 -->
     <template v-else-if="searching">
-      <p class="text-(12px #909090)">{{ t('home.search_searching') }}</p>
+      <p class="text-(12px [--text-muted-color])">{{ t('home.search_searching') }}</p>
     </template>
 
     <!-- 没有搜索结果时 -->

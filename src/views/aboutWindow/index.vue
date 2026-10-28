@@ -16,13 +16,13 @@
       </div>
 
       <n-flex vertical align="center" :size="20" class="cursor-default" data-tauri-drag-region>
-        <span class="text-(15px #707070)">
+        <span class="text-(15px [--text-muted-color])">
           {{ t('home.about.version', { version: _pkg.version, arch: osArch || '' }) }}
         </span>
-        <span class="text-(15px #707070)">
+        <span class="text-(15px [--text-muted-color])">
           {{ t('home.about.device', { type: osType || '', version: osVersion || '' }) }}
         </span>
-        <n-flex vertical class="text-(12px #909090)" :size="8" align="center">
+        <n-flex vertical class="text-(12px [--text-muted-color])" :size="8" align="center">
           <span>
             {{ t('home.about.copyright', { start: currentYear - 1, end: currentYear }) }}
           </span>

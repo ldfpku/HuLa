@@ -67,9 +67,9 @@
               <template v-for="session in filteredSessionList" :key="session.roomId">
                 <n-flex align="center" :size="8" class="text-12px text-#303030 dark:text-#fefefe py-8px px-4px">
                   <n-checkbox v-model:checked="session.isCheck" @click.stop />
-                  <n-avatar class="rounded-8px" :size="30" :src="AvatarUtils.getAvatarUrl(session.avatar)" />
+                  <n-avatar class="rounded-8px" :size="30" :src="AvatarUtils.getAvatarUrl(session.avatar, session.type === RoomTypeEnum.SINGLE ? session.detailId : undefined)" />
                   <p>{{ session.remark ? session.remark : session.name }}</p>
-                  <p class="text-(12px #909090)" v-if="session.type === RoomTypeEnum.GROUP">
+                  <p class="text-(12px [--text-muted-color])" v-if="session.type === RoomTypeEnum.GROUP">
                     ({{ groupStore.getGroupDetailByRoomId(session.roomId)?.memberNum }})
                   </p>
                 </n-flex>
@@ -78,11 +78,11 @@
           </div>
           <!-- 已选择会话 -->
           <div class="flex-1 min-w-0 h-64vh px-12px pt-4px flex flex-col">
-            <p class="text-(12px #909090) pb-10px">{{ t('message.multi_choose.send_to_separately') }}</p>
+            <p class="text-(12px [--text-muted-color]) pb-10px">{{ t('message.multi_choose.send_to_separately') }}</p>
             <n-scrollbar class="flex-1">
               <template v-for="session in selectedSessions" :key="session.roomId">
                 <n-flex align="center" class="p-8px">
-                  <n-avatar class="rounded-8px" :size="30" :src="AvatarUtils.getAvatarUrl(session.avatar)" />
+                  <n-avatar class="rounded-8px" :size="30" :src="AvatarUtils.getAvatarUrl(session.avatar, session.type === RoomTypeEnum.SINGLE ? session.detailId : undefined)" />
                   <p class="text-(12px [--chat-text-color])">{{ session.remark ? session.remark : session.name }}</p>
                   <n-button
                     :title="t('tooltip.remove')"
@@ -157,7 +157,7 @@
           <n-button class="w-78px" secondary @click="showDeleteConfirm = false">
             {{ t('message.multi_choose.cancel_button') }}
           </n-button>
-          <n-button class="w-78px" color="#034fbc" :loading="isDeleting" @click="handleBatchDelete">
+          <n-button class="w-78px" color="#034fbc" text-color="#ffffff" :loading="isDeleting" @click="handleBatchDelete">
             {{ t('message.multi_choose.delete_action') }}
           </n-button>
         </n-flex>

@@ -9,16 +9,16 @@
       height="146"
       style="border: 2px solid #fff"
       class="rounded-50% select-none cursor-pointer"
-      :src="AvatarUtils.getAvatarUrl(item.avatar)"
+      :src="AvatarUtils.getAvatarUrl(item.avatar, item.uid)"
       @dblclick="openImageViewer"
       alt="" />
 
     <span class="text-(20px [--text-color])">{{ item.name }}</span>
 
     <template v-if="!isBotUser">
-      <span class="text-(14px #909090)">{{ t('home.chat_details.single.empty_signature') }}</span>
+      <span class="text-(14px [--text-muted-color])">{{ t('home.chat_details.single.empty_signature') }}</span>
 
-      <n-flex align="center" justify="space-between" :size="30" class="text-#606060 select-none cursor-default">
+      <n-flex align="center" justify="space-between" :size="30" class="text-[--text-muted-color] select-none cursor-default">
         <span>
           {{
             t('home.chat_details.single.region', {
@@ -93,10 +93,10 @@
             </n-popover>
           </n-flex>
           <n-flex align="center" :size="12">
-            <span class="text-(14px #909090)">{{ t('home.chat_details.group.id', { account: item.account }) }}</span>
+            <span class="text-(14px [--text-muted-color])">{{ t('home.chat_details.group.id', { account: item.account }) }}</span>
             <n-tooltip trigger="hover">
               <template #trigger>
-                <svg class="size-12px cursor-pointer color-#909090" @click="handleCopy(item.account)">
+                <svg class="size-12px cursor-pointer color-[--text-muted-color]" @click="handleCopy(item.account)">
                   <use href="#copy"></use>
                 </svg>
               </template>
@@ -170,7 +170,7 @@
             @keydown.enter="handleNicknameUpdate" />
         </div>
         <span v-else class="flex items-center cursor-pointer" @click="startEditNickname">
-          <p class="text-#909090">{{ displayNickname || t('home.chat_details.group.nickname.empty') }}</p>
+          <p class="text-[--text-muted-color]">{{ displayNickname || t('home.chat_details.group.nickname.empty') }}</p>
           <n-icon v-if="!item.myName" size="16" class="ml-1">
             <svg><use href="#right"></use></svg>
           </n-icon>
@@ -181,7 +181,7 @@
         <span>{{ t('home.chat_details.group.announcement.label') }}</span>
         <span class="flex items-center cursor-pointer gap-4px" @click="handleOpenAnnouncement">
           <p
-            class="text-#909090 max-w-200px truncate leading-tight"
+            class="text-[--text-muted-color] max-w-200px truncate leading-tight"
             :title="announcementContent || t('home.chat_details.group.announcement.empty')">
             {{ announcementContent || t('home.chat_details.group.announcement.empty') }}
           </p>
@@ -510,7 +510,9 @@ const openImageViewer = async () => {
   try {
     const imageViewerStore = useImageViewer()
     // 设置为单图模式并传入图片URL
-    imageViewerStore.setSingleImage(AvatarUtils.getAvatarUrl(item.value.avatar))
+    imageViewerStore.setSingleImage(
+      AvatarUtils.getAvatarUrl(item.value.avatar, content.type === RoomTypeEnum.SINGLE ? item.value.uid : undefined)
+    )
 
     // 创建窗口，使用计算后的尺寸
     await createWebviewWindow(

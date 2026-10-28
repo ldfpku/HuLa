@@ -23,6 +23,12 @@ svg {
 html[data-theme='dark'] :focus-visible {
   outline-color: #7a9fe2;
 }
+html[data-theme='dark'][data-desktop='true'] :focus-visible {
+  outline-color: #a4c7ff;
+}
+html[data-theme='dark'][data-desktop='true'] * {
+  caret-color: #a4c7ff !important;
+}
 
 /** 搜索命中的关键字：令牌见 --search-hit-*，深浅主题都保证对比度（不用橙色，BIS 规定橙色不作文字） */
 .smj-search-hit {
@@ -73,6 +79,19 @@ html[data-theme='dark'] :focus-visible {
   --box-shadow-color: rgba(10, 31, 84, 0.08);
   // 文字颜色
   --text-color: #0a1f54; // SMJ Well Navy
+  --text-muted-color: #909090;
+  --link-color: #034fbc;
+  --control-disabled-bg: #e9edf5;
+  --control-disabled-text: #596579;
+  --control-disabled-border: #6d7f94;
+  --secondary-control-bg: #f8fafc;
+  --secondary-control-hover: #e9edf5;
+  --secondary-control-pressed: #dce5f2;
+  --secondary-primary-text: #034fbc;
+  --secondary-info-text: #034fbc;
+  --secondary-success-text: #08653b;
+  --secondary-warning-text: #8b4500;
+  --secondary-error-text: #a7283d;
   // 整体图标颜色
   --icon-color: #0a1f54;
   --action-bar-icon-color: #2b3752;
@@ -173,6 +192,14 @@ html[data-theme='dark'] :focus-visible {
   --van-dialog-confirm-button-text-color: #034fbc;
 }
 
+html[data-desktop='true'] {
+  --text-muted-color: #596579;
+  --chat-text-color: #526177;
+  --disabled-color: #596579;
+  --danger-text: #a7283d;
+  --warning-text: #8b4500;
+}
+
 html[data-theme='dark'] {
   // 搜索命中高亮：白字 + 图表蓝底，在深井蓝上清楚可读
   --search-hit-color: #fff;
@@ -184,6 +211,8 @@ html[data-theme='dark'] {
   --box-shadow-color: rgba(0, 0, 0, 0.35);
   // 文字颜色
   --text-color: #fff;
+  --text-muted-color: #909090;
+  --link-color: #7a9fe2;
   // 整体图标颜色
   --icon-color: #b7becb;
   --action-bar-icon-color: #b7becb;
@@ -275,6 +304,117 @@ html[data-theme='dark'] {
   --group-notice-list-bg: #0a1f54;
   // 文件文本的背景颜色
   --file-bg-color: #13295f;
+}
+
+html[data-theme='dark'][data-desktop='true'] {
+  --app-bg-color: #111821;
+  --center-bg-color: #1b2532;
+  --right-bg-color: #151d28;
+  --box-shadow-color: rgba(0, 0, 0, 0.35);
+  --text-color: #f2f6fa;
+  --text-muted-color: #c1ccda;
+  --link-color: #a4c7ff;
+  --control-disabled-bg: #30465b;
+  --control-disabled-text: #c1ccda;
+  --control-disabled-border: #8294a8;
+  --secondary-control-bg: #263443;
+  --secondary-control-hover: #30465b;
+  --secondary-control-pressed: #374c60;
+  --secondary-primary-text: #a4c7ff;
+  --secondary-info-text: #a4c7ff;
+  --secondary-success-text: #63e2b7;
+  --secondary-warning-text: #ffd08a;
+  --secondary-error-text: #ffb4bb;
+  --icon-color: #c5d0dc;
+  --action-bar-icon-color: #c5d0dc;
+  --action-bar-icon-hover: #30465b;
+  --search-bg-color: #263443;
+  --bg-msg-first-child: #243242;
+  --bg-msg-hover: #2b3a4b;
+  --bg-active-msg: #2455a4;
+  --bg-chat-drawer: #1b2532;
+  --bg-setting-item: #202d3b;
+  --setting-item-line: #526273;
+  --bg-popover: #263443;
+  --bg-menu: #263443;
+  --bg-menu-hover: #30465b;
+  --line-color: #526273;
+  --bg-left-menu: #1b2532;
+  --bg-left-menu-hover: #2b3a4b;
+  --bg-left-active: #30465b;
+  --button-bg-color: #263443;
+  --disabled-color: #a9bacb;
+  --bg-bubble: #283747;
+  --bg-bubble-active: #30475b;
+  --bg-avatar: #1b2532;
+  --info-hover: #30465b;
+  --info-text-color: #e4edf7;
+  --bg-info: #202d3b;
+  --bg-emoji: #263443;
+  --emoji-hover: #30465b;
+  --emoji-active-color: #a4c7ff;
+  --reply-color: #c1ccda;
+  --reply-hover: #f2f6fa;
+  --bg-reply-img-count: #374c60;
+  --bg-edit: #202d3b;
+  --time-color: #c1ccda;
+  --chat-bt-color: #263443;
+  --chat-left-bg: #30475b;
+  --chat-right-bg: #151d28;
+  --chat-text-color: #c5d0dc;
+  --chat-hover-color: #2b3a4b;
+  --search-color: #263443;
+  --bate-color: #c1ccda;
+  --bate-bg: #263443;
+  --card-bg: #30475b;
+  --reply-bg: #283747;
+  --danger-text: #ffb4bb;
+  --danger-bg: #512633;
+  --warning-text: #ffd08a;
+  --warning-bg: #4a3522;
+  --avatar-border-color: #526273;
+  --avatar-hover-bg: rgba(38, 52, 67, 0.85);
+  --plugin-bg-color: #202d3b;
+  --float-hover-bg-color: #30465b;
+  --group-notice-list-bg: #202d3b;
+  --file-bg-color: #263443;
+  --search-hit-color: #111821;
+  --search-hit-bg: #b8d2ff;
+}
+
+html[data-desktop='true'] .n-button.n-button--disabled {
+  --n-color-disabled: var(--control-disabled-bg) !important;
+  --n-text-color-disabled: var(--control-disabled-text) !important;
+  --n-border-disabled: 1px solid var(--control-disabled-border) !important;
+  --n-opacity-disabled: 1 !important;
+}
+
+html[data-desktop='true'] .n-button.n-button--secondary:not(.n-button--disabled) {
+  --secondary-foreground: var(--text-color);
+  --n-color: var(--secondary-control-bg) !important;
+  --n-color-hover: var(--secondary-control-hover) !important;
+  --n-color-focus: var(--secondary-control-hover) !important;
+  --n-color-pressed: var(--secondary-control-pressed) !important;
+  --n-text-color: var(--secondary-foreground) !important;
+  --n-text-color-hover: var(--secondary-foreground) !important;
+  --n-text-color-focus: var(--secondary-foreground) !important;
+  --n-text-color-pressed: var(--secondary-foreground) !important;
+}
+
+html[data-desktop='true'] .n-button.n-button--secondary.n-button--primary-type {
+  --secondary-foreground: var(--secondary-primary-text);
+}
+html[data-desktop='true'] .n-button.n-button--secondary.n-button--info-type {
+  --secondary-foreground: var(--secondary-info-text);
+}
+html[data-desktop='true'] .n-button.n-button--secondary.n-button--success-type {
+  --secondary-foreground: var(--secondary-success-text);
+}
+html[data-desktop='true'] .n-button.n-button--secondary.n-button--warning-type {
+  --secondary-foreground: var(--secondary-warning-text);
+}
+html[data-desktop='true'] .n-button.n-button--secondary.n-button--error-type {
+  --secondary-foreground: var(--secondary-error-text);
 }
 /**! end */
 // 线性动画

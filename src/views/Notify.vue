@@ -10,12 +10,12 @@
       <n-flex
         v-for="group in content"
         :key="group.id"
-        v-memo="[group.id, group.messageCount, group.latestContent, group.isAtMe, group.name, group.avatar]"
+        v-memo="[group.id, group.messageCount, group.latestContent, group.isAtMe, group.name, group.avatar, group.userUid]"
         @click="handleClickMsg(group)"
         align="left"
         :size="10"
         class="mt-2px p-6px box-border rounded-8px hover:bg-[--tray-hover] cursor-pointer">
-        <n-avatar round :size="44" :src="AvatarUtils.getAvatarUrl(group.avatar)" />
+        <n-avatar round :size="44" :src="AvatarUtils.getAvatarUrl(group.avatar, group.userUid)" />
 
         <n-flex class="flex-1" vertical justify="center" :size="8">
           <span class="text-(16px [--text-color])">{{ group.name }}</span>
@@ -24,7 +24,7 @@
             <span class="max-w-150px truncate text-(12px [--text-color])">
               <template v-if="group.isAtMe">
                 <span class="text flex-1 leading-tight text-12px truncate">
-                  <span class="text-#d5304f mr-4px">{{ t('message.message_list.mention_tag') }}</span>
+                  <span class="text-[--danger-text] mr-4px">{{ t('message.message_list.mention_tag') }}</span>
                   <span>{{ group.latestContent.replace(':', '：') }}</span>
                 </span>
               </template>
@@ -44,7 +44,7 @@
       </n-flex>
     </n-scrollbar>
     <component :is="division" />
-    <p @click="handleTip" class="pt-4px pl-6px text-(12px #034fbc) cursor-pointer">
+    <p @click="handleTip" class="pt-4px pl-6px text-(12px [--link-color]) cursor-pointer">
       {{ t('message.notify.ignore_all') }}
     </p>
   </n-flex>
@@ -80,6 +80,7 @@ type GroupedMessage = {
   isAtMe: boolean
   top?: boolean // 添加置顶状态属性
   roomType: number // 房间类型：1=群聊，2=单聊
+  userUid?: string
 }
 
 const appWindow = WebviewWindow.getCurrent()
@@ -254,6 +255,7 @@ onMounted(async () => {
           if (session) {
             existingGroup.avatar = session.avatar
             existingGroup.name = session.name
+            existingGroup.userUid = session.type === RoomTypeEnum.SINGLE ? session.detailId : undefined
           }
         } else {
           // 如果是新的房间，创建新的分组
@@ -270,7 +272,9 @@ onMounted(async () => {
             timestamp: currentTime,
             isAtMe: isAtMe,
             // 添加房间类型，从session中获取，如果没有则默认为私聊类型
-            roomType: session?.type || RoomTypeEnum.SINGLE
+            roomType: session?.type || RoomTypeEnum.SINGLE,
+            userUid:
+              session?.type === RoomTypeEnum.GROUP ? undefined : session?.detailId || msg.fromUser.uid
           })
 
           // 调整窗口高度，基础高度140，从第二个分组开始每组增加60px，最多4个分组

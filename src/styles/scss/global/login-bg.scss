@@ -17,4 +17,9 @@
     background-color: #071539;
     background-image: linear-gradient(#034fbc, #034fbc), linear-gradient(#0a1f54, #0a1f54);
   }
+
+  html[data-theme='dark'][data-desktop='true'] .login-box {
+    background-color: #151d28;
+    background-image: linear-gradient(#2455a4, #2455a4), linear-gradient(#202d3b, #202d3b);
+  }
 }

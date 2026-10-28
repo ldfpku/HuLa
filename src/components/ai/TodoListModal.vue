@@ -26,7 +26,7 @@
           clearable
           placeholder="截止时间"
           class="w-150px" />
-        <n-button color="#034fbc" :disabled="!newTitle.trim()" :loading="adding" @click="addNew">添加</n-button>
+        <n-button color="#034fbc" text-color="#ffffff" :disabled="!newTitle.trim()" :loading="adding" @click="addNew">添加</n-button>
       </n-flex>
 
       <n-tabs v-model:value="tab" type="line" size="small" animated>
@@ -56,7 +56,7 @@
                 placeholder="要点" />
               <n-flex justify="end" :size="8">
                 <n-button size="tiny" secondary @click="editingId = ''">取消</n-button>
-                <n-button size="tiny" color="#034fbc" :disabled="!editTitle.trim()" @click="saveEdit(item)">
+                <n-button size="tiny" color="#034fbc" text-color="#ffffff" :disabled="!editTitle.trim()" @click="saveEdit(item)">
                   保存
                 </n-button>
               </n-flex>

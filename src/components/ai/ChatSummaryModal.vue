@@ -36,7 +36,7 @@
         </p>
         <n-flex justify="end" :size="10">
           <n-button size="small" secondary @click="copy">复制</n-button>
-          <n-button size="small" color="#034fbc" @click="run">重新生成</n-button>
+          <n-button size="small" color="#034fbc" text-color="#ffffff" @click="run">重新生成</n-button>
         </n-flex>
       </template>
     </div>

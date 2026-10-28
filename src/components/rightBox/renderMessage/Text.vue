@@ -362,17 +362,13 @@ const onImageLoadError = (e: Event) => {
 <style scoped>
 /** 链接与 @ 提及：BIS B14 链接用斯米伽蓝；自己的气泡是斯米伽蓝底，改白字。信号橙不做文字 */
 .smj-link {
-  color: #034fbc;
+  color: var(--link-color);
   text-decoration: underline;
   text-underline-offset: 2px;
 }
 .smj-mention {
-  color: #034fbc;
+  color: var(--link-color);
   font-weight: 600;
-}
-:global([data-theme='dark'] .smj-link),
-:global([data-theme='dark'] .smj-mention) {
-  color: #7a9fe2;
 }
 :global(.bubble-oneself .smj-link),
 :global(.bubble-oneself .smj-mention),

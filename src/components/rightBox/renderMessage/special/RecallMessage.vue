@@ -3,19 +3,19 @@
   <main class="w-full flex-center">
     <template v-if="isGroup">
       <n-flex align="center" :size="6" v-if="fromUserUid === userUid">
-        <p class="text-(12px #909090) select-none cursor-default">{{ message.body.content }}</p>
-        <p v-if="canReEdit" class="text-(12px #034fbc) select-none cursor-pointer" @click="handleReEdit(message.id)">
+        <p class="text-(12px [--text-muted-color]) select-none cursor-default">{{ message.body.content }}</p>
+        <p v-if="canReEdit" class="text-(12px [--link-color]) select-none cursor-pointer" @click="handleReEdit(message.id)">
           重新编辑
         </p>
       </n-flex>
-      <span v-else class="text-12px color-#909090 select-none" v-html="recallText"></span>
+      <span v-else class="text-12px color-[--text-muted-color] select-none" v-html="recallText"></span>
     </template>
     <template v-else>
       <n-flex align="center" :size="6">
-        <p class="text-(12px #909090) select-none cursor-default">
+        <p class="text-(12px [--text-muted-color]) select-none cursor-default">
           {{ message.body.content }}
         </p>
-        <p v-if="canReEdit" class="text-(12px #034fbc) select-none cursor-pointer" @click="handleReEdit(message.id)">
+        <p v-if="canReEdit" class="text-(12px [--link-color]) select-none cursor-pointer" @click="handleReEdit(message.id)">
           重新编辑
         </p>
       </n-flex>

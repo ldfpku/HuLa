@@ -8,12 +8,13 @@ import vResize from '@/directives/v-resize'
 import vSlide from '@/directives/v-slide.ts'
 import router from '@/router'
 import { pinia } from '@/stores'
-import { initializePlatform, isIOS, isMobile } from '@/utils/PlatformConstants'
+import { initializePlatform, isDesktop, isIOS, isMobile, isWeb } from '@/utils/PlatformConstants'
 import { startWebVitalObserver } from '@/utils/WebVitalsObserver'
 import { invoke } from '@tauri-apps/api/core'
 import App from '@/App.vue'
 
 initializePlatform()
+document.documentElement.dataset.desktop = isDesktop() && !isWeb() ? 'true' : 'false'
 startWebVitalObserver()
 
 if (isIOS()) {

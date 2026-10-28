@@ -156,7 +156,7 @@
               :key="idx"
               :size="32"
               round
-              :src="AvatarUtils.getAvatarUrl(like.userAvatar || '')"
+              :src="AvatarUtils.getAvatarUrl(like.userAvatar, String(like.uid))"
               :title="like.userName" />
           </div>
         </div>
@@ -337,7 +337,7 @@ const commentList = ref<any[]>([])
 const replyingComment = ref<any | null>(null)
 
 const getUserAvatar = (feed: FeedItem) => {
-  return AvatarUtils.getAvatarUrl(feed.userAvatar || '')
+  return AvatarUtils.getAvatarUrl(feed.userAvatar, feed.uid)
 }
 
 const getUserName = (feed: FeedItem) => {
@@ -432,7 +432,7 @@ const handleToggleLike = async () => {
 
 const getCommentUserAvatar = (comment: any) => {
   const userInfo = groupStore.getUserInfo(comment.uid)
-  return AvatarUtils.getAvatarUrl(userInfo?.avatar || '')
+  return AvatarUtils.getAvatarUrl(userInfo?.avatar, String(comment.uid))
 }
 
 const getCommentUserName = (comment: any) => {

@@ -1,18 +1,18 @@
 <template>
   <main class="mail-card" :title="t('message.mail_card.open')" @click.stop="handleOpen">
     <n-flex align="center" :size="8" class="pb-8px">
-      <svg class="size-16px color-#034fbc shrink-0">
+      <svg class="size-16px color-[--link-color] shrink-0">
         <use href="#mail"></use>
       </svg>
-      <p class="text-12px color-[--text-color] opacity-70 truncate" :title="body?.mailbox">
+      <p class="text-12px color-[--text-muted-color] truncate" :title="body?.mailbox">
         {{ body?.via === 'mailbox' ? t('message.mail_card.via_mailbox') : t('message.mail_card.label') }}
       </p>
-      <p v-if="body?.attachmentCount" class="ml-auto text-11px color-[--text-color] opacity-70">
+      <p v-if="body?.attachmentCount" class="ml-auto text-11px color-[--text-muted-color]">
         {{ t('message.mail_card.attachments', { count: body.attachmentCount }) }}
       </p>
       <span
         v-if="body?.shareId"
-        class="to-todo shrink-0 text-11px color-#034fbc"
+        class="to-todo shrink-0 text-11px color-[--link-color]"
         :class="{ 'ml-auto': !body?.attachmentCount }"
         title="用 AI 把这封邮件转成我的待办"
         @click.stop="showTodo = true">
@@ -25,11 +25,11 @@
     </p>
     <p class="text-12px color-[--chat-text-color] pt-4px truncate">
       {{ sender }}
-      <span v-if="dateText" class="pl-8px opacity-70">{{ dateText }}</span>
+      <span v-if="dateText" class="pl-8px">{{ dateText }}</span>
     </p>
     <p
       v-if="body?.snippet"
-      class="text-12px color-[--chat-text-color] opacity-80 pt-6px leading-5 line-clamp-3 break-all">
+      class="text-12px color-[--chat-text-color] pt-6px leading-5 line-clamp-3 break-all">
       {{ body.snippet }}
     </p>
   </main>
@@ -78,18 +78,18 @@ const handleOpen = async () => {
   cursor: pointer;
   padding: 1px 6px;
   border-radius: 4px;
-  border: 1px solid #034fbc66;
+  border: 1px solid var(--link-color);
   &:hover {
-    background: #034fbc14;
+    background: var(--icon-hover-color);
   }
 }
 
 .mail-card {
   cursor: pointer;
   user-select: none;
-  @apply: w-280px flex flex-col h-fit bg-[--group-notice-bg]
-  border-(1px solid #e3e3e3) dark:border-(1px solid #404040)
-  hover:bg-#fefefe99 dark:hover:bg-#60606040 rounded-8px p-10px box-border
+  @apply w-280px flex flex-col h-fit bg-[--group-notice-bg]
+  border-(1px solid [--line-color])
+  hover:bg-[--list-hover-color] rounded-8px p-10px box-border
   custom-shadow transition-colors duration-200;
 }
 </style>

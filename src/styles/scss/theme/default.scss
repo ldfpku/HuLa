@@ -8,7 +8,7 @@
     --left-icon-color: #fff;
     --left-active-hover: #fff;
     --left-bg-hover: rgba(255, 255, 255, 0.1);
-    --left-active-icon-color: #fa8c1f; // BIS B21：橙色只用于选中状态
+    --left-active-icon-color: #fa8c1f;
     --left-win-icon-color: rgba(255, 255, 255, 0.4);
 
     // 包含边框的选中样式
@@ -26,6 +26,7 @@
     // 消息列表样式：选中为浅蓝底、深井蓝字，左侧斯米伽蓝标记（橙色已用于侧栏选中图标）
     --msg-active-color: #d2dff6;
     --msg-active-text-color: #0a1f54;
+    --selected-danger-text: #a7283d;
     --msg-active-mark-color: #034fbc;
     // 群公告消息背景色
     --group-notice-bg: #fff;
@@ -35,6 +36,12 @@
 
     // 整体hover图标的样式
     --icon-hover-color: rgba(10, 31, 84, 0.08);
+  }
+}
+
+html[data-desktop='true'] {
+  .default {
+    --left-active-icon-color: #fff;
   }
 }
 
@@ -64,6 +71,7 @@ html[data-theme='dark'] {
     // 消息列表样式
     --msg-active-color: #1b3a80;
     --msg-active-text-color: #fff;
+    --selected-danger-text: #ffd1d5;
     --msg-active-mark-color: #7a9fe2;
     // 群公告消息背景色
     --group-notice-bg: #13295f;
@@ -73,6 +81,31 @@ html[data-theme='dark'] {
 
     // 整体hover图标的样式
     --icon-hover-color: rgba(255, 255, 255, 0.08);
+  }
+}
+
+html[data-theme='dark'][data-desktop='true'] {
+  .default {
+    --left-bg-color: #111821;
+    --left-active-bg-color: #30465b;
+    --left-text-color: #f2f6fa;
+    --left-icon-color: #c5d0dc;
+    --left-active-hover: #fff;
+    --left-bg-hover: #263443;
+    --left-active-icon-color: #ffd08a;
+    --left-win-icon-color: #a4c7ff;
+    --border-active-color: #a4c7ff;
+    --right-theme-bg-color: #151d28;
+    --right-chat-reply-color: #283747;
+    --right-chat-reply-active-color: #30475b;
+    --right-chat-footer-line-color: #526273;
+    --msg-active-color: #2c4765;
+    --msg-active-text-color: #f2f6fa;
+    --selected-danger-text: #ffb4bb;
+    --msg-active-mark-color: #a4c7ff;
+    --group-notice-bg: #263443;
+    --list-hover-color: #2b3a4b;
+    --icon-hover-color: rgba(255, 255, 255, 0.12);
   }
 }
 /**! end */

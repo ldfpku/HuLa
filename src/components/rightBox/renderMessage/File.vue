@@ -454,6 +454,11 @@ onMounted(async () => {
   }
 }
 
+:global(html[data-desktop='true'] .file-container.downloading),
+:global(html[data-desktop='true'] .file-container.uploading) {
+  opacity: 1;
+}
+
 .file-info {
   flex: 1;
   min-width: 0;
@@ -474,7 +479,7 @@ onMounted(async () => {
 
 .file-size {
   font-size: 12px;
-  color: #909090;
+  color: var(--text-muted-color);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -485,12 +490,21 @@ onMounted(async () => {
   padding: 2px 4px;
   border-radius: 4px;
   @apply light:bg-#60606020 dark:bg-#444;
-  color: #909090;
+  color: var(--text-muted-color);
 
   &.downloaded {
     background: rgba(3, 79, 188, 0.3);
     color: #034fbc;
   }
+}
+
+:global(html[data-desktop='true'] .file-container .download-status) {
+  background: var(--secondary-control-bg);
+}
+
+:global(html[data-desktop='true'] .file-container .download-status.downloaded) {
+  background: var(--search-hit-bg);
+  color: var(--search-hit-color);
 }
 
 .file-icon-wrapper {

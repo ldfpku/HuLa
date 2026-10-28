@@ -35,7 +35,7 @@
         </n-form>
         <n-flex justify="end" :size="10">
           <n-button size="small" secondary @click="visible = false">取消</n-button>
-          <n-button size="small" color="#034fbc" :loading="saving" :disabled="!title.trim()" @click="save">
+          <n-button size="small" color="#034fbc" text-color="#ffffff" :loading="saving" :disabled="!title.trim()" @click="save">
             保存到我的待办
           </n-button>
         </n-flex>

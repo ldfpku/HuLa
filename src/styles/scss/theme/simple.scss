@@ -33,6 +33,7 @@
     // 消息列表样式
     --msg-active-color: #034fbc;
     --msg-active-text-color: #fff;
+    --selected-danger-text: #fff3f4;
     --msg-active-mark-color: transparent;
     // 群公告消息背景色
     --group-notice-bg: #fff;
@@ -81,6 +82,7 @@ html[data-theme='dark'] {
     // 消息列表样式
     --msg-active-color: rgba(3, 79, 188, 0.4);
     --msg-active-text-color: #fff;
+    --selected-danger-text: #ffd1d5;
     --msg-active-mark-color: transparent;
     // 群公告消息背景色
     --group-notice-bg: rgba(133, 133, 133, 0.2);
@@ -93,6 +95,31 @@ html[data-theme='dark'] {
 
     // 移动端样式
     --tab-bar-icon-color: rgba(3, 79, 188, 0.4);
+  }
+}
+
+html[data-theme='dark'][data-desktop='true'] {
+  .simple {
+    --left-bg-color: #111821;
+    --left-active-bg-color: #30465b;
+    --left-text-color: #f2f6fa;
+    --left-icon-color: #c5d0dc;
+    --left-active-hover: #f2f6fa;
+    --left-bg-hover: #263443;
+    --left-active-icon-color: #a4c7ff;
+    --left-win-icon-color: #a4c7ff;
+    --border-active-color: #a4c7ff;
+    --right-theme-bg-color: #151d28;
+    --right-chat-reply-color: #283747;
+    --right-chat-reply-active-color: #30475b;
+    --right-chat-footer-line-color: #526273;
+    --msg-active-color: #2c4765;
+    --msg-active-text-color: #f2f6fa;
+    --selected-danger-text: #ffb4bb;
+    --msg-active-mark-color: #a4c7ff;
+    --group-notice-bg: #263443;
+    --list-hover-color: #2b3a4b;
+    --icon-hover-color: rgba(255, 255, 255, 0.12);
   }
 }
 /**! end */

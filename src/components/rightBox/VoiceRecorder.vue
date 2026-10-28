@@ -5,7 +5,7 @@
       <!-- 录音状态文字 -->
       <div class="voice-status">
         <div v-if="!isRecording && !audioBlob && !isProcessing">
-          <span class="text-#909090 flex-y-center gap-6px select-none">
+          <span class="text-[--text-muted-color] flex-y-center gap-6px select-none">
             {{ t('message.voice_recorder.tap_prefix') }}
             <svg class="size-14px color-#034fbc"><use href="#voice"></use></svg>
             {{ t('message.voice_recorder.tap_suffix') }}

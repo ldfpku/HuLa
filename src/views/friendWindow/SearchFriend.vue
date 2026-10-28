@@ -68,7 +68,7 @@
                   <n-flex align="center" :size="12" class="p-[8px_0] rounded-lg">
                     <n-avatar
                       :size="48"
-                      :src="AvatarUtils.getAvatarUrl(item.avatar)"
+                      :src="AvatarUtils.getAvatarUrl(item.avatar, item.uid)"
                       :color="themes.content === ThemeEnum.DARK ? '' : '#fff'"
                       :fallback-src="themes.content === ThemeEnum.DARK ? '/avatar-dark.svg' : '/avatar-light.svg'"
                       round />

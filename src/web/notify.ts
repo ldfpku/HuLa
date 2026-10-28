@@ -69,7 +69,7 @@ const show = (notice: WebNotice) => {
   }
 }
 
-const iconUrl = (avatar?: string) => withBasePath(BASE, AvatarUtils.getAvatarUrl(avatar || ''))
+const iconUrl = (avatar?: string, uid?: string) => withBasePath(BASE, AvatarUtils.getAvatarUrl(avatar, uid))
 
 /** 切到消息页并打开会话：消息页挂载后才会监听 search_to_msg，所以必要时先跳转再发 */
 const openSession = async (roomId: string) => {
@@ -117,7 +117,10 @@ const onMessage = (data: MessageType) => {
   show({
     title: (atMe ? '[有人@我] ' : '') + (session?.name || senderName || '新消息'),
     body: String(preview),
-    icon: iconUrl(session?.avatar || sender?.avatar || data.fromUser.avatar),
+    icon: iconUrl(
+      session?.avatar || sender?.avatar || data.fromUser.avatar,
+      roomType === RoomTypeEnum.SINGLE ? session?.detailId || data.fromUser.uid : undefined
+    ),
     tag: `smj-room-${roomId}`,
     onClick: () => void openSession(roomId)
   })

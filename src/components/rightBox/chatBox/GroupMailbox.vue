@@ -3,7 +3,7 @@
     <n-flex vertical :size="10">
       <div class="flex-between-center">
         <p class="text-(14px --text-color)">{{ t('home.chat_header.sidebar.group.mailbox.title') }}</p>
-        <p v-if="state.address && !state.enabled" class="text-(12px #909090)">
+        <p v-if="state.address && !state.enabled" class="text-(12px [--text-muted-color])">
           {{ t('home.chat_header.sidebar.group.mailbox.off') }}
         </p>
       </div>
@@ -23,7 +23,7 @@
             <span>{{ t('home.chat_header.sidebar.group.mailbox.copy') }}</span>
           </n-tooltip>
         </n-flex>
-        <p class="text-(12px #909090) leading-5">
+        <p class="text-(12px [--text-muted-color]) leading-5">
           {{
             state.enabled
               ? t('home.chat_header.sidebar.group.mailbox.desc')
@@ -34,7 +34,7 @@
           <n-button v-if="state.enabled" size="small" secondary :loading="saving" @click="handleDisable">
             {{ t('home.chat_header.sidebar.group.mailbox.disable') }}
           </n-button>
-          <n-button v-else size="small" color="#034fbc" :loading="saving" @click="handleEnable">
+          <n-button v-else size="small" color="#034fbc" text-color="#ffffff" :loading="saving" @click="handleEnable">
             {{ t('home.chat_header.sidebar.group.mailbox.enable') }}
           </n-button>
         </n-flex>
@@ -42,7 +42,7 @@
 
       <!-- 还没有地址 -->
       <template v-else-if="state.canManage">
-        <p class="text-(12px #909090) leading-5">{{ t('home.chat_header.sidebar.group.mailbox.desc') }}</p>
+        <p class="text-(12px [--text-muted-color]) leading-5">{{ t('home.chat_header.sidebar.group.mailbox.desc') }}</p>
         <template v-if="state.domain">
           <n-input
             v-model:value="localPart"
@@ -55,17 +55,17 @@
             autoCapitalize="off"
             :placeholder="t('home.chat_header.sidebar.group.mailbox.placeholder')">
             <template #suffix>
-              <span class="text-(12px #909090)">@{{ state.domain }}</span>
+              <span class="text-(12px [--text-muted-color])">@{{ state.domain }}</span>
             </template>
           </n-input>
-          <n-button size="small" color="#034fbc" :loading="saving" :disabled="!localPart.trim()" @click="handleEnable">
+          <n-button size="small" color="#034fbc" text-color="#ffffff" :loading="saving" :disabled="!localPart.trim()" @click="handleEnable">
             {{ t('home.chat_header.sidebar.group.mailbox.create') }}
           </n-button>
         </template>
-        <p v-else class="text-(12px #909090) leading-5">{{ t('home.chat_header.sidebar.group.mailbox.no_domain') }}</p>
+        <p v-else class="text-(12px [--text-muted-color]) leading-5">{{ t('home.chat_header.sidebar.group.mailbox.no_domain') }}</p>
       </template>
 
-      <p v-else class="text-(12px #909090) leading-5">{{ t('home.chat_header.sidebar.group.mailbox.member_hint') }}</p>
+      <p v-else class="text-(12px [--text-muted-color]) leading-5">{{ t('home.chat_header.sidebar.group.mailbox.member_hint') }}</p>
     </n-flex>
   </div>
 </template>

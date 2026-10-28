@@ -20,7 +20,7 @@
     <!-- 信息时间(单聊) -->
     <div
       v-if="!isGroup"
-      class="text-(12px #909090) h-12px flex select-none"
+      class="text-(12px [--text-muted-color]) h-12px flex select-none"
       :class="{
         'pr-48px justify-end': isMe,
         'pl-42px justify-start': !isMe
@@ -42,7 +42,7 @@
         <!-- 回复消息提示的箭头 -->
         <svg
           v-if="activeReply === message.message.id"
-          class="size-16px pt-4px color-#909090"
+          class="size-16px pt-4px color-[--text-muted-color]"
           :class="isMe ? 'ml-8px' : 'mr-8px'">
           <use :href="isMe ? `#corner-down-left` : `#corner-down-right`"></use>
         </svg>
@@ -111,31 +111,31 @@
                 <!-- 用户名 -->
                 <span
                   :class="[
-                    'text-12px select-none color-#909090 inline-block align-top',
-                    !isMe ? 'cursor-pointer hover:color-#034fbc transition-colors' : ''
+                    'text-12px select-none color-[--text-muted-color] inline-block align-top',
+                    !isMe ? 'cursor-pointer hover:color-[--link-color] transition-colors' : ''
                   ]"
                   @click.stop="handleMentionUser">
                   {{ senderDisplayName }}
                 </span>
                 <!-- 消息归属地 -->
-                <span v-if="senderLocPlace" class="text-(12px #909090)">({{ senderLocPlace }})</span>
+                <span v-if="senderLocPlace" class="text-(12px [--text-muted-color])">({{ senderLocPlace }})</span>
               </n-flex>
             </ContextMenu>
             <!-- 群主 -->
             <div
               v-if="groupStore.isCurrentLord(fromUser.uid)"
-              class="flex px-4px py-3px rounded-4px bg-#d5304f30 size-fit select-none">
-              <span class="text-(9px #d5304f)">{{ t('home.chat_sidebar.roles.owner') }}</span>
+              class="flex px-4px py-3px rounded-4px bg-[--danger-bg] size-fit select-none">
+              <span class="text-(11px [--danger-text])">{{ t('home.chat_sidebar.roles.owner') }}</span>
             </div>
             <!-- 管理员 -->
             <div
               v-if="groupStore.isAdmin(fromUser.uid)"
-              class="flex px-4px py-3px rounded-4px bg-#1a7d6b30 size-fit select-none">
-              <span class="text-(9px #1d5fc9)">{{ t('home.chat_sidebar.roles.admin') }}</span>
+              class="flex px-4px py-3px rounded-4px bg-[--bg-msg-hover] size-fit select-none">
+              <span class="text-(11px [--link-color])">{{ t('home.chat_sidebar.roles.admin') }}</span>
             </div>
             <!-- 信息时间(群聊) -->
             <Transition name="fade-group">
-              <span v-if="isGroup && hoverMsgId === message.message.id" class="text-(12px #909090) select-none">
+              <span v-if="isGroup && hoverMsgId === message.message.id" class="text-(12px [--text-muted-color]) select-none">
                 {{ formatTimestamp(message.message.sendTime, true) }}
               </span>
             </Transition>
@@ -194,7 +194,7 @@
                 :title="t('tooltip.retry_send')"
                 :aria-label="t('tooltip.retry_send')"
                 v-if="message.message.status === MessageStatusEnum.FAILED"
-                class="text-#d5304f cursor-pointer"
+                class="text-[--danger-text] cursor-pointer"
                 @click.stop="handleRetry(message)">
                 <svg class="size-16px">
                   <use href="#cloudError"></use>
@@ -364,10 +364,10 @@ const getAvatarSrc = computed(() => (uid: string) => {
   const isCurrentUser = uid === userStore.userInfo?.uid
   const storeUser = groupStore.getUserInfo(uid)
   if (isMe.value && isCurrentUser) {
-    return AvatarUtils.getAvatarUrl(userStore.userInfo!.avatar as string)
+    return AvatarUtils.getAvatarUrl(userStore.userInfo!.avatar, uid)
   }
   const resolvedAvatar = storeUser?.avatar || (uid === props.fromUser.uid ? props.message.fromUser.avatar : '')
-  return AvatarUtils.getAvatarUrl(resolvedAvatar as string)
+  return AvatarUtils.getAvatarUrl(resolvedAvatar, uid)
 })
 
 const senderDisplayName = computed(() => {

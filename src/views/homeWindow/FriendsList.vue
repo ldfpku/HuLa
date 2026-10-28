@@ -30,7 +30,7 @@
         <ContextMenu @contextmenu="showMenu($event)" @select="handleSelect($event.label)" :menu="menuList">
           <n-collapse-item :title="t('home.friends_list.collapse.friend')" name="1">
             <template #header-extra>
-              <span class="text-(10px #707070)">{{ onlineCount }}/{{ contactStore.contactsList.length }}</span>
+              <span class="text-(11px [--text-muted-color])">{{ onlineCount }}/{{ contactStore.contactsList.length }}</span>
             </template>
             <n-scrollbar style="max-height: calc(100vh / var(--page-scale, 1) - 270px)" @scroll="handleFriendScroll">
               <!-- 用户框 多套一层div来移除默认的右键事件然后覆盖掉因为margin空隙而导致右键可用 -->
@@ -49,13 +49,13 @@
                       :size="44"
                       class="grayscale"
                       :class="{ 'grayscale-0': item.activeStatus === OnlineEnum.ONLINE || isBotUser(item.uid) }"
-                      :src="AvatarUtils.getAvatarUrl(groupStore.getUserInfo(item.uid)!.avatar!)"
+                      :src="AvatarUtils.getAvatarUrl(groupStore.getUserInfo(item.uid)?.avatar, item.uid)"
                       :color="themes.content === ThemeEnum.DARK ? '' : '#fff'"
                       :fallback-src="themes.content === ThemeEnum.DARK ? '/avatar-dark.svg' : '/avatar-light.svg'" />
 
                     <n-flex vertical justify="space-between" class="h-fit flex-1 truncate">
                       <span class="text-14px leading-tight flex-1 truncate">
-                        {{ groupStore.getUserInfo(item.uid)!.name }}
+                        {{ groupStore.getUserInfo(item.uid)?.name || item.remark || item.uid }}
                       </span>
 
                       <div class="text leading-tight text-12px flex-y-center gap-4px flex-1 truncate">
@@ -88,7 +88,7 @@
       <n-collapse :display-directive="'show'" accordion :default-expanded-names="['1']">
         <n-collapse-item :title="t('home.friends_list.collapse.group')" name="1">
           <template #header-extra>
-            <span class="text-(10px #707070)">{{ groupChatList.length }}</span>
+            <span class="text-(11px [--text-muted-color])">{{ groupChatList.length }}</span>
           </template>
           <n-scrollbar style="max-height: calc(100vh / var(--page-scale, 1) - 270px)">
             <div

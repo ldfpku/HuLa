@@ -26,7 +26,7 @@
                 size="large"
                 :src="
                   props.type === 'friend'
-                    ? avatarSrc(getUserInfo(item)?.avatar || '')
+                    ? avatarSrc(getUserInfo(item)?.avatar || '', getUserInfo(item)?.uid)
                     : avatarSrc(groupDetailsMap[item.roomId]?.avatar || '/default-group-avatar.png')
                 "
                 class="mr-10px" />
@@ -36,7 +36,7 @@
                     @click="
                       isCurrentUser(item.senderId) ? (currentUserId = item.operateId) : (currentUserId = item.senderId)
                     "
-                    class="text-(14px #034fbc) cursor-pointer shrink-0 max-w-150px truncate">
+                    class="text-(14px [--link-color]) cursor-pointer shrink-0 max-w-150px truncate">
                     {{
                       item.eventType === NoticeType.GROUP_MEMBER_DELETE && item.operateId == item.receiverId
                         ? t('home.apply_list.you')
@@ -49,7 +49,7 @@
                       {{ applyMsg(item) }}
                     </p>
 
-                    <p class="text-(10px #909090) shrink-0 whitespace-nowrap">{{ formatTimestamp(item.createTime) }}</p>
+                    <p class="text-(10px [--text-muted-color]) shrink-0 whitespace-nowrap">{{ formatTimestamp(item.createTime) }}</p>
                   </div>
                 </n-flex>
                 <p
@@ -88,17 +88,17 @@
                   </n-icon>
                 </n-dropdown>
               </n-flex>
-              <span class="text-(12px #034fbc)" v-else-if="item.status === RequestNoticeAgreeStatus.ACCEPTED">
+              <span class="text-(12px [--link-color])" v-else-if="item.status === RequestNoticeAgreeStatus.ACCEPTED">
                 {{ t('home.apply_list.status.accepted') }}
               </span>
               <span class="text-(12px #c14053)" v-else-if="item.status === RequestNoticeAgreeStatus.REJECTED">
                 {{ t('home.apply_list.status.rejected') }}
               </span>
-              <span class="text-(12px #909090)" v-else-if="item.status === RequestNoticeAgreeStatus.IGNORE">
+              <span class="text-(12px [--text-muted-color])" v-else-if="item.status === RequestNoticeAgreeStatus.IGNORE">
                 {{ t('home.apply_list.status.ignored') }}
               </span>
               <span
-                class="text-(12px #034fbc)"
+                class="text-(12px [--link-color])"
                 :class="{ 'text-(12px #c14053)': item.status === RequestNoticeAgreeStatus.REJECTED }"
                 v-else-if="isCurrentUser(item.senderId)">
                 {{
@@ -257,7 +257,7 @@ const dropdownOptions = computed(() => [
   }
 ])
 
-const avatarSrc = (url: string) => AvatarUtils.getAvatarUrl(url)
+const avatarSrc = (url: string, uid?: string) => AvatarUtils.getAvatarUrl(url, uid)
 
 // 判断是否为当前登录用户
 const isCurrentUser = (uid: string) => {

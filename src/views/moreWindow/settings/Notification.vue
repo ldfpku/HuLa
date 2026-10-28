@@ -9,7 +9,7 @@
         <n-flex align="center" justify="space-between">
           <n-flex vertical :size="8">
             <span>{{ t('setting.notice.message_sound') }}</span>
-            <span class="text-(12px #909090)">{{ t('setting.notice.message_sound_descript') }}</span>
+            <span class="text-(12px [--text-muted-color])">{{ t('setting.notice.message_sound_descript') }}</span>
           </n-flex>
 
           <n-switch size="small" v-model:value="messageSound" />
@@ -20,7 +20,7 @@
         <n-flex align="center" justify="space-between" class="gap-12px flex-wrap">
           <n-flex vertical :size="8" class="min-w-160px flex-1">
             <span>{{ t('setting.notice.message_volume') }}</span>
-            <span class="text-(12px #909090)">{{ t('setting.notice.message_volume_descript') }}</span>
+            <span class="text-(12px [--text-muted-color])">{{ t('setting.notice.message_volume_descript') }}</span>
           </n-flex>
 
           <n-flex align="center" :size="12">
@@ -60,7 +60,7 @@
       </n-flex>
 
       <n-flex class="item" :size="0" vertical>
-        <div v-if="filteredGroupSessions.length === 0" class="text-(12px #909090) text-center py-20px">
+        <div v-if="filteredGroupSessions.length === 0" class="text-(12px [--text-muted-color]) text-center py-20px">
           {{ searchKeyword ? '未找到匹配的群聊' : '暂无群聊' }}
         </div>
 
@@ -76,7 +76,7 @@
           </n-flex>
 
           <n-flex v-if="selectedSessions.length > 0" align="center" :size="8">
-            <span class="text-(12px #909090)">{{ t('setting.notice.batch_set') }}:</span>
+            <span class="text-(12px [--text-muted-color])">{{ t('setting.notice.batch_set') }}:</span>
             <n-button
               size="small"
               type="primary"
@@ -102,8 +102,8 @@
         <!-- 进度条显示 -->
         <n-flex v-if="isProcessing" vertical :size="12" class="p-12px">
           <n-flex align="center" justify="space-between">
-            <span class="text-(12px #909090)">正在处理：{{ processedCount }}/{{ totalCount }}</span>
-            <span class="text-(12px #909090)">{{ progress }}%</span>
+            <span class="text-(12px [--text-muted-color])">正在处理：{{ processedCount }}/{{ totalCount }}</span>
+            <span class="text-(12px [--text-muted-color])">{{ progress }}%</span>
           </n-flex>
           <n-progress
             type="line"
@@ -139,7 +139,7 @@
                 trigger="click"
                 :scrollable="false"
                 @update:show="(show: boolean) => (isDropdownShow = show)">
-                <n-button size="small" :color="'#034fbc'" text class="text-(12px [--text-color])">
+                <n-button size="small" type="primary" text class="text-(12px [--link-color])">
                   {{ getNotificationStatusText(session) }}
                 </n-button>
               </n-dropdown>

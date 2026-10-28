@@ -37,7 +37,7 @@
           <!-- 通知项 -->
           <div class="flex gap-12px">
             <!-- 头像 -->
-            <n-avatar :size="40" round :src="AvatarUtils.getAvatarUrl(notification.operatorAvatar)" />
+            <n-avatar :size="40" round :src="AvatarUtils.getAvatarUrl(notification.operatorAvatar, notification.operatorUid)" />
 
             <!-- 内容 -->
             <div class="flex-1 min-w-0">
@@ -96,7 +96,7 @@
 
       <!-- 评论者信息 -->
       <div class="flex items-center gap-12px">
-        <n-avatar :size="40" round :src="AvatarUtils.getAvatarUrl(selectedNotification.operatorAvatar)" />
+        <n-avatar :size="40" round :src="AvatarUtils.getAvatarUrl(selectedNotification.operatorAvatar, selectedNotification.operatorUid)" />
         <div class="flex-1">
           <div class="text-13px font-500 text-#333">{{ selectedNotification.operatorName }}</div>
           <div class="text-12px text-#999">{{ formatTime(selectedNotification.createTime) }}</div>

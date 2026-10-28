@@ -24,7 +24,7 @@
           data-tauri-drag-region
           v-for="(it, i) in list"
           :key="i"
-          class="whitespace-nowrap align-middle text-(12px ellipsis) max-w-full box-border color-#909090"
+          class="whitespace-nowrap align-middle text-(12px ellipsis) max-w-full box-border color-[--text-muted-color]"
           :title="it">
           {{ it }}
         </NCarouselItem>

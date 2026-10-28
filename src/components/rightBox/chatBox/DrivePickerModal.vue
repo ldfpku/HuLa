@@ -16,7 +16,7 @@
           {{ t('home.chat_header.sidebar.group.files.my_drive') }}
         </span>
         <template v-for="(crumb, index) in listing?.path ?? []" :key="crumb.id">
-          <span class="color-#909090">/</span>
+          <span class="color-[--text-muted-color]">/</span>
           <span
             class="truncate max-w-140px"
             :class="index === (listing?.path.length ?? 0) - 1 ? 'font-bold' : 'cursor-pointer hover:color-#034fbc'"
@@ -28,7 +28,7 @@
 
       <n-scrollbar class="max-h-[min(55vh,420px)]">
         <n-spin :show="loading">
-          <div v-if="listing && !listing.items.length" class="py-40px text-(13px center #909090)">
+          <div v-if="listing && !listing.items.length" class="py-40px text-(13px center [--text-muted-color])">
             {{ t('home.chat_header.sidebar.group.files.drive_empty') }}
           </div>
           <div
@@ -48,7 +48,7 @@
               @error="onIconError" />
             <div class="flex-1 min-w-0">
               <p class="truncate text-(13px --text-color)" :title="item.name">{{ item.name }}</p>
-              <p v-if="item.kind === 'file'" class="text-(12px #909090) mt-2px">
+              <p v-if="item.kind === 'file'" class="text-(12px [--text-muted-color]) mt-2px">
                 {{ formatBytes(item.size) }}
                 <span v-if="!item.sendable">
                   ·
@@ -58,14 +58,14 @@
                 </span>
               </p>
             </div>
-            <svg v-if="item.kind === 'folder'" class="size-12px color-#909090 shrink-0"><use href="#right"></use></svg>
+            <svg v-if="item.kind === 'folder'" class="size-12px color-[--text-muted-color] shrink-0"><use href="#right"></use></svg>
           </div>
         </n-spin>
       </n-scrollbar>
 
       <n-flex justify="end" :size="8">
         <n-button size="small" secondary @click="modalShow = false">{{ t('home.chat_header.modal.cancel') }}</n-button>
-        <n-button size="small" color="#034fbc" :disabled="!selected" :loading="sending" @click="handleSend">
+        <n-button size="small" color="#034fbc" text-color="#ffffff" :disabled="!selected" :loading="sending" @click="handleSend">
           {{ t('home.chat_header.sidebar.group.files.send') }}
         </n-button>
       </n-flex>

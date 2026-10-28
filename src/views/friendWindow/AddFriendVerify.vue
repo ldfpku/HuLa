@@ -40,7 +40,7 @@
           type="textarea"
           :placeholder="t('message.friend_verify.placeholder')" />
 
-        <n-button class="mt-30px" color="#034fbc" @click="addFriend">
+        <n-button class="mt-30px" color="#034fbc" text-color="#ffffff" @click="addFriend">
           {{ t('message.friend_verify.send_btn') }}
         </n-button>
       </n-flex>
@@ -64,7 +64,9 @@ const groupStore = useGroupStore()
 const { countGraphemes } = useCommon()
 const requestMsgAutosize = { minRows: 3, maxRows: 3 }
 const userInfo = ref(groupStore.getUserInfo(globalStore.addFriendModalInfo.uid!)!)
-const avatarSrc = computed(() => AvatarUtils.getAvatarUrl(userInfo.value!.avatar as string))
+const avatarSrc = computed(() =>
+  AvatarUtils.getAvatarUrl(userInfo.value?.avatar, globalStore.addFriendModalInfo.uid)
+)
 const requestMsg = ref()
 
 watch(
