@@ -1,5 +1,5 @@
 <template>
-  <div class="flex-center cursor-default gap-12px text-12px color-#909090">
+  <div class="flex-center cursor-default gap-12px text-12px color-[--text-muted-color]">
     <span class="h-px w-60px bg-#dadada dark:bg-#3a3a3a"></span>
     <span>{{ thirdPartyLabel }}</span>
     <span class="h-px w-60px bg-#dadada dark:bg-#3a3a3a"></span>

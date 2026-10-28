@@ -1,4 +1,6 @@
 {
+  "session_expired": "登录已超过 30 天，请重新登录",
+  "session_logout_failed": "会话已过期，但退出失败，请重新启动应用并登录",
   "button": {
     "login": {
       "default": "登录",
@@ -56,6 +58,7 @@
   "loading": "加载中...",
   "scan_qr_code_fail": "扫码失败",
   "status": {
+    "prepare_failed": "登录准备失败，请重试",
     "logging_in": "登录中...",
     "success_redirect": "登录成功，正在跳转...",
     "service_disconnected": "服务异常断开"

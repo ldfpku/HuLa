@@ -51,7 +51,7 @@
       </div>
     </n-flex>
 
-    <n-flex justify="center" class="mt-15px text-(14px #808080)">
+    <n-flex justify="center" class="mt-15px text-(14px [--text-muted-color])">
       {{ loadText }}
     </n-flex>
 
@@ -62,12 +62,12 @@
 
     <!-- 底部操作栏 -->
     <n-flex justify="center" class="text-14px" data-tauri-drag-region>
-      <div class="color-#034fbc cursor-pointer" @click="router.push('/login')">
+      <div class="color-[--link-color] cursor-pointer" @click="router.push('/login')">
         {{ t('login.qr.actions.account_login') }}
       </div>
       <div class="w-1px h-14px bg-#ccc dark:bg-#707070"></div>
       <div
-        class="color-#034fbc cursor-pointer"
+        class="color-[--link-color] cursor-pointer"
         @click="createWebviewWindow(t('login.qr.actions.register_title'), 'register', 600, 600)">
         {{ t('login.qr.actions.register') }}
       </div>

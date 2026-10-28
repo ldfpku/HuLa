@@ -1,6 +1,8 @@
 import { defineStore } from 'pinia'
 import { StoresEnum } from '@/enums'
 import type { UserInfoType } from '@/services/types.ts'
+import { isDesktop, isWeb } from '@/utils/PlatformConstants'
+import { clearLoginSecrets } from '@/utils/LoginSecrets'
 
 export const useLoginHistoriesStore = defineStore(
   StoresEnum.LOGIN_HISTORY,
@@ -18,12 +20,18 @@ export const useLoginHistoriesStore = defineStore(
         loginHistories.value.splice(index, 1)
       }
       // 添加到数组开头
-      loginHistories.value.unshift(loginHistory)
+      const account = isDesktop() && !isWeb() ? { ...loginHistory } : loginHistory
+      if (isDesktop() && !isWeb()) clearLoginSecrets(account)
+      loginHistories.value.unshift(account)
     }
 
     const updateLoginHistory = (loginHistory: UserInfoType) => {
       const index = getLoginHistoryIndex(loginHistory)
-      index !== -1 && (loginHistories.value[index] = loginHistory)
+      if (index !== -1) {
+        const account = isDesktop() && !isWeb() ? { ...loginHistory } : loginHistory
+        if (isDesktop() && !isWeb()) clearLoginSecrets(account)
+        loginHistories.value[index] = account
+      }
     }
 
     const removeLoginHistory = (loginHistory: UserInfoType) => {

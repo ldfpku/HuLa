@@ -12,6 +12,9 @@ import { getAllUserState, getUserDetail } from '../utils/ImRequestUtils'
 import { ErrorType, invokeWithErrorHandler } from '../utils/TauriInvokeHandler'
 import { getEnhancedFingerprint } from './fingerprint'
 import { ensureAppStateReady } from '@/utils/AppStateReady'
+import { recordDesktopLogin } from '@/utils/DesktopLoginSession'
+import { clearLoginSecrets } from '@/utils/LoginSecrets'
+import { isDesktop, isWeb } from '@/utils/PlatformConstants'
 import type { UserInfoType } from './types'
 
 export type Settings = {
@@ -78,7 +81,10 @@ export const loginCommand = async (
   const userStore = useUserStore()
   const settingStore = useSettingStore()
 
-  const loginInfo = settingStore.login.autoLogin ? (userStore.userInfo as UserInfoType) : info
+  const loginInfo =
+    auto && settingStore.login.autoLogin && userStore.userInfo?.uid === info.uid
+      ? (userStore.userInfo as UserInfoType)
+      : info
   // 存储此次登陆设备指纹
   const clientId = await getEnhancedFingerprint()
 
@@ -113,6 +119,7 @@ const loginProcess = async (token: string, refreshToken: string, client: string)
   userStatusStore.stateList = await getAllUserState()
 
   const userDetail: any = await getUserDetail()
+  if (isDesktop() && !isWeb()) recordDesktopLogin(userDetail.uid)
   userStatusStore.stateId = userDetail.userStateId
 
   const account = {
@@ -121,6 +128,7 @@ const loginProcess = async (token: string, refreshToken: string, client: string)
     refreshToken,
     client
   }
+  if (isDesktop() && !isWeb()) clearLoginSecrets(account)
   userStore.userInfo = account
 
   loginHistoriesStore.addLoginHistory(account)

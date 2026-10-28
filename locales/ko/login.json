@@ -1,4 +1,6 @@
 {
+  "session_expired": "30일 로그인 기간이 만료되었습니다. 다시 로그인하세요.",
+  "session_logout_failed": "세션이 만료되었지만 로그아웃하지 못했습니다. 앱을 다시 시작하고 로그인하세요.",
   "button": {
     "login": {
       "default": "로그인",
@@ -56,6 +58,7 @@
   "loading": "불러오는 중...",
   "scan_qr_code_fail": "QR 코드 스캔에 실패했습니다",
   "status": {
+    "prepare_failed": "로그인을 준비하지 못했습니다. 다시 시도하세요.",
     "logging_in": "로그인 중...",
     "success_redirect": "이동 중...",
     "service_disconnected": "서비스 연결이 끊어졌습니다"

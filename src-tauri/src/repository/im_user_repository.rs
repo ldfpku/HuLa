@@ -1,7 +1,9 @@
 use crate::error::CommonError;
 use entity::im_user;
 use entity::prelude::ImUserEntity;
-use sea_orm::{ActiveValue::Set, ColumnTrait, ConnectionTrait, EntityTrait, QueryFilter};
+use sea_orm::{
+    ActiveValue::Set, ColumnTrait, ConnectionTrait, EntityTrait, QueryFilter, sea_query::Expr,
+};
 use tracing::{error, info};
 
 /// 更新用户的 is_init 状态
@@ -141,5 +143,45 @@ where
             }
         }
         None => Ok(None),
+    }
+}
+
+pub async fn clear_user_tokens<C>(db: &C, login_uid: &str) -> Result<(), CommonError>
+where
+    C: ConnectionTrait,
+{
+    ImUserEntity::update_many()
+        .col_expr(im_user::Column::Token, Expr::value(None::<String>))
+        .col_expr(im_user::Column::RefreshToken, Expr::value(None::<String>))
+        .filter(im_user::Column::Id.eq(login_uid))
+        .exec(db)
+        .await?;
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use migration::{Migrator, MigratorTrait};
+    use sea_orm::Database;
+
+    #[tokio::test]
+    async fn clear_tokens_only_removes_the_selected_accounts_credentials() {
+        let db = Database::connect("sqlite::memory:").await.unwrap();
+        Migrator::up(&db, None).await.unwrap();
+        save_user_tokens(&db, "user-1", "access-1", "refresh-1")
+            .await
+            .unwrap();
+        save_user_tokens(&db, "user-2", "access-2", "refresh-2")
+            .await
+            .unwrap();
+
+        clear_user_tokens(&db, "user-1").await.unwrap();
+
+        assert_eq!(get_user_tokens(&db, "user-1").await.unwrap(), None);
+        assert_eq!(
+            get_user_tokens(&db, "user-2").await.unwrap(),
+            Some(("access-2".to_string(), "refresh-2".to_string()))
+        );
     }
 }

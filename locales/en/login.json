@@ -1,4 +1,6 @@
 {
+  "session_expired": "Your 30-day session has expired. Please sign in again.",
+  "session_logout_failed": "Your session expired, but sign-out failed. Restart the app and sign in again.",
   "button": {
     "login": {
       "default": "Login",
@@ -56,6 +58,7 @@
   "loading": "Loading...",
   "scan_qr_code_fail": "QR code scan failed",
   "status": {
+    "prepare_failed": "Could not prepare sign-in. Please try again.",
     "logging_in": "Logging in...",
     "success_redirect": "Redirecting...",
     "service_disconnected": "Service disconnected"

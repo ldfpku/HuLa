@@ -6,7 +6,9 @@ import { useWindow } from '@/hooks/useWindow.ts'
 import { useChatStore } from '@/stores/chat'
 import { useGlobalStore } from '@/stores/global.ts'
 import { LoginStatus, useWsLoginStore } from '@/stores/ws'
-import { isDesktop, isMac, isMobile } from '@/utils/PlatformConstants'
+import { isDesktop, isMac, isMobile, isWeb } from '@/utils/PlatformConstants'
+import { clearDesktopLogin, hasValidDesktopLogin, recordDesktopLogin } from '@/utils/DesktopLoginSession'
+import { clearLoginSecrets } from '@/utils/LoginSecrets'
 import { clearListener } from '@/utils/ReadCountQueue'
 import { ErrorType, invokeSilently, invokeWithErrorHandler } from '@/utils/TauriInvokeHandler.ts'
 import { useSettingStore } from '../stores/setting'
@@ -74,9 +76,7 @@ export const useLogin = () => {
       delete chatStore.messageMap[key]
     }
     // 清空群组成员数据
-    for (const key of Object.keys(groupStore.userListMap)) {
-      delete groupStore.userListMap[key]
-    }
+    groupStore.clearAccountCache()
     console.log('[useLogin] Message cache has been cleared')
   }
 
@@ -143,7 +143,7 @@ export const useLogin = () => {
     const sendLogoutEvent = async () => {
       // ws 退出连接
       await invokeSilently('ws_disconnect')
-      await invokeSilently(TauriCommand.REMOVE_TOKENS)
+      await invoke(TauriCommand.REMOVE_TOKENS)
       await invokeSilently(TauriCommand.UPDATE_USER_LAST_OPT_TIME)
     }
 
@@ -159,8 +159,9 @@ export const useLogin = () => {
 
         // 调整托盘大小
         await resizeWindow('tray', 130, 44)
-      } catch (_error) {
-        void logInfo('创建登录窗口失败')
+      } catch (error) {
+        console.error('退出登录失败:', error)
+        window.$message.error('退出登录失败，请重试')
       }
     } else {
       try {
@@ -182,12 +183,13 @@ export const useLogin = () => {
     clearListener()
     // 1. 清理本地存储
     if (!isAutoLogin) {
+      if (isDesktop() && !isWeb()) clearDesktopLogin(userStore.userInfo?.uid || '')
       // TODO 未来这里需要区分账号，切换不同的account；用不同的REFRESH_TOKEN调用
       localStorage.removeItem('user')
       localStorage.removeItem('TOKEN')
       localStorage.removeItem('REFRESH_TOKEN')
     }
-    settingStore.closeAutoLogin()
+    if (!isDesktop() || isWeb()) settingStore.closeAutoLogin()
     loginStore.loginStatus = LoginStatus.Init
     globalStore.updateCurrentSessionRoomId('')
     // 2. 清除系统托盘图标上的未读数
@@ -220,7 +222,9 @@ export const useLogin = () => {
     const groupSessions = chatStore.getGroupSessions()
     await Promise.all([
       ...groupSessions.map((session) => groupStore.getGroupUserList(session.roomId, true)),
-      groupStore.setGroupDetails(),
+      groupStore.setGroupDetails().then((loaded) => {
+        if (loaded) return groupStore.loadGroupDetails(groupSessions.map((session) => session.roomId))
+      }),
       chatStore.setAllSessionMsgList(20),
       cachedStore.getAllBadgeList()
     ])
@@ -245,7 +249,9 @@ export const useLogin = () => {
     const groupSessions = chatStore.getGroupSessions()
     await Promise.allSettled([
       ...groupSessions.map((session) => groupStore.getGroupUserList(session.roomId, true)),
-      groupStore.setGroupDetails(),
+      groupStore.setGroupDetails().then((loaded) => {
+        if (loaded) return groupStore.loadGroupDetails(groupSessions.map((session) => session.roomId))
+      }),
       chatStore.setAllSessionMsgList(20),
       cachedStore.getAllBadgeList()
     ]).catch(() => {
@@ -269,7 +275,6 @@ export const useLogin = () => {
     // 立即清空旧账号的会话列表，并立即获取新账号数据
     // 这样用户看到的是短暂加载而不是错误的旧数据
     chatStore.sessionList.length = 0
-    groupStore.groupDetails.length = 0
 
     // 连接 ws
     await rustWebSocketClient.initConnect()
@@ -287,6 +292,7 @@ export const useLogin = () => {
       ...userDetail,
       client: isDesktop() ? 'PC' : 'MOBILE'
     }
+    if (isDesktop() && !isWeb()) clearLoginSecrets(account)
     userStore.userInfo = account
     loginHistoriesStore.addLoginHistory(account)
     if (isDesktop()) {
@@ -374,6 +380,11 @@ export const useLogin = () => {
     syncRecentMessages: boolean,
     auto: boolean = settingStore.login.autoLogin
   ) => {
+    if (auto && isDesktop() && !isWeb() && !hasValidDesktopLogin(userStore.userInfo?.uid)) {
+      uiState.value = 'manual'
+      window.$message.info(t('login.session_expired'))
+      return
+    }
     loading.value = true
     loginText.value = t('login.status.logging_in')
     loginDisabled.value = true
@@ -383,7 +394,7 @@ export const useLogin = () => {
       loginDisabled.value = false
       loginText.value = isOnline.value ? t('login.button.login.default') : t('login.button.login.network_error')
       uiState.value = 'manual'
-      settingStore.setAutoLogin(false)
+      if (!isDesktop() || isWeb()) settingStore.setAutoLogin(false)
       logInfo('自动登录信息已失效，请手动登录')
       return
     }
@@ -398,22 +409,31 @@ export const useLogin = () => {
       loginText.value = isOnline.value ? '登录' : '网络异常'
       if (auto) {
         uiState.value = 'manual'
-        settingStore.setAutoLogin(false)
+        if (!isDesktop() || isWeb()) settingStore.setAutoLogin(false)
       }
       logInfo('账号信息缺失，请重新输入')
       return
     }
 
     // 存储此次登陆设备指纹
-    const clientId = await getEnhancedFingerprint()
-    localStorage.setItem('clientId', clientId)
+    let clientId: string
+    try {
+      clientId = await getEnhancedFingerprint()
+      localStorage.setItem('clientId', clientId)
+      await ensureAppStateReady()
+    } catch (error) {
+      console.error('登录准备失败:', error)
+      window.$message.error(t('login.status.prepare_failed'))
+      loading.value = false
+      loginDisabled.value = !isOnline.value
+      loginText.value = isOnline.value ? t('login.button.login.default') : t('login.button.login.network_error')
+      return
+    }
 
-    await ensureAppStateReady()
-
-    invoke('login_command', {
+    invoke<{ uid: string } | null>('login_command', {
       data: {
         account: account,
-        password: password,
+        password: auto && isDesktop() && !isWeb() ? '' : password,
         deviceType: deviceType,
         systemType: '2',
         clientId: clientId,
@@ -424,7 +444,9 @@ export const useLogin = () => {
         uid: auto ? userStore.userInfo!.uid : null
       }
     })
-      .then(async (_: any) => {
+      .then(async (result) => {
+        if (!result?.uid) throw new Error('登录响应缺少用户 ID')
+        if (!auto && isDesktop() && !isWeb()) recordDesktopLogin(result.uid)
         // 数据库切换已在后端 login_command 中完成
         mfaRequired.value = false
         info.value.code = ''
@@ -459,13 +481,18 @@ export const useLogin = () => {
         loading.value = false
         loginDisabled.value = false
         loginText.value = t('login.button.login.default')
+        if (auto && isDesktop() && !isWeb() && (!isOnline.value || String(e).includes('网络连接失败'))) {
+          uiState.value = 'auto'
+          loginDisabled.value = !isOnline.value
+          return
+        }
         // 如果是自动登录失败，切换到手动登录界面并重置按钮状态
         if (auto) {
           uiState.value = 'manual'
           loginDisabled.value = false
           loginText.value = t('login.button.login.default')
           // 取消自动登录
-          settingStore.setAutoLogin(false)
+          if (!isDesktop() || isWeb()) settingStore.setAutoLogin(false)
           // 自动填充之前尝试登录的账号信息到手动登录表单
           if (userStore.userInfo) {
             info.value.account = userStore.userInfo.account || userStore.userInfo.email || ''
@@ -516,6 +543,7 @@ export const useLogin = () => {
             await invoke('switch_user_database', { uid: targetUid })
           }
           await TokenManager.updateToken(token, refreshToken, targetUid)
+          if (isDesktop() && !isWeb()) recordDesktopLogin(targetUid || (await getUserDetail()).uid)
           await invoke('sync_messages', {
             param: {
               asyncData: true,
@@ -634,6 +662,7 @@ export const useLogin = () => {
             await invoke('switch_user_database', { uid: targetUid })
           }
           await TokenManager.updateToken(token, refreshToken, targetUid)
+          if (isDesktop() && !isWeb()) recordDesktopLogin(targetUid || (await getUserDetail()).uid)
           await invoke('sync_messages', {
             param: {
               asyncData: true,
@@ -727,6 +756,7 @@ export const useLogin = () => {
             await invoke('switch_user_database', { uid: targetUid })
           }
           await TokenManager.updateToken(token, refreshToken, targetUid)
+          if (isDesktop() && !isWeb()) recordDesktopLogin(targetUid || (await getUserDetail()).uid)
           await invoke('sync_messages', {
             param: {
               asyncData: true,

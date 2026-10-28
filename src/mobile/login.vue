@@ -78,7 +78,7 @@
                   @click="giveAccount(item)"
                   class="p-8px hover:bg-#f3f3f3 hover:rounded-6px">
                   <div class="flex-between-center">
-                    <n-avatar :src="AvatarUtils.getAvatarUrl(item.avatar)" class="size-28px bg-#ccc rounded-50%" />
+                    <n-avatar :src="AvatarUtils.getAvatarUrl(item.avatar, item.uid)" class="size-28px bg-#ccc rounded-50%" />
                     <p class="text-14px color-#505050">{{ item.account }}</p>
                     <svg @click.stop="delAccount(item)" class="w-12px h-12px">
                       <use href="#close"></use>
@@ -590,10 +590,7 @@ const handleRegisterComplete = async () => {
     registerLoading.value = true
     registerInfo.value.email = registerInfo.value.email.trim()
     registerInfo.value.code = registerInfo.value.code.trim()
-    // 随机生成头像编号
-    const avatarNum = Math.floor(Math.random() * 21) + 1
-    const avatarId = avatarNum.toString().padStart(3, '0')
-    registerInfo.value.avatar = avatarId
+    registerInfo.value.avatar = AvatarUtils.randomDefaultAvatar()
 
     // 注册 - 只传递API需要的字段
     const { ...apiRegisterInfo } = registerInfo.value
@@ -700,7 +697,7 @@ const refreshAvatar = useDebounceFn((newAccount: string) => {
     (history) => history.account === newAccount || history.email === newAccount
   )
   if (matchedAccount) {
-    userInfo.value.avatar = AvatarUtils.getAvatarUrl(matchedAccount.avatar)
+    userInfo.value.avatar = AvatarUtils.getAvatarUrl(matchedAccount.avatar, matchedAccount.uid)
   } else {
     userInfo.value.avatar = '/avatar-light.svg'
   }

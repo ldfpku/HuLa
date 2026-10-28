@@ -80,7 +80,7 @@ pub async fn login_command(
                                 &new_refresh_token,
                             )
                             .await
-                            .ok();
+                            .map_err(|e| format!("保存刷新令牌失败: {e}"))?;
 
                             // 转换为 LoginResp 格式返回
                             let login_resp = LoginResp {
@@ -104,7 +104,7 @@ pub async fn login_command(
                     }
                 }
                 Ok(None) => {}
-                Err(_) => {}
+                Err(e) => return Err(format!("读取登录凭证失败: {e}")),
             };
             // 自动登录失败，返回错误让前端切换到手动登录
             return Err("自动登录失败，请手动登录".to_string());

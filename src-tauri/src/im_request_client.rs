@@ -291,12 +291,25 @@ impl ImRequestClient {
             .send()
             .await
             .map_err(|e| anyhow::anyhow!("network_error: {}", e))?;
+        let status = response.status();
+        if status.is_server_error() || status == http::StatusCode::TOO_MANY_REQUESTS {
+            return Err(anyhow::anyhow!("network_error: 刷新服务暂不可用 ({status})"));
+        }
+        if status == http::StatusCode::UNAUTHORIZED || status == http::StatusCode::FORBIDDEN {
+            return Err(anyhow::anyhow!("请重新登录"));
+        }
         let result: ApiResult<serde_json::Value> = response
             .json()
             .await
             .map_err(|e| anyhow::anyhow!("network_error: {}", e))?;
 
         if !result.success {
+            if matches!(result.code, Some(429 | 500..=599)) {
+                return Err(anyhow::anyhow!(
+                    "network_error: 刷新服务暂不可用 ({:?})",
+                    result.code
+                ));
+            }
             // 服务器明确拒绝 refresh token，需要重新登录
             return Err(anyhow::anyhow!("请重新登录"));
         }
@@ -305,21 +318,21 @@ impl ImRequestClient {
             Some(data) => data,
             None => {
                 error!("刷新token失败: 响应缺少 data 字段");
-                return Err(anyhow::anyhow!("请重新登录"));
+                return Err(anyhow::anyhow!("network_error: 刷新响应缺少 data 字段"));
             }
         };
 
         let token = match data.get("token").and_then(|value| value.as_str()) {
-            Some(value) => value,
-            None => {
-                error!("刷新token失败: 响应缺少 token 字段");
-                return Err(anyhow::anyhow!("请重新登录"));
+            Some(value) if !value.trim().is_empty() => value,
+            _ => {
+                error!("刷新token失败: 响应缺少有效的 token 字段");
+                return Err(anyhow::anyhow!("network_error: 刷新响应缺少有效的 token 字段"));
             }
         };
         self.token = Some(token.to_owned());
 
         let refresh_token = match data.get("refreshToken").and_then(|value| value.as_str()) {
-            Some(value) if !value.is_empty() => value.to_owned(),
+            Some(value) if !value.trim().is_empty() => value.to_owned(),
             _ => old_refresh_token.clone(),
         };
         self.refresh_token = Some(refresh_token.clone());
@@ -1439,5 +1452,56 @@ mod tests {
         // 已经写回过，或本对象换过 refresh token（重新登录），都不再覆盖
         assert!(!shared.adopt_refreshed_tokens(&used, &results[1].1));
         assert!(!shared.adopt_refreshed_tokens(&Some("other".into()), &results[1].1));
+    }
+
+    async fn refresh_error_for_response(status: &str, body: &str) -> String {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let base = format!("http://{}", listener.local_addr().unwrap());
+        let response = format!(
+            "HTTP/1.1 {status}\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
+            body.len()
+        );
+        let server = tokio::spawn(async move {
+            let (mut socket, _) = listener.accept().await.unwrap();
+            let mut request = [0u8; 4096];
+            socket.read(&mut request).await.unwrap();
+            socket.write_all(response.as_bytes()).await.unwrap();
+        });
+        let mut client = ImRequestClient::new(base).unwrap();
+        client.token = Some("old-access".into());
+        client.refresh_token = Some("old-refresh".into());
+        let error = client.start_refresh_token().await.unwrap_err().to_string();
+        assert_eq!(client.token.as_deref(), Some("old-access"));
+        assert_eq!(client.refresh_token.as_deref(), Some("old-refresh"));
+        server.await.unwrap();
+        error
+    }
+
+    #[tokio::test]
+    async fn transient_refresh_failures_keep_credentials_for_retry() {
+        for (status, body) in [
+            ("503 Service Unavailable", ""),
+            ("429 Too Many Requests", ""),
+            ("200 OK", r#"{"success":false,"code":500}"#),
+            ("200 OK", r#"{"success":true,"code":200}"#),
+            ("200 OK", r#"{"success":true,"code":200,"data":{"token":""}}"#),
+            ("200 OK", r#"{"success":true,"code":200,"data":{"token":" "}}"#),
+            ("200 OK", "invalid json"),
+        ] {
+            let error = refresh_error_for_response(status, body).await;
+            assert!(error.contains("network_error"), "{status}: {error}");
+        }
+    }
+
+    #[tokio::test]
+    async fn rejected_refresh_token_requires_manual_login() {
+        for (status, body) in [
+            ("200 OK", r#"{"success":false,"code":401}"#),
+            ("401 Unauthorized", ""),
+            ("403 Forbidden", ""),
+        ] {
+            let error = refresh_error_for_response(status, body).await;
+            assert_eq!(error, "请重新登录");
+        }
     }
 }

@@ -12,7 +12,7 @@
           class="welcome size-80px rounded-50% border-(2px solid #fff) dark:border-(2px solid #606060)"
           :color="themes.content === ThemeEnum.DARK ? '#282828' : '#fff'"
           :fallback-src="themes.content === ThemeEnum.DARK ? '/avatar-dark.svg' : '/avatar-light.svg'"
-          :src="AvatarUtils.getAvatarUrl(info.avatar)" />
+          :src="AvatarUtils.getAvatarUrl(info.avatar, info.uid)" />
       </n-flex>
 
       <!-- 登录菜单 -->
@@ -31,7 +31,7 @@
           autoCapitalize="off"
           clearable>
           <template #suffix>
-            <span v-if="accountSuffix" class="login-domain-suffix text-13px color-#909090 select-none">
+            <span v-if="accountSuffix" class="login-domain-suffix text-13px color-[--text-muted-color] select-none">
               {{ accountSuffix }}
             </span>
             <n-flex
@@ -63,7 +63,7 @@
               @click="giveAccount(item)"
               class="p-8px cursor-pointer hover:bg-#90909020 dark:hover:bg-#90909030 hover:rounded-6px">
               <div class="flex-between-center">
-                <n-avatar :src="AvatarUtils.getAvatarUrl(item.avatar)" color="#fff" class="size-28px rounded-50%" />
+                <n-avatar :src="AvatarUtils.getAvatarUrl(item.avatar, item.uid)" color="#fff" class="size-28px rounded-50%" />
                 <p class="text-14px color-#505050 dark:color-#fefefe">{{ item.account }}</p>
                 <svg @click.stop="delAccount(item)" class="w-12px h-12px dark:color-#fefefe">
                   <title>{{ t('tooltip.remove_account') }}</title>
@@ -110,8 +110,8 @@
         <n-button
           :loading="loading"
           :disabled="loginDisabled"
-          tertiary
-          style="color: #fff"
+          color="#034fbc"
+          text-color="#ffffff"
           class="gradient-button w-full mt-8px mb-10px"
           @click="normalLogin('PC', true, false)">
           <span>{{ loginText }}</span>
@@ -132,7 +132,7 @@
             :size="110"
             :color="themes.content === ThemeEnum.DARK ? '#282828' : '#fff'"
             :fallback-src="themes.content === ThemeEnum.DARK ? '/avatar-dark.svg' : '/avatar-light.svg'"
-            :src="AvatarUtils.getAvatarUrl(userStore.userInfo?.avatar ?? '')" />
+            :src="AvatarUtils.getAvatarUrl(userStore.userInfo?.avatar, userStore.userInfo?.uid)" />
         </n-flex>
 
         <n-flex justify="center">
@@ -146,8 +146,8 @@
         <n-button
           :loading="loading"
           :disabled="loginDisabled"
-          tertiary
-          style="color: #fff"
+          color="#034fbc"
+          text-color="#ffffff"
           class="gradient-button w-200px mt-12px mb-40px"
           @click="triggerAutoLogin">
           <span>{{ loginText }}</span>
@@ -166,14 +166,14 @@
       class="text-14px grid grid-cols-[1fr_auto_1fr] items-center gap-x-12px w-full"
       id="bottomBar">
       <div
-        class="color-#034fbc cursor-pointer justify-self-end text-right"
+        class="color-[--link-color] cursor-pointer justify-self-end text-right"
         :title="cancelLoginTitle"
         @click="cancelAutoLoginAndShowManual">
         {{ cancelLoginLabel }}
       </div>
       <div class="w-1px h-14px bg-#ccc dark:bg-#707070 justify-self-center"></div>
       <div
-        class="color-#034fbc cursor-pointer justify-self-start text-left"
+        class="color-[--link-color] cursor-pointer justify-self-start text-left"
         :title="removeAccountTitle"
         @click="removeStoredAccount">
         {{ removeAccountLabel }}
@@ -182,7 +182,7 @@
     <div v-else class="text-14px grid grid-cols-[1fr_auto_1fr] items-center gap-x-12px w-full" id="bottomBar">
       <div
         v-if="ACCOUNT_FEATURES.qrCodeLogin"
-        class="color-#034fbc cursor-pointer justify-self-end text-right"
+        class="color-[--link-color] cursor-pointer justify-self-end text-right"
         :title="qrCodeTitle"
         @click="router.push('/qrCode')">
         {{ qrCodeLabel }}
@@ -200,7 +200,7 @@
           :show-checkmark="false"
           :show-arrow="false">
           <template #trigger>
-            <div class="color-#034fbc cursor-pointer" :title="moreTitle">{{ moreLabel }}</div>
+            <div class="color-[--link-color] cursor-pointer" :title="moreTitle">{{ moreLabel }}</div>
           </template>
           <n-flex vertical :size="2">
             <div
@@ -245,7 +245,9 @@ import { useLoginHistoriesStore } from '@/stores/loginHistory.ts'
 import { useSettingStore } from '@/stores/setting.ts'
 import { useUserStore } from '@/stores/user.ts'
 import { AvatarUtils } from '@/utils/AvatarUtils'
-import { isCompatibility, isDesktop, isMac } from '@/utils/PlatformConstants'
+import { isCompatibility, isDesktop, isMac, isWeb } from '@/utils/PlatformConstants'
+import { clearDesktopLogin, hasValidDesktopLogin } from '@/utils/DesktopLoginSession'
+import { clearLoginSecrets } from '@/utils/LoginSecrets'
 import { clearListener } from '@/utils/ReadCountQueue'
 import { useLogin } from '@/hooks/useLogin'
 import { formatBottomText } from '@/utils/Formatting'
@@ -533,7 +535,7 @@ const delAccount = (item: UserInfoType) => {
 const giveAccount = (item: UserInfoType) => {
   const { account, password, avatar, name, uid } = item
   info.value.account = shortLoginName(account || '', loginDomain.value)
-  info.value.password = password || ''
+  info.value.password = isDesktopClient && !isWeb() ? '' : password || ''
   info.value.avatar = avatar
   info.value.name = name
   info.value.uid = uid
@@ -544,6 +546,7 @@ const giveAccount = (item: UserInfoType) => {
 const removeStoredAccount = () => {
   const storedUserInfo = userStore.userInfo
   if (storedUserInfo) {
+    if (isDesktop() && !isWeb()) clearDesktopLogin(storedUserInfo.uid)
     const matchedHistory = loginHistories.find(
       (item) => item.uid === storedUserInfo.uid || item.account === storedUserInfo.account
     )
@@ -554,7 +557,6 @@ const removeStoredAccount = () => {
   localStorage.removeItem('TOKEN')
   localStorage.removeItem('REFRESH_TOKEN')
   userStore.userInfo = undefined
-  settingStore.setAutoLogin(false)
   cancelAutoLoginAndShowManual()
 }
 
@@ -575,13 +577,17 @@ const enterKey = (e: KeyboardEvent) => {
 }
 
 onBeforeMount(async () => {
+  if (isDesktopClient && !isWeb()) {
+    for (const history of loginHistories) clearLoginSecrets(history)
+    if (userStore.userInfo) clearLoginSecrets(userStore.userInfo)
+  }
   // 登录页初始化时清空当前会话，避免重启后默认选中旧会话
   globalStore.updateCurrentSessionRoomId('')
   await handlePendingRemoteLoginPayload()
   // 始终初始化托盘菜单状态为false
   isTrayMenuShow.value = false
 
-  if (!login.value.autoLogin) {
+  if (!login.value.autoLogin || (isDesktopClient && !isWeb() && !hasValidDesktopLogin(userStore.userInfo?.uid))) {
     // 非自动登录模式，直接显示手动登录界面
     uiState.value = 'manual'
     localStorage.removeItem('TOKEN')
@@ -603,7 +609,7 @@ onMounted(async () => {
   })
 
   // 自动登录时显示自动登录界面并触发登录
-  if (login.value.autoLogin) {
+  if (login.value.autoLogin && (!isDesktopClient || isWeb() || hasValidDesktopLogin(userStore.userInfo?.uid))) {
     uiState.value = 'auto'
     startAutoLoginCountdown()
   } else {

@@ -13,7 +13,9 @@
           <n-flex vertical align="center" :size="30">
             <span class="text-(14px [--text-color])">下线通知</span>
             <div class="relative">
-              <img class="rounded-full size-72px" :src="AvatarUtils.getAvatarUrl(userStore.userInfo?.avatar ?? '')" />
+              <img
+                class="rounded-full size-72px"
+                :src="AvatarUtils.getAvatarUrl(userStore.userInfo?.avatar, userStore.userInfo?.uid)" />
               <div
                 class="absolute inset-0 bg-[--avatar-hover-bg] backdrop-blur-[2px] rounded-full flex items-center justify-center">
                 <svg class="size-34px text-white animate-pulse">

@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { CloseBxEnum, ShowModeEnum, StoresEnum, ThemeEnum } from '@/enums'
-import { isDesktop, isMac } from '@/utils/PlatformConstants'
+import { isDesktop, isMac, isWeb } from '@/utils/PlatformConstants'
 import { setTheme } from '@tauri-apps/api/app'
 import type { Theme } from '@tauri-apps/api/window'
 
@@ -35,7 +35,7 @@ export const useSettingStore = defineStore(StoresEnum.SETTING, {
   state: (): STO.Setting => ({
     themes: {
       content: '',
-      pattern: ThemeEnum.OS,
+      pattern: isDesktopComputed.value && !isWeb() ? ThemeEnum.LIGHT : ThemeEnum.OS,
       versatile: isDesktopComputed.value ? 'default' : 'simple'
     },
     escClose: true,
@@ -49,7 +49,7 @@ export const useSettingStore = defineStore(StoresEnum.SETTING, {
       notTips: false
     },
     login: {
-      autoLogin: false,
+      autoLogin: isDesktopComputed.value && !isWeb(),
       autoStartup: false
     },
     chat: {

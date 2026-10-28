@@ -113,7 +113,7 @@ pub async fn get_user_tokens(state: State<'_, AppData>) -> Result<TokenResponse,
         refresh_token: user_info.refresh_token.clone().into(),
     };
 
-    info!("Successfully retrieved user token info: {:?}", response);
+    info!("Successfully retrieved user token info");
     Ok(response)
 }
 
@@ -121,10 +121,22 @@ pub async fn get_user_tokens(state: State<'_, AppData>) -> Result<TokenResponse,
 pub async fn remove_tokens(state: State<'_, AppData>) -> Result<(), String> {
     info!("Removing user token info");
 
+    let uid = state.user_info.lock().await.uid.clone();
+    if !uid.is_empty() {
+        let db = state.db_conn.read().await;
+        im_user_repository::clear_user_tokens(&*db, &uid)
+            .await
+            .map_err(|err| format!("Failed to remove user tokens: {err}"))?;
+    }
+
     let mut rc = state.rc.lock().await;
 
     rc.token = None;
     rc.refresh_token = None;
+    drop(rc);
+    let mut user_info = state.user_info.lock().await;
+    user_info.token.clear();
+    user_info.refresh_token.clear();
 
     info!("Successfully removed user token info");
     Ok(())
