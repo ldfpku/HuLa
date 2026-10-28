@@ -280,8 +280,7 @@ const {
 })
 
 const saveAvatar = async (avatar: string) => {
-  await userStore.updateAvatar(avatar)
-  localUserInfo.value.avatar = avatar
+  localUserInfo.value.avatar = await userStore.updateAvatar(avatar)
   window.$message.success(t('components.avatarPicker.save_success'))
 }
 

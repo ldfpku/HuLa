@@ -376,7 +376,11 @@
       "save": "저장"
     },
     "toast": {
-      "avatar_update_success": "프로필 사진이 변경되었습니다"
+      "avatar_update_success": "프로필 사진이 변경되었습니다",
+      "nickname_empty": "닉네임을 입력하세요",
+      "name_updated": "닉네임이 변경되었습니다",
+      "name_failed": "닉네임을 변경하지 못했습니다. 다시 시도하세요.",
+      "account_changed": "계정이 변경되었습니다. 프로필을 다시 여세요."
     }
   },
   "chat_sidebar": {

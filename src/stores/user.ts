@@ -35,19 +35,24 @@ export const useUserStore = defineStore(
       if (updatingAvatar) throw new Error('头像正在更新，请稍后重试')
       updatingAvatar = true
       try {
-        await uploadAvatar({ avatar })
+        const result = await uploadAvatar({ avatar })
         if (userInfo.value?.uid !== uid) throw new Error('账号已切换，无法更新当前用户头像')
 
-        userInfo.value.avatar = avatar
+        if (result === false) throw new Error('服务端拒绝更新头像')
+        let savedAvatar = avatar
+        if (result !== null && result !== undefined && result !== true) {
+          if (typeof result !== 'object' || !('avatar' in result) || typeof result.avatar !== 'string' || !result.avatar.trim()) {
+            throw new Error('服务端返回的头像地址无效')
+          }
+          savedAvatar = result.avatar
+        }
+        userInfo.value.avatar = savedAvatar
         userInfo.value.avatarUpdateTime = Date.now()
         const history = useLoginHistoriesStore().loginHistories.find((item) => item.uid === uid)
-        if (history) history.avatar = avatar
+        if (history) history.avatar = savedAvatar
         const groupStore = useGroupStore()
-        for (const members of Object.values(groupStore.userListMap)) {
-          for (const member of members) {
-            if (member.uid === uid) member.avatar = avatar
-          }
-        }
+        groupStore.updateCachedUserAvatar(uid, savedAvatar)
+        return savedAvatar
       } finally {
         updatingAvatar = false
       }

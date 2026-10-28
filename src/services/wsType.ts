@@ -40,6 +40,7 @@ export enum WsResponseMessageType {
   NOTIFY_EVENT = 'notifyEvent',
   /** 用户状态改变 */
   USER_STATE_CHANGE = 'userStateChange',
+  USER_PROFILE_CHANGE = 'userProfileChange',
   /** 群主修改群聊信息 */
   ROOM_INFO_CHANGE = 'roomInfoChange',
   /** 自己修改我在群里的信息 */

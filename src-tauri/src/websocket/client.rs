@@ -859,6 +859,9 @@ impl WebSocketClient {
                 info!("User state changed");
                 let _ = app_handle.emit_to("home", "ws-user-state-change", data);
             }
+            "userProfileChange" => {
+                let _ = app_handle.emit_to("home", "ws-user-profile-change", data);
+            }
             // 通知总线
             "notifyEvent" => {
                 info!("新的notifyEvent");

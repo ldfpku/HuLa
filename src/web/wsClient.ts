@@ -60,6 +60,7 @@ const EVENT_BY_TYPE: Record<string, string> = {
   online: 'ws-online',
   offline: 'ws-offline',
   userStateChange: 'ws-user-state-change',
+  userProfileChange: 'ws-user-profile-change',
   notifyEvent: 'ws-request-notify-event',
   groupSetAdmin: 'ws-group-set-admin-success',
   newApply: 'ws-request-new-apply',

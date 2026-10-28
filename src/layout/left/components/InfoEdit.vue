@@ -83,8 +83,8 @@
               </template>
             </n-input>
           </template>
-          <span>
-            {{ t('home.profile_edit.form.nickname.remaining', { count: editInfo.content.modifyNameChance || 0 }) }}
+          <span v-if="typeof editInfo.content.modifyNameChance === 'number'">
+            {{ t('home.profile_edit.form.nickname.remaining', { count: editInfo.content.modifyNameChance }) }}
           </span>
         </n-popover>
 
@@ -127,6 +127,7 @@
       <n-flex class="p-12px" align="center" justify="center">
         <n-button
           :disabled="editInfo.content.name === localUserInfo.name"
+          :loading="savingName"
           color="#034fbc"
           text-color="#ffffff"
           @click="saveEditInfo(localUserInfo as ModifyUserInfoType)">
@@ -173,7 +174,7 @@ const { t } = useI18n()
 const localUserInfo = ref<Partial<ModifyUserInfoType>>({})
 const userStore = useUserStore()
 const { addListener } = useTauriListener()
-const { editInfo, currentBadge, saveEditInfo, toggleWarningBadge } = leftHook()
+const { editInfo, currentBadge, saveEditInfo, savingName, toggleWarningBadge } = leftHook()
 const { countGraphemes } = useCommon()
 const showAvatarPicker = ref(false)
 const savingAvatar = ref(false)
@@ -191,8 +192,8 @@ const {
 })
 
 const saveAvatar = async (avatar: string) => {
-  await userStore.updateAvatar(avatar)
-  editInfo.value.content.avatar = avatar
+  const savedAvatar = await userStore.updateAvatar(avatar)
+  editInfo.value.content.avatar = savedAvatar
   window.$message.success(t('home.profile_edit.toast.avatar_update_success'))
 }
 

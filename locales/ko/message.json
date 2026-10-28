@@ -144,6 +144,7 @@
     "default_msg": "저는 {name}입니다"
   },
   "message_list": {
+    "sections": { "groups": "그룹", "people": "사람" },
     "group_count": "온라인 / 전체 멤버",
     "sync_loading": "메시지 동기화 중",
     "official_popover": "공식 그룹",

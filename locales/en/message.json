@@ -161,6 +161,7 @@
     "default_msg": "I'm {name}"
   },
   "message_list": {
+    "sections": { "groups": "Groups", "people": "People" },
     "group_count": "Online / total members",
     "sync_loading": "Syncing messages",
     "official_popover": "Official group",

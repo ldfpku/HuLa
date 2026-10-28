@@ -254,11 +254,11 @@ export async function getMsgList(body: { msgIds?: string[]; async?: boolean }) {
   })
 }
 
-export async function ModifyUserInfo(body: ModifyUserInfoType) {
-  return await imRequest({
-    url: ImUrlEnum.MODIFY_USER_INFO,
-    body
-  })
+export async function ModifyUserInfo(body: Partial<ModifyUserInfoType>, showError = true) {
+  return await imRequest(
+    { url: ImUrlEnum.MODIFY_USER_INFO, body },
+    { showError }
+  )
 }
 
 export async function setUserBadge(body: { badgeId: string }) {
@@ -325,8 +325,8 @@ export async function getEmoji() {
   })
 }
 
-export async function uploadAvatar(body: { avatar: string }) {
-  return await imRequest({
+export async function uploadAvatar(body: { avatar: string }): Promise<unknown> {
+  return await imRequest<unknown>({
     url: ImUrlEnum.UPLOAD_AVATAR,
     body
   })

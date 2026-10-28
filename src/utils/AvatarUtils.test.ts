@@ -43,4 +43,13 @@ describe('default avatars', () => {
     )
     expect(assigned.size).toBe(AvatarUtils.DEFAULT_AVATARS.length)
   })
+
+  it('uses the same stable preset assignments as the chat service', () => {
+    expect(['u1', 'u2', 'user-123', '用户😀'].map((uid) => AvatarUtils.defaultAvatarForUser(uid))).toEqual([
+      '006',
+      '007',
+      '022',
+      '002'
+    ])
+  })
 })

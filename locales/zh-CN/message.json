@@ -161,6 +161,7 @@
     "default_msg": "我是{name}"
   },
   "message_list": {
+    "sections": { "groups": "群聊", "people": "人员" },
     "group_count": "在线人数/总人数",
     "sync_loading": "正在同步消息",
     "official_popover": "官方群聊认证",

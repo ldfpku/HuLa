@@ -4,7 +4,8 @@ import { IsYesEnum, MittEnum, ThemeEnum } from '@/enums'
 import { useMitt } from '@/hooks/useMitt.ts'
 import { useWindow } from '@/hooks/useWindow.ts'
 import router from '@/router'
-import type { BadgeType, UserInfoType } from '@/services/types.ts'
+import type { BadgeType, ModifyUserInfoType, UserInfoType } from '@/services/types.ts'
+import { useI18nGlobal } from '@/services/i18n'
 import { useGroupStore } from '@/stores/group'
 import { useLoginHistoriesStore } from '@/stores/loginHistory.ts'
 import { useMailStore } from '@/stores/mail'
@@ -17,6 +18,7 @@ import { ModifyUserInfo, setUserBadge } from '@/utils/ImRequestUtils'
 import { storeToRefs } from 'pinia'
 
 export const leftHook = () => {
+  const { t } = useI18nGlobal()
   const prefers = matchMedia('(prefers-color-scheme: dark)')
   const { createWebviewWindow } = useWindow()
   const settingStore = useSettingStore()
@@ -47,6 +49,7 @@ export const leftHook = () => {
     content: {},
     badgeList: []
   })
+  const savingName = ref(false)
   /** 当前用户佩戴的徽章  */
   const currentBadge = computed(() =>
     editInfo.value.badgeList.find((item) => item.obtain === IsYesEnum.YES && item.wearing === IsYesEnum.YES)
@@ -69,33 +72,40 @@ export const leftHook = () => {
     }
   })
 
-  /** 更新缓存里面的用户信息 */
-  const updateCurrentUserCache = (key: 'name' | 'wearingItemId' | 'avatar', value: any) => {
-    const currentUser = userStore.userInfo!.uid && groupStore.getUserInfo(userStore.userInfo!.uid)
-    if (currentUser) {
-      currentUser[key] = value // 更新缓存里面的用户信息
-    }
-  }
-
   /** 保存用户信息 */
-  const saveEditInfo = (localUserInfo: any) => {
-    if (!localUserInfo.name || localUserInfo.name.trim() === '') {
-      window.$message.error('昵称不能为空')
+  const saveEditInfo = async (localUserInfo: Partial<ModifyUserInfoType>) => {
+    const name = localUserInfo.name?.trim()
+    if (!name) {
+      window.$message.error(t('home.profile_edit.toast.nickname_empty'))
       return
     }
-    if (localUserInfo.modifyNameChance === 0) {
-      window.$message.error('改名次数不足')
+    const uid = userStore.userInfo?.uid
+    if (!uid) {
+      window.$message.error(t('home.profile_edit.toast.account_changed'))
       return
     }
-    ModifyUserInfo(localUserInfo).then(() => {
+    if (savingName.value) return
+    savingName.value = true
+    try {
+      await ModifyUserInfo({ name }, false)
+      if (userStore.userInfo?.uid !== uid) {
+        window.$message.warning(t('home.profile_edit.toast.account_changed'))
+        return
+      }
       // 更新本地缓存的用户信息
-      userStore.userInfo!.name = localUserInfo.name!
-      loginHistoriesStore.updateLoginHistory(<UserInfoType>userStore.userInfo) // 更新登录历史记录
-      updateCurrentUserCache('name', localUserInfo.name) // 更新缓存里面的用户信息
-      if (!editInfo.value.content.modifyNameChance) return
-      editInfo.value.content.modifyNameChance -= 1
-      window.$message.success('保存成功')
-    })
+      userStore.userInfo.name = name
+      loginHistoriesStore.updateLoginHistory(userStore.userInfo)
+      groupStore.updateCachedUserName(uid, name)
+      if (typeof editInfo.value.content.modifyNameChance === 'number' && editInfo.value.content.modifyNameChance > 0) {
+        editInfo.value.content.modifyNameChance -= 1
+      }
+      window.$message.success(t('home.profile_edit.toast.name_updated'))
+    } catch (error) {
+      console.error('保存聊天昵称失败:', error)
+      window.$message.error(error instanceof Error ? error.message : t('home.profile_edit.toast.name_failed'))
+    } finally {
+      savingName.value = false
+    }
   }
 
   /** 佩戴徽章 */
@@ -231,6 +241,7 @@ export const leftHook = () => {
 
   return {
     currentState,
+    savingName,
     activeUrl,
     settingShow,
     shrinkStatus,
@@ -245,7 +256,6 @@ export const leftHook = () => {
     openContent,
     saveEditInfo,
     toggleWarningBadge,
-    updateCurrentUserCache,
     followOS
   }
 }

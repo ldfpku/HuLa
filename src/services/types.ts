@@ -260,7 +260,7 @@ export type UserInfoType = {
   /** 用户名 */
   name: string
   /** 剩余改名次数 */
-  modifyNameChance: number
+  modifyNameChance: number | null
   /** 性别 1为男性，2为女性 */
   sex: SexEnum
   /** 权限 */
@@ -884,7 +884,7 @@ export type ModifyUserInfoType = {
   phone?: string
   resume?: string
   /** 昵称修改次数 */
-  modifyNameChance: number
+  modifyNameChance: number | null
 }
 
 /** 登录 */

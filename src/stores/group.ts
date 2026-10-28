@@ -1,10 +1,30 @@
 import { defineStore } from 'pinia'
 import { OnlineEnum, RoleEnum, RoomTypeEnum, SessionOperateEnum, StoresEnum } from '@/enums'
-import type { GroupDetailReq, UserItem } from '@/services/types'
+import type { GroupDetailReq, SessionItem, UserItem } from '@/services/types'
 import { useGlobalStore } from '@/stores/global'
+import { useLoginHistoriesStore } from '@/stores/loginHistory'
 import { useUserStore } from '@/stores/user'
 import * as ImRequestUtils from '@/utils/ImRequestUtils'
 import { useChatStore } from './chat'
+
+const isGroupDetail = (value: unknown): value is GroupDetailReq => {
+  if (!value || typeof value !== 'object') return false
+  const detail = value as Partial<GroupDetailReq>
+  return (
+    typeof detail.roomId === 'string' &&
+    typeof detail.groupName === 'string' &&
+    typeof detail.avatar === 'string' &&
+    typeof detail.account === 'string' &&
+    typeof detail.roleId === 'number' &&
+    typeof detail.memberNum === 'number' &&
+    Number.isFinite(detail.memberNum) &&
+    typeof detail.onlineNum === 'number' &&
+    Number.isFinite(detail.onlineNum) &&
+    typeof detail.remark === 'string' &&
+    typeof detail.myName === 'string' &&
+    typeof detail.allowScanEnter === 'boolean'
+  )
+}
 
 export const useGroupStore = defineStore(
   StoresEnum.GROUP,
@@ -184,7 +204,8 @@ export const useGroupStore = defineStore(
       const version = groupCacheVersion
       const data = await ImRequestUtils.groupList()
       if (version !== groupCacheVersion) return false
-      groupDetails.value = data
+      if (!Array.isArray(data)) throw new Error('群列表响应格式错误')
+      groupDetails.value = data.filter(isGroupDetail)
       groupDetailsCache.value = {}
       return true
     }
@@ -200,14 +221,17 @@ export const useGroupStore = defineStore(
       loadingGroups.value.clear()
     }
 
-    const addGroupDetail = async (roomId: string) => {
-      if (groupDetails.value.find((item) => item.roomId === roomId)) {
+    const addGroupDetail = async (roomId: string, forceRefresh = false) => {
+      if (!forceRefresh && groupDetails.value.find((item) => item.roomId === roomId)) {
         return
       }
       const version = groupCacheVersion
       const data = await ImRequestUtils.getGroupDetail(roomId)
       if (version !== groupCacheVersion) throw new Error('账号已切换，放弃旧的群详情')
-      if (!groupDetails.value.some((item) => item.roomId === roomId)) groupDetails.value.push(data)
+      if (!isGroupDetail(data) || data.roomId !== roomId) throw new Error(`群组 ${roomId} 详情响应格式错误`)
+      const index = groupDetails.value.findIndex((item) => item.roomId === roomId)
+      if (index >= 0) groupDetails.value[index] = data
+      else groupDetails.value.push(data)
     }
 
     const userMapByRoomId = computed(() => {
@@ -244,6 +268,55 @@ export const useGroupStore = defineStore(
       return allUserMap.value.get(uid)
     })
 
+    const updateCachedUserName = (uid: string, name: string) => {
+      for (const members of Object.values(userListMap)) {
+        for (const member of members) {
+          if (member.uid === uid) member.name = name
+        }
+      }
+    }
+
+    const updateCachedUserAvatar = (uid: string, avatar: string) => {
+      for (const members of Object.values(userListMap)) {
+        for (const member of members) {
+          if (member.uid === uid) member.avatar = avatar
+        }
+      }
+    }
+
+    const applyUserProfileChange = (data: unknown): boolean => {
+      if (!data || typeof data !== 'object' || !('uid' in data)) return false
+      const { uid } = data
+      const name = 'name' in data ? data.name : undefined
+      const avatar = 'avatar' in data ? data.avatar : undefined
+      if (typeof uid !== 'string' || !uid || (name === undefined && avatar === undefined)) return false
+      if (name !== undefined && (typeof name !== 'string' || !name.trim())) return false
+      if (avatar !== undefined && (typeof avatar !== 'string' || !avatar.trim())) return false
+      const updates: Partial<SessionItem> = {}
+      if (typeof name === 'string') {
+        updateCachedUserName(uid, name)
+        updates.name = name
+      }
+      if (typeof avatar === 'string') {
+        updateCachedUserAvatar(uid, avatar)
+        updates.avatar = avatar
+      }
+      for (const session of chatStore.sessionList) {
+        if (session.type === RoomTypeEnum.SINGLE && session.detailId === uid) {
+          chatStore.updateSession(session.roomId, updates)
+        }
+      }
+      if (userStore.userInfo?.uid === uid) {
+        if (typeof name === 'string') userStore.userInfo.name = name
+        if (typeof avatar === 'string') {
+          userStore.userInfo.avatar = avatar
+          userStore.userInfo.avatarUpdateTime = Date.now()
+        }
+        useLoginHistoriesStore().updateLoginHistory(userStore.userInfo)
+      }
+      return true
+    }
+
     const userDisplayNameMap = computed(() => {
       const map = new Map<string, string>()
       userList.value.forEach((item) => {
@@ -277,36 +350,19 @@ export const useGroupStore = defineStore(
 
     const updateOnlineNum = (options: { uid?: string; roomId?: string; onlineNum?: number; isAdd?: boolean }) => {
       const { uid, roomId, onlineNum, isAdd } = options
-
-      if (roomId) {
-        // 如果传了 roomId，只修改该房间的 onlineNum
-        const groupDetail = groupDetails.value.find((detail) => detail.roomId === roomId)
-        if (groupDetail) {
-          if (typeof onlineNum === 'number') {
-            groupDetail.onlineNum = onlineNum
-          } else {
-            if (isAdd) {
-              groupDetail.onlineNum++
-            } else {
-              groupDetail.onlineNum--
-            }
-          }
+      const roomIds = roomId ? [roomId] : uid ? getRoomIdsByUid(uid) : []
+      for (const id of roomIds) {
+        const detail = groupDetails.value.find((item) => item.roomId === id)
+        if (!detail) continue
+        if (typeof onlineNum === 'number' && Number.isFinite(onlineNum)) {
+          detail.onlineNum = onlineNum
+        } else {
+          const previous = uid && userListMap[id]?.find((member) => member.uid === uid)?.activeStatus
+          const next = isAdd ? OnlineEnum.ONLINE : OnlineEnum.OFFLINE
+          if (!previous || previous === next || typeof isAdd !== 'boolean') continue
+          detail.onlineNum = Math.max(0, Math.min(detail.memberNum, detail.onlineNum + (isAdd ? 1 : -1)))
         }
-      } else {
-        // 如果没有传 roomId, 说明是全局更新
-        const roomIds = getRoomIdsByUid(uid!)
-
-        // 遍历找到的所有房间ID，更新对应群组的在线人数
-        roomIds.forEach((roomId) => {
-          const groupDetail = groupDetails.value.find((detail) => detail.roomId === roomId)
-          if (groupDetail) {
-            if (isAdd) {
-              groupDetail.onlineNum++
-            } else {
-              groupDetail.onlineNum--
-            }
-          }
-        })
+        onlineCountMap[id] = detail.onlineNum
       }
     }
 
@@ -450,7 +506,7 @@ export const useGroupStore = defineStore(
       try {
         // 3. 创建新的请求Promise并缓存
         const request = (async () => {
-          await addGroupDetail(roomId)
+          await addGroupDetail(roomId, forceRefresh)
           const finalDetail = getGroupDetailByRoomId.value(roomId)
           if (!finalDetail) {
             throw new Error(`群组 ${roomId} 数据获取失败`)
@@ -507,6 +563,36 @@ export const useGroupStore = defineStore(
           onlineCountMap[roomId] = onlineNum
         }
       }
+    }
+
+    const refreshGroupCounts = async (roomIds: string[]) => {
+      const version = groupCacheVersion
+      const data = await ImRequestUtils.groupList()
+      if (version !== groupCacheVersion) return
+      if (!Array.isArray(data)) throw new Error('群列表响应格式错误')
+      const groups = new Map(data.filter(isGroupDetail).map((group) => [group.roomId, group]))
+      const failures: unknown[] = []
+      for (const roomId of new Set(roomIds)) {
+        if (version !== groupCacheVersion) return
+        try {
+          let detail = groups.get(roomId)
+          if (!detail) {
+            detail = await fetchGroupDetailSafely(roomId, true)
+          }
+          if (version !== groupCacheVersion) return
+          const current = groupDetails.value.find((group) => group.roomId === roomId)
+          if (current) {
+            current.memberNum = detail.memberNum
+            current.onlineNum = detail.onlineNum
+          } else {
+            groupDetails.value.push(detail)
+          }
+          onlineCountMap[roomId] = detail.onlineNum
+        } catch (error) {
+          failures.push(error)
+        }
+      }
+      if (failures.length) throw new AggregateError(failures, '部分群人数刷新失败')
     }
 
     /**
@@ -608,6 +694,8 @@ export const useGroupStore = defineStore(
       }
 
       refreshTargets.forEach((validRoomId) => {
+        const member = userListMap[validRoomId]?.find((item) => item.uid === uid)
+        if (member) Object.assign(member, updates)
         const session = chatStore.getSession(validRoomId)
         if (session && session.type === RoomTypeEnum.GROUP) {
           getGroupUserList(validRoomId, true).catch((error) => {
@@ -900,6 +988,7 @@ export const useGroupStore = defineStore(
       getGroupDetailByRoomId,
       getGroupDetail,
       loadGroupDetails,
+      refreshGroupCounts,
       updateGroupNumber,
       removeGroupDetail,
       addGroupDetail,
@@ -909,6 +998,9 @@ export const useGroupStore = defineStore(
       getCachedMembers,
       updateMemberCache,
       getUserInfo,
+      updateCachedUserName,
+      updateCachedUserAvatar,
+      applyUserProfileChange,
       allUserInfo,
       getUserDisplayName,
       isCurrentLord,

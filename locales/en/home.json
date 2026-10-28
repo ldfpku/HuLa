@@ -376,7 +376,11 @@
       "save": "Save"
     },
     "toast": {
-      "avatar_update_success": "Avatar updated"
+      "avatar_update_success": "Avatar updated",
+      "nickname_empty": "Nickname cannot be empty",
+      "name_updated": "Nickname updated",
+      "name_failed": "Could not update nickname. Please try again.",
+      "account_changed": "Account changed. Please reopen your profile."
     }
   },
   "chat_sidebar": {

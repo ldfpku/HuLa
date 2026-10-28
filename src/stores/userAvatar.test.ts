@@ -9,7 +9,15 @@ const mocks = vi.hoisted(() => ({
 vi.mock('@/utils/ImRequestUtils', () => ({ getUserDetail: vi.fn(), uploadAvatar: mocks.uploadAvatar }))
 vi.mock('@/utils/PathUtil', () => ({}))
 vi.mock('./global', () => ({ useGlobalStore: () => ({}) }))
-vi.mock('./group', () => ({ useGroupStore: () => ({ userListMap: mocks.groups }) }))
+vi.mock('./group', () => ({
+  useGroupStore: () => ({
+    updateCachedUserAvatar: (uid: string, avatar: string) => {
+      for (const members of Object.values(mocks.groups)) {
+        for (const member of members) if (member.uid === uid) member.avatar = avatar
+      }
+    }
+  })
+}))
 vi.mock('./loginHistory', () => ({ useLoginHistoriesStore: () => ({ loginHistories: mocks.history }) }))
 
 import { SexEnum } from '@/enums'
@@ -60,6 +68,27 @@ describe('profile avatar updates', () => {
     expect(store.userInfo.avatar).toBe('')
     expect(mocks.history[0].avatar).toBe('')
     expect(mocks.groups.first[0].avatar).toBe('')
+  })
+
+  it('uses the server-owned avatar URL instead of the temporary upload URL', async () => {
+    const store = useUserStore()
+    store.userInfo = makeUser('user-1')
+    mocks.uploadAvatar.mockResolvedValue({ avatar: 'https://example.test/api/im/avatar/user-1?v=1' })
+    await expect(store.updateAvatar('https://example.test/api/im/files/tmp/avatar.webp')).resolves.toBe(
+      'https://example.test/api/im/avatar/user-1?v=1'
+    )
+    expect(store.userInfo.avatar).toBe('https://example.test/api/im/avatar/user-1?v=1')
+    expect(mocks.history[0].avatar).toBe(store.userInfo.avatar)
+    expect(mocks.groups.first[0].avatar).toBe(store.userInfo.avatar)
+  })
+
+  it('does not report success when the server refuses or returns an invalid avatar', async () => {
+    const store = useUserStore()
+    store.userInfo = makeUser('user-1')
+    mocks.uploadAvatar.mockResolvedValueOnce(false).mockResolvedValueOnce({ avatar: '' })
+    await expect(store.updateAvatar('021')).rejects.toThrow('服务端拒绝')
+    await expect(store.updateAvatar('021')).rejects.toThrow('头像地址无效')
+    expect(store.userInfo.avatar).toBe('')
   })
 
   it('does not apply an old account update after switching accounts', async () => {

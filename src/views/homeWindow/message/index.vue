@@ -1,5 +1,5 @@
 <template>
-  <n-scrollbar ref="msg-scrollbar" style="max-height: calc(100vh / var(--page-scale, 1) - 70px)">
+  <n-scrollbar style="max-height: calc(100vh / var(--page-scale, 1) - 70px)">
     <!-- 消息同步加载提示 -->
     <div v-if="syncLoading" class="flex-center gap-10px py-12px text-(12px [--text-color])">
       <n-spin :size="14" />
@@ -19,9 +19,13 @@
       </div>
     </div>
     <!--  会话列表  -->
-    <div v-if="sessionList.length > 0" class="p-[4px_10px_0px_8px]">
+    <div v-if="sessionList.length > 0" ref="session-list" class="p-[4px_10px_0px_8px]">
+      <template v-for="section in sessionSections" :key="section.key">
+      <div class="px-6px pt-8px pb-4px text-12px font-500 text-[--text-muted-color]">
+        {{ t(`message.message_list.sections.${section.key}`) }}
+      </div>
       <ContextMenu
-        v-for="item in sessionList"
+        v-for="item in section.sessions"
         :key="item.roomId"
         :class="getItemClasses(item)"
         :data-key="item.roomId"
@@ -144,6 +148,7 @@
           </n-flex>
         </n-flex>
       </ContextMenu>
+      </template>
     </div>
 
     <!-- 加载中显示的骨架屏 -->
@@ -195,6 +200,7 @@ import { useBotStore } from '@/stores/bot'
 import { useNetworkStatus } from '@/hooks/useNetworkStatus'
 import { AvatarUtils } from '@/utils/AvatarUtils'
 import { formatTimestamp } from '@/utils/ComputedTime.ts'
+import { groupSessionsByType } from '@/utils/SessionSections'
 import { useI18n } from 'vue-i18n'
 
 const { t } = useI18n()
@@ -211,7 +217,7 @@ const { syncLoading } = storeToRefs(chatStore)
 const botDisplayText = computed(() => botStore.displayText)
 const { checkRoomAtMe, getMessageSenderName, formatMessageContent } = useReplaceMsg()
 const { openMsgSession } = useCommon()
-const msgScrollbar = useTemplateRef<HTMLElement>('msg-scrollbar')
+const sessionListElement = useTemplateRef<HTMLElement>('session-list')
 const { handleMsgClick, handleMsgDelete, handleMsgDblclick, visibleMenu, visibleSpecialMenu } = useMessage()
 const groupCount = (roomId: string) => {
   const detail = groupStore.getGroupDetailByRoomId(roomId)
@@ -348,6 +354,31 @@ const sessionList = computed(() => {
   )
 })
 
+const sessionSections = computed(() => groupSessionsByType(sessionList.value))
+let groupCountTimer: ReturnType<typeof setInterval> | undefined
+let refreshingGroupCounts = false
+const refreshGroupCounts = async () => {
+  if (refreshingGroupCounts || document.visibilityState === 'hidden') return
+  const roomIds = chatStore.sessionList.filter((item) => item.type === RoomTypeEnum.GROUP).map((item) => item.roomId)
+  if (!roomIds.length) return
+  refreshingGroupCounts = true
+  try {
+    await groupStore.refreshGroupCounts(roomIds)
+  } catch (error) {
+    console.error('刷新群人数失败:', error)
+  } finally {
+    refreshingGroupCounts = false
+  }
+}
+
+watch(
+  () => chatStore.sessionList.filter((item) => item.type === RoomTypeEnum.GROUP).map((item) => item.roomId).join('\u0000'),
+  (roomIds) => {
+    if (roomIds) void groupStore.loadGroupDetails(roomIds.split('\u0000'))
+  },
+  { immediate: true }
+)
+
 watch(
   () => chatStore.currentSessionInfo,
   async (newVal) => {
@@ -432,6 +463,8 @@ onBeforeMount(async () => {
 })
 
 onMounted(async () => {
+  groupCountTimer = setInterval(() => void refreshGroupCounts(), 30_000)
+  document.addEventListener('visibilitychange', refreshGroupCounts)
   // TODO: 待完善
   // SysNTF
 
@@ -454,19 +487,16 @@ onMounted(async () => {
     await handleMsgDelete(roomId)
   })
   useMitt.on(MittEnum.LOCATE_SESSION, async (e: { roomId: string }) => {
-    const index = sessionList.value.findIndex((item) => item.roomId === e.roomId)
-    if (index !== -1) {
-      await nextTick(() => {
-        msgScrollbar.value?.scrollTo({
-          top: index * (75 + 5) - 264,
-          behavior: 'smooth'
-        })
-      })
-    }
+    await nextTick()
+    const items = sessionListElement.value?.querySelectorAll<HTMLElement>('[data-key]')
+    const target = items && Array.from(items).find((item) => item.dataset.key === e.roomId)
+    target?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
   })
 })
 
 onUnmounted(() => {
+  if (groupCountTimer) clearInterval(groupCountTimer)
+  document.removeEventListener('visibilitychange', refreshGroupCounts)
   // 清理未读清空的定时器，避免内存泄漏
   if (clearUnreadTimer) {
     clearTimeout(clearUnreadTimer)

@@ -78,7 +78,7 @@ import InfoEdit from './InfoEdit.vue'
 describe('profile avatar editor', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mocks.updateAvatar.mockResolvedValue(undefined)
+    mocks.updateAvatar.mockResolvedValue('022')
     Object.assign(window, { $message: { success: mocks.success, error: mocks.error } })
   })
 

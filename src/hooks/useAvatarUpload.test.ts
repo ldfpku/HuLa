@@ -68,6 +68,24 @@ describe('avatar upload', () => {
     wrapper.unmount()
   })
 
+  it('accepts 150 KB and rejects one byte over the avatar limit', async () => {
+    let upload!: ReturnType<typeof useAvatarUpload>
+    const wrapper = mount(
+      defineComponent({
+        setup() {
+          upload = useAvatarUpload()
+          return () => h('div')
+        }
+      })
+    )
+    await upload.handleCrop(new Blob([new Uint8Array(150 * 1024 + 1)], { type: 'image/webp' }))
+    expect(mocks.uploadFile).not.toHaveBeenCalled()
+    expect(mocks.showError).toHaveBeenCalledWith(expect.stringContaining('不能超过150KB'))
+    await upload.handleCrop(new Blob([new Uint8Array(150 * 1024)], { type: 'image/webp' }))
+    expect(mocks.uploadFile).toHaveBeenCalledOnce()
+    wrapper.unmount()
+  })
+
   it('releases the selected image when cropping is cancelled', async () => {
     const revoke = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {})
     let upload!: ReturnType<typeof useAvatarUpload>

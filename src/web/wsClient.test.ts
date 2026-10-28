@@ -25,6 +25,38 @@ describe('fetchSocketTicket', () => {
 })
 
 describe('WebSocketClient.init', () => {
+  it('forwards a profile change to the shared websocket listeners', async () => {
+    const { WebSocketClient } = await import('./wsClient')
+    const { tokenStore } = await import('./imClient')
+    tokenStore.set({ uid: 'u1', token: 'tok-1', refreshToken: 'r1' })
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response(JSON.stringify({ code: 200, data: { ticket: 'tk' } })))
+    )
+    const sockets: Array<{ onmessage?: (event: { data: string }) => void }> = []
+    vi.stubGlobal(
+      'WebSocket',
+      class {
+        onmessage?: (event: { data: string }) => void
+        close = vi.fn()
+        send = vi.fn()
+        constructor() {
+          sockets.push(this)
+        }
+      }
+    )
+    const emit = vi.fn()
+    const ws = new WebSocketClient(emit)
+    await ws.init('c1')
+    await vi.waitFor(() => expect(sockets[0]?.onmessage).toBeTypeOf('function'))
+    sockets[0].onmessage?.({ data: JSON.stringify({ type: 'userProfileChange', data: { uid: 'u1', name: 'New' } }) })
+    expect(emit).toHaveBeenCalledWith('ws-user-profile-change', { uid: 'u1', name: 'New' })
+    sockets[0].onmessage?.({ data: JSON.stringify({ type: 'userProfileChange', data: { uid: 'u1', avatar: '022' } }) })
+    expect(emit).toHaveBeenCalledWith('ws-user-profile-change', { uid: 'u1', avatar: '022' })
+    ws.disconnect()
+    vi.unstubAllGlobals()
+  })
+
   it('does not reconnect when the same login inits again', async () => {
     const { WebSocketClient } = await import('./wsClient')
     const { tokenStore } = await import('./imClient')

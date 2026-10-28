@@ -100,6 +100,12 @@ const preventDrag = (e: MouseEvent) => {
 }
 const preventGlobalContextMenu = (event: MouseEvent) => event.preventDefault()
 
+useMitt.on(WsResponseMessageType.USER_PROFILE_CHANGE, (data: unknown) => {
+  if (!groupStore.applyUserProfileChange(data)) {
+    console.error('收到无效的用户资料更新:', data)
+  }
+})
+
 /** 桌面端已开着通话窗口或会议窗口：服务端没拦下的来电（例如它还不知道本机在开会）在这里回忙线，不再弹窗 */
 const inCallOrMeeting = async () => {
   if (!isDesktop() || isWeb()) return false
@@ -384,6 +390,7 @@ useMitt.on(WsResponseMessageType.ONLINE, async (onStatusChangeType: OnStatusChan
   // 群聊
   if (onStatusChangeType.type === 1) {
     groupStore.updateOnlineNum({
+      uid: onStatusChangeType.uid,
       roomId: onStatusChangeType.roomId,
       onlineNum: onStatusChangeType.onlineNum,
       isAdd: true
@@ -521,6 +528,7 @@ useMitt.on(WsResponseMessageType.OFFLINE, async (onStatusChangeType: OnStatusCha
   // 群聊
   if (onStatusChangeType.type === 1) {
     groupStore.updateOnlineNum({
+      uid: onStatusChangeType.uid,
       roomId: onStatusChangeType.roomId,
       onlineNum: onStatusChangeType.onlineNum,
       isAdd: false

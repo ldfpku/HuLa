@@ -361,6 +361,12 @@ class RustWebSocketClient {
       })
     )
 
+    this.listenerController.add(
+      await listen('ws-user-profile-change', (event: { payload: unknown }) => {
+        useMitt.emit(WsResponseMessageType.USER_PROFILE_CHANGE, event.payload)
+      })
+    )
+
     // 房间/群聊相关事件
     this.listenerController.add(
       await listen('ws-room-info-change', (event: any) => {

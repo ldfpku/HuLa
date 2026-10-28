@@ -372,7 +372,11 @@
       "save": "保存"
     },
     "toast": {
-      "avatar_update_success": "头像更新成功"
+      "avatar_update_success": "头像更新成功",
+      "nickname_empty": "昵称不能为空",
+      "name_updated": "昵称已更新",
+      "name_failed": "昵称更新失败，请重试",
+      "account_changed": "账号已切换，请重新查看个人资料"
     }
   },
   "chat_sidebar": {
