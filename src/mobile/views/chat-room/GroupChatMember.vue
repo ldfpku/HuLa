@@ -32,7 +32,7 @@
                     <div class="flex items-center gap-10px">
                       <n-avatar
                         :size="42"
-                        :src="AvatarUtils.getAvatarUrl(item.avatar)"
+                        :src="AvatarUtils.getAvatarUrl(item.avatar, item.uid)"
                         fallback-src="/avatar-light.svg"
                         round />
                       <n-text class="line-clamp-1">

@@ -90,7 +90,7 @@ const groupStore = useGroupStore()
 const { t } = useI18n()
 const settingStore = useSettingStore()
 const { themes } = storeToRefs(settingStore)
-const avatarSrc = computed(() => AvatarUtils.getAvatarUrl(userStore.userInfo?.avatar as string))
+const avatarSrc = computed(() => AvatarUtils.getAvatarUrl(userStore.userInfo?.avatar, userStore.userInfo?.uid))
 const currentUserLocation = computed(() => {
   const uid = userStore.userInfo?.uid
   if (!uid) return ''

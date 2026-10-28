@@ -13,11 +13,11 @@
         <div class="p-20px">
           <!-- 头像 -->
           <div class="flex justify-center mb-50px">
-            <div class="rounded-full relative bg-white w-86px h-86px overflow-hidden" @click="openAvatarCropper">
+            <div class="rounded-full relative bg-white w-86px h-86px overflow-hidden" @click="showAvatarPicker = true">
               <n-avatar
                 class="absolute"
                 :size="86"
-                :src="AvatarUtils.getAvatarUrl(localUserInfo.avatar!)"
+                :src="AvatarUtils.getAvatarUrl(localUserInfo.avatar, userStore.userInfo?.uid)"
                 fallback-src="/avatar-light.svg"
                 round />
               <div
@@ -33,6 +33,13 @@
               class="hidden"
               @change="handleFileChange" />
             <AvatarCropper ref="cropperRef" v-model:show="showCropper" :image-url="localImageUrl" @crop="handleCrop" />
+            <AvatarPicker
+              v-model:show="showAvatarPicker"
+              :current-avatar="localUserInfo.avatar"
+              :uid="userStore.userInfo?.uid"
+              :busy="savingAvatar"
+              @select="handlePresetAvatar"
+              @upload="handleAvatarUpload" />
           </div>
           <!-- 个人信息 -->
           <n-card class="p-0! rounded-16px">
@@ -210,6 +217,8 @@
 </template>
 
 <script setup lang="ts">
+import AvatarCropper from '@/components/common/AvatarCropper.vue'
+import AvatarPicker from '@/components/common/AvatarPicker.vue'
 import { useAvatarUpload } from '@/hooks/useAvatarUpload'
 import router from '@/router'
 import type { ModifyUserInfoType, UserInfoType } from '@/services/types.ts'
@@ -255,6 +264,8 @@ const pickerState = ref({
   region: false,
   date: false
 })
+const showAvatarPicker = ref(false)
+const savingAvatar = ref(false)
 
 const {
   localImageUrl,
@@ -264,18 +275,34 @@ const {
   handleCrop: onCrop
 } = useAvatarUpload({
   onSuccess: async (downloadUrl) => {
-    // 更新编辑信息
-    localUserInfo.value.avatar = downloadUrl
-    // 更新用户信息
-    userStore.userInfo!.avatar = downloadUrl
-    // 更新头像更新时间
-    userStore.userInfo!.avatarUpdateTime = Date.now()
-    // 更新登录历史记录
-    loginHistoriesStore.loginHistories.filter((item) => item.uid === userStore.userInfo!.uid)[0].avatar = downloadUrl
-    // 更新缓存里面的用户信息
-    updateCurrentUserCache('avatar', downloadUrl)
+    await saveAvatar(downloadUrl)
   }
 })
+
+const saveAvatar = async (avatar: string) => {
+  await userStore.updateAvatar(avatar)
+  localUserInfo.value.avatar = avatar
+  window.$message.success(t('components.avatarPicker.save_success'))
+}
+
+const handlePresetAvatar = async (avatar: string) => {
+  if (savingAvatar.value) return
+  savingAvatar.value = true
+  try {
+    await saveAvatar(avatar)
+    showAvatarPicker.value = false
+  } catch (error) {
+    console.error('更新头像失败:', error)
+    window.$message.error(t('components.avatarPicker.save_failed'))
+  } finally {
+    savingAvatar.value = false
+  }
+}
+
+const handleAvatarUpload = () => {
+  showAvatarPicker.value = false
+  openAvatarCropper()
+}
 
 // 处理裁剪，调用hook中的方法
 const handleCrop = async (cropBlob: Blob) => {

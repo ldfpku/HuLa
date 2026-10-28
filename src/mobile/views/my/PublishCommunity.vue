@@ -241,7 +241,7 @@ const filteredContactsList = computed(() => {
 // 获取用户头像
 const getUserAvatar = (user: FriendItem) => {
   const userInfo = groupStore.getUserInfo(user.uid)
-  return AvatarUtils.getAvatarUrl(userInfo?.avatar || '')
+  return AvatarUtils.getAvatarUrl(userInfo?.avatar, user.uid)
 }
 
 // 获取用户名称

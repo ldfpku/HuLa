@@ -4,6 +4,15 @@
     "cancel": "取消"
   },
   "actionBar": {
+    "split": {
+      "title": "窗口分屏",
+      "left": "靠左半屏",
+      "right": "靠右半屏",
+      "top": "靠上半屏",
+      "bottom": "靠下半屏",
+      "restore": "恢复窗口",
+      "unsupported": "当前系统无法调整到指定位置，请使用系统自带的窗口分屏功能"
+    },
     "always_on_top": {
       "enabled": "取消置顶",
       "disabled": "置顶"
@@ -20,6 +29,14 @@
     "preview": {
       "round": "圆形预览",
       "square": "矩形预览"
+    },
+    "avatarPicker": {
+      "title": "选择头像",
+      "option": "内置头像 {number}",
+      "upload": "上传图片",
+      "saving": "正在更新头像…",
+      "save_success": "头像更新成功",
+      "save_failed": "头像更新失败，请重试"
     },
     "uploading": "上传中..."
   },

@@ -19,7 +19,7 @@
             <n-flex @click="toSimpleBio" align="center" :size="6" class="w-full">
               <n-avatar
                 :size="38"
-                :src="AvatarUtils.getAvatarUrl(userStore.userInfo?.avatar ? userStore.userInfo.avatar : '/avatar-light.svg')"
+                :src="AvatarUtils.getAvatarUrl(userStore.userInfo?.avatar, userStore.userInfo?.uid)"
                 fallback-src="/avatar-light.svg"
                 round />
 
@@ -119,7 +119,7 @@
                       :max="99">
                       <n-avatar
                         :size="52"
-                        :src="AvatarUtils.getAvatarUrl(item.avatar)"
+                        :src="AvatarUtils.getAvatarUrl(item.avatar, item.type === RoomTypeEnum.SINGLE ? item.detailId : undefined)"
                         fallback-src="/avatar-light.svg"
                         round />
                     </n-badge>

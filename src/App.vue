@@ -279,7 +279,7 @@ useMitt.on(
       await handleMemberAdd(param.userList, param.roomId)
     }
 
-    groupStore.addGroupDetail(param.roomId)
+    await groupStore.addGroupDetail(param.roomId)
     // 更新群内的总人数
     groupStore.updateGroupNumber(param.roomId, param.totalNum, param.onlineNum)
   }

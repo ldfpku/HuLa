@@ -34,7 +34,7 @@
               size="large"
               :src="
                 props.type === 'friend'
-                  ? avatarSrc(getUserInfo(item)?.avatar || '')
+                  ? avatarSrc(getUserInfo(item)?.avatar || '', getUserInfo(item)?.uid)
                   : avatarSrc(groupDetailsMap[item.roomId]?.avatar || '/default-group-avatar.png')
               " />
           </div>
@@ -252,7 +252,7 @@ const dropdownOptions = [
   }
 ]
 
-const avatarSrc = (url: string) => AvatarUtils.getAvatarUrl(url)
+const avatarSrc = (url: string, uid?: string) => AvatarUtils.getAvatarUrl(url, uid)
 
 // 判断是否为当前登录用户
 const isCurrentUser = (uid: string) => {

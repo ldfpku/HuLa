@@ -17,7 +17,7 @@
             <div class="flex flex-1 flex-col px-5 gap-10px">
               <div class="flex flex-wrap ps-3 gap-10px">
                 <div class="flex h-auto">
-                  <n-avatar round :size="60" :src="AvatarUtils.getAvatarUrl(userStore.userInfo?.avatar || '')" />
+                  <n-avatar round :size="60" :src="AvatarUtils.getAvatarUrl(userStore.userInfo?.avatar, userStore.userInfo?.uid)" />
                 </div>
 
                 <div
@@ -37,7 +37,7 @@
                   color="#034FBC"
                   :bg-color="qrCodeBgColor"
                   :type="qrCodeType"
-                  :icon-src="AvatarUtils.getAvatarUrl(userStore.userInfo?.avatar ?? '')"
+                  :icon-src="AvatarUtils.getAvatarUrl(userStore.userInfo?.avatar, userStore.userInfo?.uid)"
                   :icon-size="60"
                   :icon-margin="2"
                   :error-correction-level="qrErrorCorrectionLevel" />

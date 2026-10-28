@@ -32,10 +32,13 @@
         <n-flex justify="center">
           <n-popover trigger="hover" :delay="300" :duration="300" placement="bottom">
             <template #trigger>
-              <div class="avatar-wrapper relative" @click="openAvatarCropper">
-                <n-avatar :size="80" :src="AvatarUtils.getAvatarUrl(editInfo.content.avatar!)" round />
+              <div class="avatar-wrapper relative" @click="showAvatarPicker = true">
+                <n-avatar
+                  :size="80"
+                  :src="AvatarUtils.getAvatarUrl(editInfo.content.avatar, userStore.userInfo?.uid)"
+                  round />
                 <div class="avatar-hover absolute size-full rounded-50% flex-center">
-                  <span class="text-12px color-#606060">{{ t('home.profile_edit.avatar.change') }}</span>
+                  <span class="text-12px color-white">{{ t('home.profile_edit.avatar.change') }}</span>
                 </div>
               </div>
             </template>
@@ -46,7 +49,7 @@
         </n-flex>
         <!-- 当前佩戴的徽章 -->
         <n-flex v-if="currentBadge" align="center" justify="center">
-          <span class="text-(14px #707070)">{{ t('home.profile_edit.badge.current') }}</span>
+          <span class="text-(14px [--text-muted-color])">{{ t('home.profile_edit.badge.current') }}</span>
           <n-popover trigger="hover">
             <template #trigger>
               <img :src="currentBadge?.img" alt="" class="size-22px" />
@@ -76,7 +79,7 @@
               show-count
               type="text">
               <template #prefix>
-                <span class="pr-6px text-#909090">{{ t('home.profile_edit.form.nickname.label') }}</span>
+                <span class="pr-6px text-[--text-muted-color]">{{ t('home.profile_edit.form.nickname.label') }}</span>
               </template>
             </n-input>
           </template>
@@ -101,9 +104,9 @@
               <div class="tip">
                 <template v-if="item.obtain === IsYesEnum.YES">
                   <n-button
-                    style="color: #fff"
                     v-if="item.wearing === IsYesEnum.NO"
                     color="#034fbc"
+                    text-color="#ffffff"
                     @click="toggleWarningBadge(item)">
                     {{ t('home.profile_edit.badge.wear') }}
                   </n-button>
@@ -123,9 +126,9 @@
       </n-flex>
       <n-flex class="p-12px" align="center" justify="center">
         <n-button
-          style="color: #fff"
           :disabled="editInfo.content.name === localUserInfo.name"
           color="#034fbc"
+          text-color="#ffffff"
           @click="saveEditInfo(localUserInfo as ModifyUserInfoType)">
           {{ t('home.profile_edit.actions.save') }}
         </n-button>
@@ -140,11 +143,19 @@
     class="hidden"
     @change="handleFileChange" />
   <AvatarCropper ref="cropperRef" v-model:show="showCropper" :image-url="localImageUrl" @crop="handleCrop" />
+  <AvatarPicker
+    v-model:show="showAvatarPicker"
+    :current-avatar="userStore.userInfo?.avatar"
+    :uid="userStore.userInfo?.uid"
+    :busy="savingAvatar"
+    @select="handlePresetAvatar"
+    @upload="handleAvatarUpload" />
 </template>
 <script setup lang="ts">
 import { WebviewWindow } from '@tauri-apps/api/webviewWindow'
 import { useI18n } from 'vue-i18n'
 import AvatarCropper from '@/components/common/AvatarCropper.vue'
+import AvatarPicker from '@/components/common/AvatarPicker.vue'
 import { IsYesEnum, MittEnum } from '@/enums'
 import { useAvatarUpload } from '@/hooks/useAvatarUpload'
 import { useCommon } from '@/hooks/useCommon.ts'
@@ -152,10 +163,9 @@ import { useMitt } from '@/hooks/useMitt.ts'
 import { useTauriListener } from '@/hooks/useTauriListener'
 import { leftHook } from '@/layout/left/hook.ts'
 import type { ModifyUserInfoType } from '@/services/types'
-import { useLoginHistoriesStore } from '@/stores/loginHistory'
 import { useUserStore } from '@/stores/user.ts'
 import { AvatarUtils } from '@/utils/AvatarUtils'
-import { getBadgeList, uploadAvatar } from '@/utils/ImRequestUtils'
+import { getBadgeList } from '@/utils/ImRequestUtils'
 import { isMac, isWindows } from '@/utils/PlatformConstants'
 
 const appWindow = WebviewWindow.getCurrent()
@@ -163,9 +173,10 @@ const { t } = useI18n()
 const localUserInfo = ref<Partial<ModifyUserInfoType>>({})
 const userStore = useUserStore()
 const { addListener } = useTauriListener()
-const loginHistoriesStore = useLoginHistoriesStore()
-const { editInfo, currentBadge, updateCurrentUserCache, saveEditInfo, toggleWarningBadge } = leftHook()
+const { editInfo, currentBadge, saveEditInfo, toggleWarningBadge } = leftHook()
 const { countGraphemes } = useCommon()
+const showAvatarPicker = ref(false)
+const savingAvatar = ref(false)
 // 使用自定义hook处理头像上传
 const {
   localImageUrl,
@@ -175,21 +186,34 @@ const {
   handleCrop: onCrop
 } = useAvatarUpload({
   onSuccess: async (downloadUrl) => {
-    // 调用更新头像的API TODO 这里准备删除
-    await uploadAvatar({ avatar: downloadUrl })
-    // 更新编辑信息
-    editInfo.value.content.avatar = downloadUrl
-    // 更新用户信息
-    userStore.userInfo!.avatar = downloadUrl
-    // 更新头像更新时间
-    userStore.userInfo!.avatarUpdateTime = Date.now()
-    // 更新登录历史记录
-    loginHistoriesStore.loginHistories.filter((item) => item.uid === userStore.userInfo!.uid)[0].avatar = downloadUrl
-    // 更新缓存里面的用户信息
-    updateCurrentUserCache('avatar', downloadUrl)
-    window.$message.success(t('home.profile_edit.toast.avatar_update_success'))
+    await saveAvatar(downloadUrl)
   }
 })
+
+const saveAvatar = async (avatar: string) => {
+  await userStore.updateAvatar(avatar)
+  editInfo.value.content.avatar = avatar
+  window.$message.success(t('home.profile_edit.toast.avatar_update_success'))
+}
+
+const handlePresetAvatar = async (avatar: string) => {
+  if (savingAvatar.value) return
+  savingAvatar.value = true
+  try {
+    await saveAvatar(avatar)
+    showAvatarPicker.value = false
+  } catch (error) {
+    console.error('更新头像失败:', error)
+    window.$message.error(t('components.avatarPicker.save_failed'))
+  } finally {
+    savingAvatar.value = false
+  }
+}
+
+const handleAvatarUpload = () => {
+  showAvatarPicker.value = false
+  openAvatarCropper()
+}
 
 // 处理裁剪，调用hook中的方法
 const handleCrop = async (cropBlob: Blob) => {
@@ -247,6 +271,7 @@ onMounted(async () => {
 
   .avatar-hover {
     opacity: 0;
+    background: rgba(10, 31, 84, 0.88);
     transition: opacity 0.4s ease-in-out;
     backdrop-filter: blur(4px);
     -webkit-backdrop-filter: blur(4px);

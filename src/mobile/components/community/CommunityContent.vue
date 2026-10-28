@@ -99,10 +99,10 @@ const avatarUrl = computed(() => {
   if (props.feedItem.uid) {
     const userInfo = groupStore.getUserInfo(props.feedItem.uid)
     if (userInfo?.avatar) {
-      return AvatarUtils.getAvatarUrl(userInfo.avatar)
+      return AvatarUtils.getAvatarUrl(userInfo.avatar, props.feedItem.uid)
     }
   }
-  return AvatarUtils.getAvatarUrl('')
+  return AvatarUtils.getAvatarUrl('', props.feedItem.uid)
 })
 
 // 计算用户名称

@@ -16,6 +16,8 @@ export const useGroupStore = defineStore(
     // 动态加载没有的群组 [防止并发冲突加载]
     const groupDetailsCache = ref<Record<string, GroupDetailReq>>({})
     const loadingGroups = ref<Set<string>>(new Set())
+    const fetchPromisesMap = ref<Partial<Record<string, Promise<GroupDetailReq>>>>({})
+    let groupCacheVersion = 0
 
     // 群组相关状态
     const currentSessionState = ref({
@@ -179,16 +181,33 @@ export const useGroupStore = defineStore(
     })
 
     const setGroupDetails = async () => {
+      const version = groupCacheVersion
       const data = await ImRequestUtils.groupList()
+      if (version !== groupCacheVersion) return false
       groupDetails.value = data
+      groupDetailsCache.value = {}
+      return true
+    }
+
+    const clearAccountCache = () => {
+      groupCacheVersion++
+      for (const roomId of Object.keys(userListMap)) delete userListMap[roomId]
+      for (const roomId of Object.keys(onlineCountMap)) delete onlineCountMap[roomId]
+      for (const roomId of Object.keys(memberOrderCounters)) delete memberOrderCounters[roomId]
+      groupDetails.value = []
+      groupDetailsCache.value = {}
+      fetchPromisesMap.value = {}
+      loadingGroups.value.clear()
     }
 
     const addGroupDetail = async (roomId: string) => {
       if (groupDetails.value.find((item) => item.roomId === roomId)) {
         return
       }
+      const version = groupCacheVersion
       const data = await ImRequestUtils.getGroupDetail(roomId)
-      groupDetails.value.push(data)
+      if (version !== groupCacheVersion) throw new Error('账号已切换，放弃旧的群详情')
+      if (!groupDetails.value.some((item) => item.roomId === roomId)) groupDetails.value.push(data)
     }
 
     const userMapByRoomId = computed(() => {
@@ -263,7 +282,7 @@ export const useGroupStore = defineStore(
         // 如果传了 roomId，只修改该房间的 onlineNum
         const groupDetail = groupDetails.value.find((detail) => detail.roomId === roomId)
         if (groupDetail) {
-          if (onlineNum) {
+          if (typeof onlineNum === 'number') {
             groupDetail.onlineNum = onlineNum
           } else {
             if (isAdd) {
@@ -414,8 +433,6 @@ export const useGroupStore = defineStore(
     })
 
     // 状态定义：添加一个用于管理正在进行的请求的Map
-    const fetchPromisesMap = ref<Record<string, Promise<GroupDetailReq>>>({})
-
     /**
      * 智能获取群组详情：如果本地有则直接返回，如果没有则从远程获取并缓存
      * @param roomId 群组ID
@@ -426,28 +443,26 @@ export const useGroupStore = defineStore(
       if (existingDetail && !forceRefresh) {
         return existingDetail
       }
+      const pending = fetchPromisesMap.value[roomId]
+      if (pending) return pending
 
       // 2. 防止并发重复请求
       try {
         // 3. 创建新的请求Promise并缓存
-        fetchPromisesMap.value[roomId] = (async () => {
-          try {
-            // 调用你已有的远程获取方法
-            await addGroupDetail(roomId)
-
-            const finalDetail = getGroupDetailByRoomId.value(roomId)
-            if (!finalDetail) {
-              throw new Error(`群组 ${roomId} 数据获取失败`)
-            }
-            return finalDetail
-          } finally {
-            // 清理当前请求的缓存
-            delete fetchPromisesMap.value[roomId]
+        const request = (async () => {
+          await addGroupDetail(roomId)
+          const finalDetail = getGroupDetailByRoomId.value(roomId)
+          if (!finalDetail) {
+            throw new Error(`群组 ${roomId} 数据获取失败`)
           }
+          return finalDetail
         })()
-
-        // 4. 等待请求完成并返回结果
-        return await fetchPromisesMap.value[roomId]
+        fetchPromisesMap.value[roomId] = request
+        try {
+          return await request
+        } finally {
+          if (fetchPromisesMap.value[roomId] === request) delete fetchPromisesMap.value[roomId]
+        }
       } catch (error) {
         console.error(`获取群组 ${roomId} 详情失败:`, error)
         throw error
@@ -458,13 +473,15 @@ export const useGroupStore = defineStore(
      * 本地获取房间信息
      */
     const getGroupDetail = computed(() => (roomId: string) => {
-      return groupDetailsCache.value[roomId] || getGroupDetailByRoomId.value(roomId)
+      return getGroupDetailByRoomId.value(roomId) || groupDetailsCache.value[roomId]
     })
 
     const loadGroupDetails = async (roomIds: string[]) => {
       const uniqueRoomIds = [...new Set(roomIds.filter((id) => id))]
+      const version = groupCacheVersion
 
       for (const roomId of uniqueRoomIds) {
+        if (version !== groupCacheVersion) break
         if (groupDetailsCache.value[roomId] || loadingGroups.value.has(roomId)) {
           continue
         }
@@ -472,10 +489,11 @@ export const useGroupStore = defineStore(
         loadingGroups.value.add(roomId)
         try {
           const detail = await fetchGroupDetailSafely(roomId)
-          groupDetailsCache.value[roomId] = detail
-        } catch (_error) {
+          if (version === groupCacheVersion) groupDetailsCache.value[roomId] = detail
+        } catch (error) {
+          console.error(`[group] 加载群 ${roomId} 详情失败:`, error)
         } finally {
-          loadingGroups.value.delete(roomId)
+          if (version === groupCacheVersion) loadingGroups.value.delete(roomId)
         }
       }
     }
@@ -518,7 +536,9 @@ export const useGroupStore = defineStore(
         setRoomMemberList(roomId, [])
       }
 
+      const version = groupCacheVersion
       const data = await ImRequestUtils.groupListMember(roomId)
+      if (version !== groupCacheVersion) return []
       if (!data) {
         userListOptions.loading = false
         return []
@@ -874,6 +894,7 @@ export const useGroupStore = defineStore(
       myNameInCurrentGroup,
       myRoleIdInCurrentGroup,
       setGroupDetails,
+      clearAccountCache,
       updateGroupDetail,
       groupDetails,
       getGroupDetailByRoomId,

@@ -4,6 +4,15 @@
     "cancel": "취소"
   },
   "actionBar": {
+    "split": {
+      "title": "창 분할",
+      "left": "왼쪽 절반",
+      "right": "오른쪽 절반",
+      "top": "위쪽 절반",
+      "bottom": "아래쪽 절반",
+      "restore": "창 복원",
+      "unsupported": "창을 지정한 위치로 이동할 수 없습니다. 시스템의 창 분할 기능을 사용하세요."
+    },
     "always_on_top": {
       "enabled": "항상 위 고정 해제",
       "disabled": "항상 위에 고정"
@@ -20,6 +29,14 @@
     "preview": {
       "round": "원형 미리보기",
       "square": "둥근 사각형 미리보기"
+    },
+    "avatarPicker": {
+      "title": "프로필 사진 선택",
+      "option": "기본 프로필 사진 {number}",
+      "upload": "이미지 업로드",
+      "saving": "프로필 사진을 변경하는 중…",
+      "save_success": "프로필 사진이 변경되었습니다",
+      "save_failed": "프로필 사진을 변경하지 못했습니다. 다시 시도하세요."
     },
     "uploading": "업로드 중..."
   },

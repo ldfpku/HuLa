@@ -1,9 +1,9 @@
 import { UploadSceneEnum } from '@/enums'
-import { UploadProviderEnum, useUpload } from './useUpload'
+import { useUpload } from './useUpload'
 
 export interface AvatarUploadOptions {
   // 上传成功后的回调函数，参数为下载URL
-  onSuccess?: (downloadUrl: string) => void
+  onSuccess?: (downloadUrl: string) => void | Promise<void>
   // 上传场景，默认为头像
   scene?: UploadSceneEnum
   // 文件大小限制（KB），默认为150KB
@@ -17,10 +17,27 @@ export interface AvatarUploadOptions {
 export const useAvatarUpload = (options: AvatarUploadOptions = {}) => {
   const { onSuccess, scene = UploadSceneEnum.AVATAR, sizeLimit = 150 } = options
 
-  const fileInput = ref<HTMLInputElement>()
+  const fileInput = useTemplateRef<HTMLInputElement>('fileInput')
   const localImageUrl = ref('')
   const showCropper = ref(false)
-  const cropperRef = ref()
+  const cropperRef = useTemplateRef<{ finishLoading: () => void }>('cropperRef')
+  let selectionVersion = 0
+  let disposed = false
+
+  const releaseLocalImage = () => {
+    if (localImageUrl.value) URL.revokeObjectURL(localImageUrl.value)
+    localImageUrl.value = ''
+  }
+
+  watch(showCropper, (show) => {
+    if (!show) releaseLocalImage()
+  })
+
+  onUnmounted(() => {
+    disposed = true
+    selectionVersion++
+    releaseLocalImage()
+  })
 
   // 打开文件选择器
   const openFileSelector = () => {
@@ -29,18 +46,30 @@ export const useAvatarUpload = (options: AvatarUploadOptions = {}) => {
 
   // 处理文件选择
   const handleFileChange = (e: Event) => {
-    const file = (e.target as HTMLInputElement).files?.[0]
+    const input = e.target as HTMLInputElement
+    const file = input.files?.[0]
+    input.value = ''
     if (file) {
+      const version = ++selectionVersion
+      if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+        window.$message.error('只支持 JPG、PNG、WebP 格式的图片')
+        return
+      }
       const img = new Image()
       const url = URL.createObjectURL(file)
       img.onload = () => {
+        if (disposed || version !== selectionVersion) {
+          URL.revokeObjectURL(url)
+          return
+        }
+        releaseLocalImage()
         localImageUrl.value = url
         nextTick(() => {
           showCropper.value = true
         })
       }
       img.onerror = () => {
-        window.$message.error('图片加载失败')
+        if (!disposed && version === selectionVersion) window.$message.error('图片加载失败')
         URL.revokeObjectURL(url)
       }
       img.src = url
@@ -75,29 +104,24 @@ export const useAvatarUpload = (options: AvatarUploadOptions = {}) => {
         return
       }
 
-      // 使用useUpload中的七牛云上传功能
       const { uploadFile, fileInfo } = useUpload()
 
-      // 执行上传，使用七牛云上传方式
       await uploadFile(file, {
-        provider: UploadProviderEnum.QINIU,
         enableDeduplication: true,
         scene: scene
       })
 
       // 获取下载URL
-      const downloadUrl = fileInfo.value?.downloadUrl || ''
+      const downloadUrl = fileInfo.value?.downloadUrl
+      if (!downloadUrl) throw new Error('上传成功但未返回头像地址')
 
       // 调用成功回调
       if (onSuccess) {
-        onSuccess(downloadUrl)
+        await onSuccess(downloadUrl)
       }
 
       // 清理资源
-      if (localImageUrl.value) {
-        URL.revokeObjectURL(localImageUrl.value)
-      }
-      localImageUrl.value = ''
+      releaseLocalImage()
       if (fileInput.value) {
         fileInput.value.value = ''
       }

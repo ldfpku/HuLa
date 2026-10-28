@@ -6,7 +6,7 @@
     </div>
 
     <!-- 空状态 -->
-    <div v-else-if="feedList.length === 0" class="flex flex-col justify-center items-center py-80px text-gray-400">
+    <div v-else-if="feedList.length === 0" class="flex flex-col justify-center items-center py-80px text-[--text-muted-color]">
       <svg class="w-80px h-80px mb-16px color-#ddd">
         <use href="#empty"></use>
       </svg>
@@ -94,12 +94,12 @@
         <div class="mt-12px pt-8px border-t border-#f0f0f0">
           <!-- 操作按钮 - 固定高度防止闪烁 -->
           <div class="flex items-center justify-between gap-8px mb-8px h-28px">
-            <span class="text-12px text-#999 whitespace-nowrap">{{ formatTimestamp(item.createTime!) }}</span>
+            <span class="text-12px text-[--text-muted-color] whitespace-nowrap">{{ formatTimestamp(item.createTime!) }}</span>
             <div class="flex items-center justify-end gap-8px">
               <!-- 点赞按钮 -->
               <div
                 class="flex items-center justify-center gap-4px py-6px px-12px rounded-6px cursor-pointer transition-colors"
-                :class="item.hasLiked ? 'text-#d5304f' : ' text-#999'"
+                :class="item.hasLiked ? 'text-[--danger-text]' : 'text-[--text-muted-color]'"
                 @click.stop="handleToggleLike(item)">
                 <svg class="size-16px">
                   <use :href="item.hasLiked ? '#dianzan' : '#weidianzan'"></use>
@@ -110,7 +110,7 @@
               </div>
               <!-- 评论按钮 -->
               <div
-                class="flex items-center justify-center gap-4px py-6px px-12px rounded-6px cursor-pointer text-#999"
+                class="flex items-center justify-center gap-4px py-6px px-12px rounded-6px cursor-pointer text-[--text-muted-color]"
                 @click.stop="handleShowCommentInput(item)">
                 <svg class="w-16px h-16px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
@@ -126,7 +126,7 @@
               <!-- 更多操作 -->
               <n-dropdown :options="getMoreOptions(item)" @select="handleMoreAction(item, $event)">
                 <div
-                  class="flex items-center justify-center py-6px px-12px rounded-6px cursor-pointer text-#999"
+                  class="flex items-center justify-center py-6px px-12px rounded-6px cursor-pointer text-[--text-muted-color]"
                   @click.stop>
                   <svg class="w-16px h-16px">
                     <use href="#more"></use>
@@ -138,18 +138,18 @@
           <!-- 点赞人名称显示 - 仅有点赞时渲染 -->
           <div
             v-if="(item.likeList || []).length > 0"
-            class="mb-8px flex items-start gap-6px leading-relaxed text-(12px #034fbc)">
-            <svg class="size-16px color-##034fbc"><use href="#thumbs-up"></use></svg>
+            class="mb-8px flex items-start gap-6px leading-relaxed text-(12px [--link-color])">
+            <svg class="size-16px"><use href="#thumbs-up"></use></svg>
             <span>{{ (item.likeList || []).map((like) => like.userName).join('、') }}</span>
           </div>
 
           <!-- 评论列表显示 - 仅有评论时渲染 -->
           <div v-if="item.commentList && item.commentList.length > 0" class="rounded-8px p-12px pb-6px pl-0">
             <div v-for="comment in item.commentList.slice(0, 3)" :key="comment.id" class="mb-12px last:mb-0">
-              <div class="text-14px text-#034fbc">
+              <div class="text-14px text-[--link-color]">
                 <span class="font-bold">{{ comment.userName }}</span>
                 <!-- 如果是回复评论，显示被回复人信息 -->
-                <span v-if="comment.replyUserName" class="text-#034fbc">
+                <span v-if="comment.replyUserName">
                   {{ t('dynamic.detail.actions.reply') }}
                   <span class="font-bold">{{ comment.replyUserName }}</span>
                 </span>
@@ -157,7 +157,9 @@
                 <span class="pl-2px text-[--chat-text-color] leading-relaxed">{{ comment.content }}</span>
               </div>
             </div>
-            <div v-if="item.commentList.length > 3" class="text-12px text-#999 mt-8px pt-8px border-t border-#e5e5e5">
+            <div
+              v-if="item.commentList.length > 3"
+              class="text-12px text-[--text-muted-color] mt-8px pt-8px border-t border-[--line-color]">
               {{ t('dynamic.list.comments.more', { count: item.commentList.length - 3 }) }}
             </div>
           </div>
@@ -172,7 +174,7 @@
       </div>
 
       <!-- 已加载全部 -->
-      <div v-else-if="showLoadedAll" class="flex justify-center py-20px text-13px text-gray-400">
+      <div v-else-if="showLoadedAll" class="flex justify-center py-20px text-13px text-[--text-muted-color]">
         {{ t('dynamic.list.loaded_all') }}
       </div>
     </div>
@@ -286,10 +288,10 @@ const getUserAvatar = (item: FeedItem) => {
   if (item.uid) {
     const userInfo = groupStore.getUserInfo(item.uid)
     if (userInfo?.avatar) {
-      return AvatarUtils.getAvatarUrl(userInfo.avatar)
+      return AvatarUtils.getAvatarUrl(userInfo.avatar, item.uid)
     }
   }
-  return AvatarUtils.getAvatarUrl('')
+  return AvatarUtils.getAvatarUrl(item.userAvatar, item.uid)
 }
 
 const getUserName = (item: FeedItem) => {

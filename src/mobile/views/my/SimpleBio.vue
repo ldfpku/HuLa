@@ -26,7 +26,7 @@
             <n-card size="small" class="rounded-lg" content-class="flex gap-20px items-center">
               <n-avatar
                 :size="74"
-                :src="AvatarUtils.getAvatarUrl(userStore.userInfo!.avatar!)"
+                :src="AvatarUtils.getAvatarUrl(userStore.userInfo?.avatar, userStore.userInfo?.uid)"
                 fallback-src="/avatar-light.svg"
                 round />
 

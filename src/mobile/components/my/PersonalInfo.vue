@@ -7,7 +7,7 @@
       <div
         class="self-center h-auto transition-transform duration-300 ease-in-out origin-top"
         :style="{ transform: props.isShow ? 'scale(1) translateY(0)' : 'scale(0.62) translateY(0px)' }">
-        <n-avatar :size="86" :src="AvatarUtils.getAvatarUrl(userDetailInfo!.avatar)" fallback-src="/avatar-light.svg" round />
+        <n-avatar :size="86" :src="AvatarUtils.getAvatarUrl(userDetailInfo?.avatar, userDetailInfo?.uid)" fallback-src="/avatar-light.svg" round />
       </div>
 
       <!-- 基本信息栏 -->

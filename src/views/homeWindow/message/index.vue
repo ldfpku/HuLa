@@ -39,17 +39,25 @@
             :size="44"
             :color="themes.content === ThemeEnum.DARK ? '' : '#fff'"
             :fallback-src="themes.content === ThemeEnum.DARK ? '/avatar-dark.svg' : '/avatar-light.svg'"
-            :src="AvatarUtils.getAvatarUrl(item.avatar)"
+            :src="AvatarUtils.getAvatarUrl(item.avatar, item.type === RoomTypeEnum.SINGLE ? item.detailId : undefined)"
             round />
 
           <n-flex class="h-fit flex-1 truncate" justify="space-between" vertical>
             <n-flex :size="4" align="center" class="flex-1 truncate" justify="space-between">
               <n-flex :size="0" align="center" class="leading-tight flex-1 truncate">
                 <span class="text-14px leading-tight flex-1 truncate">{{ item.name }}</span>
+                <span
+                  v-if="item.type === RoomTypeEnum.GROUP"
+                  class="text-11px color-[--text-muted-color] whitespace-nowrap ml-4px"
+                  :class="{ 'color-[--msg-active-text-color]!': globalStore.currentSessionRoomId === item.roomId }"
+                  :title="t('message.message_list.group_count')">
+                  {{ groupCount(item.roomId) }}
+                </span>
                 <n-popover trigger="hover" v-if="item.hotFlag === IsAllUserEnum.Yes">
                   <template #trigger>
                     <svg
-                      class="color-#034fbc dark:color-#7a9fe2 size-20px select-none outline-none cursor-pointer">
+                      class="color-[--link-color] size-20px select-none outline-none cursor-pointer"
+                      :class="{ 'color-[--msg-active-text-color]!': globalStore.currentSessionRoomId === item.roomId }">
                       <use href="#auth"></use>
                     </svg>
                   </template>
@@ -58,7 +66,9 @@
 
                 <n-popover trigger="hover" v-if="item.account === UserType.BOT">
                   <template #trigger>
-                    <svg class="size-20px select-none outline-none cursor-pointer color-#034fbc">
+                    <svg
+                      class="size-20px select-none outline-none cursor-pointer color-[--link-color]"
+                      :class="{ 'color-[--msg-active-text-color]!': globalStore.currentSessionRoomId === item.roomId }">
                       <use href="#authenticationUser"></use>
                     </svg>
                   </template>
@@ -67,7 +77,7 @@
               </n-flex>
               <span
                 v-if="item.account !== UserType.BOT"
-                :class="{ 'color-#d5304f90!': item.shield && globalStore.currentSessionRoomId === item.roomId }"
+                :class="{ 'color-[--selected-danger-text]!': item.shield && globalStore.currentSessionRoomId === item.roomId }"
                 class="text smj-data text-11px w-fit truncate text-right">
                 {{ item.lastMsgTime }}
               </span>
@@ -76,13 +86,19 @@
             <n-flex align="center" justify="space-between">
               <template v-if="item.isAtMe">
                 <span class="text flex-1 leading-tight text-12px truncate">
-                  <span class="text-#d5304f mr-4px">{{ t('message.message_list.mention_tag') }}</span>
+                  <span
+                    class="text-[--danger-text] mr-4px"
+                    :class="{ 'text-[--selected-danger-text]!': globalStore.currentSessionRoomId === item.roomId }">
+                    {{ t('message.message_list.mention_tag') }}
+                  </span>
                   <span>{{ String(item.lastMsg || '').replace(':', '：') }}</span>
                 </span>
               </template>
               <template v-else-if="item.shield">
                 <span class="text flex-1 leading-tight text-12px truncate">
-                  <span :class="globalStore.currentSessionRoomId === item.roomId ? 'color-#d5304f90' : 'color-#909090'">
+                  <span
+                    class="color-[--danger-text]"
+                    :class="{ 'color-[--selected-danger-text]!': globalStore.currentSessionRoomId === item.roomId }">
                     {{
                       item.type === RoomTypeEnum.GROUP
                         ? t('message.message_list.shield_group')
@@ -95,7 +111,10 @@
                 <span
                   :class="[
                     'text flex-1 leading-tight text-12px truncate',
-                    { 'text-[#707070]! dark:text-[#fff]!': item.account === UserType.BOT }
+                    {
+                      'text-[--text-color]!': item.account === UserType.BOT && globalStore.currentSessionRoomId !== item.roomId,
+                      'text-[--msg-active-text-color]!': item.account === UserType.BOT && globalStore.currentSessionRoomId === item.roomId
+                    }
                   ]">
                   {{ String(item.lastMsg || t('message.message_list.default_last_msg')).replace(':', '：') }}
                 </span>
@@ -104,8 +123,8 @@
               <!-- 消息提示 -->
               <template v-if="item.shield">
                 <svg
-                  :class="[globalStore.currentSessionRoomId === item.roomId ? 'color-#d5304f90' : 'color-#909090']"
-                  class="size-14px">
+                  class="size-14px color-[--danger-text]"
+                  :class="{ 'color-[--selected-danger-text]!': globalStore.currentSessionRoomId === item.roomId }">
                   <use href="#forbid"></use>
                 </svg>
               </template>
@@ -194,6 +213,12 @@ const { checkRoomAtMe, getMessageSenderName, formatMessageContent } = useReplace
 const { openMsgSession } = useCommon()
 const msgScrollbar = useTemplateRef<HTMLElement>('msg-scrollbar')
 const { handleMsgClick, handleMsgDelete, handleMsgDblclick, visibleMenu, visibleSpecialMenu } = useMessage()
+const groupCount = (roomId: string) => {
+  const detail = groupStore.getGroupDetailByRoomId(roomId)
+  return detail && Number.isFinite(detail.onlineNum) && Number.isFinite(detail.memberNum)
+    ? `${detail.onlineNum}/${detail.memberNum}`
+    : '–/–'
+}
 // 跟踪当前显示右键菜单的会话ID
 const activeContextMenuRoomId = ref<string | null>(null)
 const networkStatus = useNetworkStatus()

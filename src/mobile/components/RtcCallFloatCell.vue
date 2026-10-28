@@ -85,10 +85,10 @@ const callMessage = computed(() => {
   return currentCall.value.callType === CallTypeEnum.VIDEO ? '邀请你视频通话...' : '邀请你语音通话...'
 })
 
-const toAvatarUrl = (raw?: unknown) => {
-  if (typeof raw === 'string') return AvatarUtils.getAvatarUrl(raw)
-  if (raw === undefined || raw === null) return AvatarUtils.getAvatarUrl('')
-  return AvatarUtils.getAvatarUrl(String(raw))
+const toAvatarUrl = (raw: unknown, uid: string) => {
+  if (typeof raw === 'string') return AvatarUtils.getAvatarUrl(raw, uid)
+  if (raw === undefined || raw === null) return AvatarUtils.getAvatarUrl('', uid)
+  return AvatarUtils.getAvatarUrl(String(raw), uid)
 }
 
 const clearCall = () => {
@@ -135,7 +135,7 @@ const handleCallRequest = (payload: CallPayload) => {
     roomId,
     callType,
     displayName: displayNameCandidate,
-    avatar: toAvatarUrl(avatarCandidate)
+    avatar: toAvatarUrl(avatarCandidate, callerUid)
   }
 }
 

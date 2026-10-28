@@ -82,7 +82,7 @@
               {{ userStore.userInfo?.name }}
             </div>
             <div>
-              <n-avatar :size="65" round bordered :src="AvatarUtils.getAvatarUrl(userStore.userInfo!.avatar)" />
+              <n-avatar :size="65" round bordered :src="AvatarUtils.getAvatarUrl(userStore.userInfo?.avatar, userStore.userInfo?.uid)" />
             </div>
           </div>
         </div>

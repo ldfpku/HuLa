@@ -131,13 +131,13 @@
             <!-- 协议 -->
             <n-flex align="center" justify="center" :size="6" class="mt-10px">
               <n-checkbox v-model:checked="protocol" />
-              <div class="text-12px color-#909090 cursor-default lh-14px">
+              <div class="text-12px color-[--text-muted-color] cursor-default lh-14px">
                 <span>{{ t('login.term.checkout.text1') }}</span>
-                <span class="color-#034fbc cursor-pointer" @click.stop="openServiceAgreement">
+                <span class="color-[--link-color] cursor-pointer" @click.stop="openServiceAgreement">
                   {{ t('login.term.checkout.text2') }}
                 </span>
                 <span>{{ t('login.term.checkout.text3') }}</span>
-                <span class="color-#034fbc cursor-pointer" @click.stop="openPrivacyAgreement">
+                <span class="color-[--link-color] cursor-pointer" @click.stop="openPrivacyAgreement">
                   {{ t('login.term.checkout.text4') }}
                 </span>
               </div>
@@ -148,13 +148,13 @@
         <n-button
           :loading="loading"
           :disabled="btnEnable"
-          tertiary
-          style="color: #fff"
+          color="#034fbc"
+          text-color="#ffffff"
           class="w-full mt-8px gradient-button"
           @click="handleStepAction">
           {{ btnText }}
         </n-button>
-        <p v-if="sendCodeCooldown > 0" class="text-(12px #034fbc) ml--8px mt-6px whitespace-nowrap">
+        <p v-if="sendCodeCooldown > 0" class="text-(12px [--link-color]) ml--8px mt-6px whitespace-nowrap">
           {{ t('auth.register.tips.reopen_code') }}
         </p>
       </n-flex>
@@ -162,7 +162,7 @@
 
     <!-- 底部栏 -->
     <n-flex
-      class="text-(12px #909090) w-full absolute bottom-20px left-1/2 transform -translate-x-1/2"
+      class="text-(12px [--text-muted-color]) w-full absolute bottom-20px left-1/2 transform -translate-x-1/2"
       :size="8"
       justify="center">
       <span>Copyright {{ currentYear - 1 }}-{{ currentYear }} SMJ All Rights Reserved.</span>
@@ -193,7 +193,7 @@
         <n-flex vertical class="w-full h-fit">
           <n-flex vertical :size="10" class="p-24px">
             <p class="text-(16px [--text-color]) mb-10px">{{ t('auth.register.email_modal.title') }}</p>
-            <p class="text-(12px #808080) leading-5 mb-10px">
+            <p class="text-(12px [--text-muted-color]) leading-5 mb-10px">
               {{ t('auth.register.email_modal.desc', { email: info.email }) }}
             </p>
 
@@ -205,8 +205,8 @@
             <n-button
               :loading="registerLoading"
               :disabled="!isEmailCodeComplete"
-              tertiary
-              style="color: #fff"
+              color="#034fbc"
+              text-color="#ffffff"
               class="w-full gradient-button"
               @click="register">
               {{ t('auth.register.actions.submit') }}
@@ -230,6 +230,7 @@ import Validation from '@/components/common/Validation.vue'
 import { useWindow } from '@/hooks/useWindow'
 import type { RegisterUserReq } from '@/services/types.ts'
 import { useSettingStore } from '@/stores/setting'
+import { AvatarUtils } from '@/utils/AvatarUtils'
 import * as ImRequestUtils from '@/utils/ImRequestUtils'
 import { isMac, isWindows } from '@/utils/PlatformConstants'
 import { validateAlphaNumeric, validateSpecialChar } from '@/utils/Validate'
@@ -483,10 +484,7 @@ const register = async () => {
   info.email = info.email.trim()
 
   try {
-    // 随机生成头像编号
-    const avatarNum = Math.floor(Math.random() * 21) + 1
-    const avatarId = avatarNum.toString().padStart(3, '0')
-    info.avatar = avatarId
+    info.avatar = AvatarUtils.randomDefaultAvatar()
 
     info.confirmPassword = confirmPassword.value
 

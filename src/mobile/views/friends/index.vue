@@ -94,7 +94,7 @@
                               :size="44"
                               class="grayscale"
                               :class="{ 'grayscale-0': item.activeStatus === OnlineEnum.ONLINE }"
-                              :src="AvatarUtils.getAvatarUrl(groupStore.getUserInfo(item.uid)?.avatar!)"
+                              :src="AvatarUtils.getAvatarUrl(groupStore.getUserInfo(item.uid)?.avatar, item.uid)"
                               fallback-src="/avatar-light.svg" />
 
                             <n-flex vertical justify="space-between" class="h-fit flex-1 truncate">

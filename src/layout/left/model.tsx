@@ -97,7 +97,12 @@ export const LockScreen = defineComponent(() => {
           <NFlex vertical justify="center" align="center" size={20}>
             <span class="text-(14px center)">{t('message.lock_screen.title')}</span>
 
-            <NAvatar bordered round size={80} src={AvatarUtils.getAvatarUrl(userStore.userInfo!.avatar!)} />
+            <NAvatar
+              bordered
+              round
+              size={80}
+              src={AvatarUtils.getAvatarUrl(userStore.userInfo!.avatar, userStore.userInfo!.uid)}
+            />
 
             <p class="text-(14px center [--text-color]) truncate w-200px">{userStore.userInfo!.name}</p>
           </NFlex>
@@ -118,7 +123,7 @@ export const LockScreen = defineComponent(() => {
             </NFormItem>
           </NForm>
 
-          <NButton loading={lock.value.loading} onClick={lock.value.handleLock} class="w-full" color="#034fbc">
+          <NButton loading={lock.value.loading} onClick={lock.value.handleLock} class="w-full" color="#034fbc" textColor="#ffffff">
             {t('message.lock_screen.confirm_button')}
           </NButton>
         </div>

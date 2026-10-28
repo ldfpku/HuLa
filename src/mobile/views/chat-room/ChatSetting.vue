@@ -19,7 +19,7 @@
                   <n-avatar
                     class="absolute"
                     :size="38"
-                    :src="AvatarUtils.getAvatarUrl(activeItem?.avatar || '')"
+                    :src="AvatarUtils.getAvatarUrl(activeItem?.avatar, isGroup ? undefined : activeItem?.detailId)"
                     fallback-src="/avatar-light.svg"
                     :style="{
                       'object-fit': 'cover',
@@ -88,7 +88,12 @@
                   <div
                     v-if="i.activeStatus !== OnlineEnum.ONLINE"
                     class="w-36px h-36px absolute rounded-full bg-#707070 opacity-70 z-4"></div>
-                  <n-avatar class="absolute z-3" :size="36" :src="avatarSrc(i.avatar)" fallback-src="/avatar-light.svg" round />
+                  <n-avatar
+                    class="absolute z-3"
+                    :size="36"
+                    :src="avatarSrc(i.avatar, i.uid)"
+                    fallback-src="/avatar-light.svg"
+                    round />
                 </div>
                 <div class="truncate max-w-full text-#707070">{{ i.name }}</div>
               </div>
@@ -300,7 +305,7 @@ const groupMemberListSliced = computed(() => {
   return list
 })
 
-const avatarSrc = (url: string) => AvatarUtils.getAvatarUrl(url)
+const avatarSrc = (url: string, uid: string) => AvatarUtils.getAvatarUrl(url, uid)
 
 const announError = ref(false)
 const announNum = ref(0)

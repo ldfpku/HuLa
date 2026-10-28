@@ -4,6 +4,15 @@
     "cancel": "Cancel"
   },
   "actionBar": {
+    "split": {
+      "title": "Split window",
+      "left": "Left half",
+      "right": "Right half",
+      "top": "Top half",
+      "bottom": "Bottom half",
+      "restore": "Restore window",
+      "unsupported": "The window cannot be positioned here. Use your system's window tiling instead."
+    },
     "always_on_top": {
       "enabled": "Disable always-on-top",
       "disabled": "Pin to top"
@@ -20,6 +29,14 @@
     "preview": {
       "round": "Round preview",
       "square": "Rounded-square preview"
+    },
+    "avatarPicker": {
+      "title": "Choose an avatar",
+      "option": "Built-in avatar {number}",
+      "upload": "Upload image",
+      "saving": "Updating avatar…",
+      "save_success": "Avatar updated",
+      "save_failed": "Could not update the avatar. Please try again."
     },
     "uploading": "Uploading..."
   },
