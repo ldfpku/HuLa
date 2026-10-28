@@ -2,7 +2,7 @@
   <!-- 主容器维持 600px 的最小宽度，确保聊天侧边信息不过度挤压 -->
   <main
     data-tauri-drag-region
-    class="flex-1 bg-[--right-bg-color] flex flex-col min-h-0"
+    class="right-pane flex-1 bg-[--right-bg-color] flex flex-col min-h-0"
     :class="isPhoneLayout ? 'min-w-0' : 'min-w-600px'">
     <div
       :style="{ background: shouldShowChat ? 'var(--right-theme-bg-color)' : '' }"
@@ -89,3 +89,11 @@ onMounted(() => {
   }
 })
 </script>
+
+<style scoped>
+@media (max-width: 1050px) {
+  .right-pane {
+    min-width: 0;
+  }
+}
+</style>

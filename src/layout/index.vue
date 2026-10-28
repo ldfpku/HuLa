@@ -45,7 +45,8 @@ import { useMitt } from '@/hooks/useMitt.ts'
 import rustWebSocketClient from '@/services/webSocketRust'
 import { useContactStore } from '@/stores/contacts.ts'
 import { useGlobalStore } from '@/stores/global.ts'
-import { isMobile, isWindows } from '@/utils/PlatformConstants'
+import { isDesktop, isMobile, isWeb, isWindows } from '@/utils/PlatformConstants'
+import { desktopLoginRemaining } from '@/utils/DesktopLoginSession'
 import { MittEnum, MsgEnum, NotificationTypeEnum, TauriCommand } from '@/enums'
 import { clearListener, initListener, readCountQueue } from '@/utils/ReadCountQueue'
 import { emitTo, listen } from '@tauri-apps/api/event'
@@ -136,6 +137,8 @@ const runInitWithMode = (block: boolean) => {
   // 共同的初始化流程
   const p = init({ isInitialSync: block }).then(() => {
     markInitialSyncCompleted()
+    sessionExpiryReady = true
+    scheduleDesktopSessionExpiry()
   })
 
   if (block) {
@@ -525,6 +528,27 @@ const setupNativeFileDropListeners = async () => {
   }
 }
 
+let sessionExpiryTimer: ReturnType<typeof setTimeout> | undefined
+let expiringSession = false
+let sessionExpiryReady = false
+const scheduleDesktopSessionExpiry = () => {
+  if (!isDesktop() || isWeb() || expiringSession || !sessionExpiryReady) return
+  if (sessionExpiryTimer) clearTimeout(sessionExpiryTimer)
+  const uid = userStore.userInfo?.uid
+  if (!uid) return
+  const remaining = desktopLoginRemaining(uid)
+  if (remaining <= 0) {
+    expiringSession = true
+    window.$message.warning(t('login.session_expired'))
+    void resetLoginState().then(logout).catch((error) => {
+      console.error('免登录到期后退出失败:', error)
+      window.$message.error(t('login.session_logout_failed'))
+    })
+    return
+  }
+  sessionExpiryTimer = setTimeout(scheduleDesktopSessionExpiry, Math.min(remaining, 2_147_483_647))
+}
+
 listen('relogin', async () => {
   info('收到重新登录事件')
   await resetLoginState()
@@ -553,6 +577,7 @@ onBeforeMount(async () => {
 })
 
 onMounted(async () => {
+  window.addEventListener('focus', scheduleDesktopSessionExpiry)
   clearPhonePane()
   useMailStore().refreshUnread()
   // 登录后先查一次更新，有新版就在后台下载
@@ -599,6 +624,8 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
+  window.removeEventListener('focus', scheduleDesktopSessionExpiry)
+  if (sessionExpiryTimer) clearTimeout(sessionExpiryTimer)
   cleanupNativeFileDropListeners()
   clearListener()
   // 清除Web Worker计时器

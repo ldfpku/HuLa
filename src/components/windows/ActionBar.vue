@@ -13,6 +13,7 @@
         </div>
 
         <div class="flex items-center">
+          <SplitWindowMenu v-if="appWindow.label === 'home' && !isWebApp" />
           <!--  登录窗口的代理按钮  -->
           <div
             role="button"
@@ -120,6 +121,7 @@
       <div class="h-24px w-full flex items-center justify-end pr-8px select-none" data-tauri-drag-region>
         <div class="drag-fill" data-tauri-drag-region></div>
         <div class="flex items-center gap-10px">
+          <SplitWindowMenu v-if="appWindow.label === 'home' && !isWebApp" />
           <slot></slot>
         </div>
       </div>
@@ -133,21 +135,21 @@
         </svg>
         <n-flex vertical :size="20" class="p-[22px_10px_10px_22px] select-none">
           <span class="text-16px">{{ t('components.actionBar.close_prompt.title') }}</span>
-          <label class="text-(14px #707070) flex gap-6px lh-16px items-center">
+          <label class="text-(14px [--text-muted-color]) flex gap-6px lh-16px items-center">
             <n-radio :checked="tipsRef.type === CloseBxEnum.HIDE" @change="tipsRef.type = CloseBxEnum.HIDE" />
             <span>{{ t('components.actionBar.close_prompt.hide_to_tray') }}</span>
           </label>
-          <label class="text-(14px #707070) flex gap-6px lh-16px items-center">
+          <label class="text-(14px [--text-muted-color]) flex gap-6px lh-16px items-center">
             <n-radio :checked="tipsRef.type === CloseBxEnum.CLOSE" @change="tipsRef.type = CloseBxEnum.CLOSE" />
             <span>{{ t('components.actionBar.close_prompt.exit_app') }}</span>
           </label>
-          <label class="text-(12px #909090) flex gap-6px justify-end items-center">
+          <label class="text-(12px [--text-muted-color]) flex gap-6px justify-end items-center">
             <n-checkbox size="small" v-model:checked="tipsRef.notTips" />
             <span>{{ t('components.actionBar.close_prompt.no_prompt') }}</span>
           </label>
 
           <n-flex justify="end">
-            <n-button @click="handleConfirm" class="w-78px" color="#034fbc">
+            <n-button @click="handleConfirm" class="w-78px" color="#034fbc" text-color="#ffffff">
               {{ t('components.common.confirm') }}
             </n-button>
             <n-button @click="tipsRef.show = false" class="w-78px" secondary>
@@ -162,6 +164,7 @@
 
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
+import SplitWindowMenu from '@/components/windows/SplitWindowMenu.vue'
 import { emit } from '@tauri-apps/api/event'
 import { WebviewWindow } from '@tauri-apps/api/webviewWindow'
 import { info } from '@tauri-apps/plugin-log'
