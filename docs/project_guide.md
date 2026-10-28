@@ -43,6 +43,20 @@
 
 ---
 
+## 桌面登录、分屏与图标
+
+- 桌面端新安装默认开启自动登录；可在登录设置中关闭。已有配置保留原来的选择。手动登录成功后，桌面端使用刷新令牌恢复会话，最长从该次登录起 30 天，不保存明文密码；旧版本没有期限记录时需要重新登录一次。
+- 桌面端新安装默认使用浅色主题，用户可以在通用设置中切换深色或跟随系统；已有主题选择不受影响。深色桌面使用低饱和深灰蓝，聊天正文、次要信息和常用控件按对比度要求设计。
+- 个人资料中的头像可从 22 张内置头像中选择，也可上传图片；选择后保存到服务端。注册时从全部内置头像随机选择；未设置头像的用户按用户 ID 稳定显示一个内置头像，不会覆盖其已有头像。头像数量有限，不保证每位用户的头像互不相同。
+- 30 天仍受服务端刷新令牌有效期、账号撤销和网络状态约束。部署时须确认服务端令牌策略允许所需的恢复期限；本地计时不是服务端安全策略的替代品。主动退出会清除本机保存的令牌。
+- 部署参考：公开的 HuLa-Server 上游在 9125bb42 版本中，[生产配置](https://github.com/HuLaSpark/HuLa-Server/blob/9125bb42ea16896055ec057e65124f3c684c361a/luohuo-cloud/luohuo-support/luohuo-boot-server/src/main/resources/config/prod/sa-token.yml)的 `sa-token.timeout` 为 2,592,000 秒（30 天），[初次签发](https://github.com/HuLaSpark/HuLa-Server/blob/9125bb42ea16896055ec057e65124f3c684c361a/luohuo-cloud/luohuo-oauth/luohuo-oauth-biz/src/main/java/com/luohuo/flex/oauth/granter/AbstractTokenGranter.java)及[刷新签发](https://github.com/HuLaSpark/HuLa-Server/blob/9125bb42ea16896055ec057e65124f3c684c361a/luohuo-cloud/luohuo-oauth/luohuo-oauth-biz/src/main/java/com/luohuo/flex/oauth/granter/RefreshTokenGranter.java)的刷新令牌有效期均为该值的两倍。实际部署可能使用其他版本或覆盖配置，且会话撤销、同账号登录及刷新时的令牌清理仍可能提前使其失效；修改令牌策略前应评估安全影响。
+- 自动登录遇到网络故障、服务端暂时不可用或限流时保留凭证以便重试；服务端明确拒绝刷新令牌时需要手动登录。
+- 主窗口标题栏的分屏菜单可将窗口移至当前屏幕工作区的左、右、上、下半区，并恢复原位置；其他窗口由系统或用户安排。若窗口管理器不允许定位，请使用系统原生分屏。
+- 桌面应用图标源文件为 `src-tauri/icons/smj-chat.svg`，桌面打包资源位于 `src-tauri/icons/desktop`，托盘闪烁资源为 `src-tauri/tray/icon.png`。更新图标时应同步生成对应尺寸及托盘资源，避免只替换安装包或任务栏图标。
+- 本地发送记录与服务器回显按消息 ID 合并，避免回显先到时与临时消息发生主键冲突。历史重复记录不会按相同文本自动删除，以免误删用户有意重复发送的消息。
+
+---
+
 ## ⚙️ 环境配置与安装
 
 ### 1. 安装 Node.js 和 pnpm
