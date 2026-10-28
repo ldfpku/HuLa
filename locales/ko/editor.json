@@ -7,6 +7,7 @@
     "cut": "잘라내기"
   },
   "send": "전송",
+  "reply_error": "메시지를 인용할 수 없습니다. 다시 시도하세요.",
   "placeholder": "따뜻한 말 한마디가 마음을 녹이고, 모진 말 한마디가 마음에 상처를 남깁니다.",
   "send_or_newline": "{send} 전송/{newline} 줄바꿈",
   "file": "파일",

@@ -683,6 +683,7 @@ pub async fn send_msg(
     // 异步发送到后端接口
     let db_conn = state.db_conn.clone();
     let request_client = state.rc.clone();
+    let write_lock = state.write_lock.clone();
     let mut record_for_send = message_record.clone();
     let uid_for_token = login_uid.clone();
 
@@ -726,13 +727,22 @@ pub async fn send_msg(
         };
 
         // 更新消息状态
-        let model = im_message_repository::update_message_status(
-            &*db_conn.read().await,
-            record_for_send,
-            status,
-            id,
-            login_uid.clone(),
-        )
+        let model = run_with_write_lock(write_lock, "update_message_status", || {
+            let db_conn = db_conn.clone();
+            let record = record_for_send.clone();
+            let id = id.clone();
+            let login_uid = login_uid.clone();
+            async move {
+                let db = db_conn.read().await;
+                let tx = db.begin().await?;
+                let result = im_message_repository::update_message_status(
+                    &tx, record, status, id, login_uid,
+                )
+                .await?;
+                tx.commit().await?;
+                Ok(result)
+            }
+        })
         .await;
 
         match model {

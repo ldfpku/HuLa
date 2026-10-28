@@ -7,6 +7,7 @@
     "cut": "Cut"
   },
   "send": "Send",
+  "reply_error": "Could not quote this message. Please try again.",
   "placeholder": "A kind word warms the heart; a harsh word wounds it.",
   "send_or_newline": "{send} Send/{newline} Enter",
   "file": "File",

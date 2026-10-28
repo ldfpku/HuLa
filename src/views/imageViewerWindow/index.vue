@@ -12,6 +12,7 @@
       <div ref="imgContainerRef" style="min-height: calc(100vh / var(--page-scale, 1) - 124px)" class="flex-center">
         <img
           ref="imageRef"
+          :key="retryCount"
           :src="currentImage"
           :style="{
             willChange: isDragging ? 'transform' : 'auto',
@@ -20,8 +21,14 @@
           class="max-w-90% max-h-90% select-none"
           :class="[{ 'transition-transform duration-200': !isDragging }]"
           @mousedown="startDrag"
-          @load="checkScrollbar"
+          @load="handleImageLoad"
+          @error="imageError = true"
           alt="preview" />
+        <div v-if="imageError" class="absolute flex flex-col items-center gap-8px text-white">
+          <span>{{ t('message.image_viewer.load_error') }}</span>
+          <n-button @click="retryImage">{{ t('message.image_viewer.retry') }}</n-button>
+        </div>
+        <div v-else-if="imageLoading" class="absolute text-white">{{ t('message.image_viewer.loading') }}</div>
 
         <!-- 提示文本 -->
         <transition name="viewer-tip">
@@ -141,6 +148,9 @@ const isDragging = ref(false)
 const dragStart = reactive({ x: 0, y: 0 })
 const imagePosition = reactive({ x: 0, y: 0 })
 const imageRef = ref<HTMLImageElement>()
+const imageLoading = ref(true)
+const imageError = ref(false)
+const retryCount = ref(0)
 // 添加响应式变量来跟踪是否有滚动条
 const contentScrollbar = useTemplateRef<HTMLElement>('contentRef')
 // 图片容器
@@ -167,6 +177,22 @@ const currentImage = computed(() => {
   }
   return imageList.value[currentIndex.value]
 })
+watch(currentImage, () => {
+  imageLoading.value = true
+  imageError.value = false
+})
+
+const retryImage = () => {
+  imageError.value = false
+  imageLoading.value = true
+  retryCount.value++
+}
+
+const handleImageLoad = () => {
+  imageLoading.value = false
+  imageError.value = false
+  checkScrollbar()
+}
 
 // 添加鼠标移动处理函数
 const handleMouseMove = (e: MouseEvent) => {
@@ -384,8 +410,20 @@ onMounted(async () => {
   await getCurrentWebviewWindow().show()
 
   await addListener(
-    appWindow.listen('update-image', (event: any) => {
-      const { index } = event.payload
+    appWindow.listen<{ list: string[]; index: number }>('update-image', (event) => {
+      const { list, index } = event.payload
+      if (
+        !Array.isArray(list) ||
+        !list.every((item) => typeof item === 'string') ||
+        !Number.isInteger(index) ||
+        index < 0 ||
+        index >= list.length
+      ) {
+        console.error('图片查看器收到无效的图片列表:', event.payload)
+        window.$message.error(t('message.image_viewer.open_error'))
+        return
+      }
+      imageViewerStore.resetImageList(list, index, list)
       imageList.value = imageViewerStore.imageList
       syncCurrentIndex(index)
       // 重置图片状态

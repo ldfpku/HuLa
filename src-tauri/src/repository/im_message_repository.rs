@@ -802,8 +802,8 @@ where
 }
 
 /// 更新消息发送状态
-pub async fn update_message_status(
-    db: &DatabaseConnection,
+pub async fn update_message_status<C: ConnectionTrait>(
+    db: &C,
     mut record: MessageWithThumbnail,
     status: &str,
     id: Option<String>,
@@ -840,6 +840,26 @@ pub async fn update_message_status(
 
     if status == "success" {
         if let Some(message_id) = id {
+            if message_id != original_id {
+                if let Some(existing) =
+                    im_message::Entity::find_by_id((message_id.clone(), login_uid.clone()))
+                        .one(db)
+                        .await?
+                {
+                    let existing_path = fetch_thumbnail_path(db, &message_id, &login_uid).await?;
+                    let mut existing = existing.into_active_model();
+                    existing.send_status = Set(status.to_string());
+                    let existing = im_message::Entity::update(existing).exec(db).await?;
+                    im_message::Entity::delete_by_id((original_id.clone(), login_uid.clone()))
+                        .exec(db)
+                        .await?;
+                    record.message = existing;
+                    record.thumbnail_path = existing_path.or(record.thumbnail_path);
+                    update_thumbnail_path(db, &record.key(), record.thumbnail_path.as_deref())
+                        .await?;
+                    return Ok(record);
+                }
+            }
             active_model.id = Set(message_id.clone());
             record.message.id = message_id;
         } else {
@@ -852,6 +872,7 @@ pub async fn update_message_status(
     im_message::Entity::update_many()
         .set(active_model.clone())
         .filter(im_message::Column::Id.eq(original_id))
+        .filter(im_message::Column::LoginUid.eq(login_uid))
         .exec(db)
         .await?;
 
@@ -1091,7 +1112,117 @@ pub async fn query_file_messages(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use sea_orm::{DbBackend, QueryTrait};
+    use migration::{Migrator, MigratorTrait};
+    use sea_orm::{Database, DbBackend, QueryTrait, TransactionTrait};
+
+    fn message(id: &str, login_uid: &str, status: &str) -> im_message::Model {
+        im_message::Model {
+            id: id.to_string(),
+            uid: login_uid.to_string(),
+            nickname: None,
+            room_id: "room".to_string(),
+            send_time: Some(1000),
+            message_type: Some(1),
+            body: Some("message".to_string()),
+            message_marks: None,
+            create_time: Some(1000),
+            update_time: Some(1000),
+            login_uid: login_uid.to_string(),
+            send_status: status.to_string(),
+            time_block: None,
+        }
+    }
+
+    #[tokio::test]
+    async fn sending_response_merges_an_existing_server_echo() {
+        let db = Database::connect("sqlite::memory:").await.unwrap();
+        Migrator::up(&db, None).await.unwrap();
+        let pending = message("temp", "u1", "pending");
+        let server = message("server", "u1", "success");
+        im_message::Entity::insert(pending.clone().into_active_model())
+            .exec(&db)
+            .await
+            .unwrap();
+        im_message::Entity::insert(server.into_active_model())
+            .exec(&db)
+            .await
+            .unwrap();
+        let other_user = message("temp", "u2", "pending");
+        im_message::Entity::insert(other_user.into_active_model())
+            .exec(&db)
+            .await
+            .unwrap();
+        let distinct_message = message("server-other", "u1", "success");
+        im_message::Entity::insert(distinct_message.into_active_model())
+            .exec(&db)
+            .await
+            .unwrap();
+
+        let tx = db.begin().await.unwrap();
+        let result = update_message_status(
+            &tx,
+            MessageWithThumbnail::new(pending, Some("thumbnail.png".to_string())),
+            "success",
+            Some("server".to_string()),
+            "u1".to_string(),
+        )
+        .await
+        .unwrap();
+        tx.commit().await.unwrap();
+
+        assert_eq!(result.message.id, "server");
+        assert_eq!(result.message.send_status, "success");
+        assert_eq!(
+            fetch_thumbnail_path(&db, "server", "u1").await.unwrap(),
+            Some("thumbnail.png".to_string())
+        );
+        assert!(
+            im_message::Entity::find_by_id(("temp".to_string(), "u1".to_string()))
+                .one(&db)
+                .await
+                .unwrap()
+                .is_none()
+        );
+        assert!(
+            im_message::Entity::find_by_id(("temp".to_string(), "u2".to_string()))
+                .one(&db)
+                .await
+                .unwrap()
+                .is_some()
+        );
+        assert!(
+            im_message::Entity::find_by_id(("server-other".to_string(), "u1".to_string()))
+                .one(&db)
+                .await
+                .unwrap()
+                .is_some()
+        );
+        assert_eq!(im_message::Entity::find().all(&db).await.unwrap().len(), 3);
+    }
+
+    #[tokio::test]
+    async fn sending_response_replaces_pending_when_echo_has_not_arrived() {
+        let db = Database::connect("sqlite::memory:").await.unwrap();
+        Migrator::up(&db, None).await.unwrap();
+        let pending = message("temp", "u1", "pending");
+        im_message::Entity::insert(pending.clone().into_active_model())
+            .exec(&db)
+            .await
+            .unwrap();
+        let tx = db.begin().await.unwrap();
+        let result = update_message_status(
+            &tx,
+            MessageWithThumbnail::new(pending, None),
+            "success",
+            Some("server".to_string()),
+            "u1".to_string(),
+        )
+        .await
+        .unwrap();
+        tx.commit().await.unwrap();
+        assert_eq!(result.message.id, "server");
+        assert_eq!(im_message::Entity::find().all(&db).await.unwrap().len(), 1);
+    }
 
     #[test]
     fn page_query_orders_by_send_time_then_numeric_id() {

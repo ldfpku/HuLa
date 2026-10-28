@@ -6,7 +6,7 @@ import type { Ref } from 'vue'
 import { nextTick } from 'vue'
 import { LimitEnum, MessageStatusEnum, MittEnum, MsgEnum, UploadSceneEnum } from '@/enums'
 import { useMitt } from '@/hooks/useMitt.ts'
-import type { AIModel, UserItem } from '@/services/types.ts'
+import type { AIModel, MessageType, UserItem } from '@/services/types.ts'
 import type { BaseUserItem } from '@/stores/cached.ts'
 import { useChatStore } from '@/stores/chat.ts'
 import { useGlobalStore } from '@/stores/global.ts'
@@ -965,14 +965,14 @@ export const useMsgInput = (messageInputDom: Ref) => {
       })
     }
     /** 监听回复信息的传递 */
-    useMitt.on(MittEnum.REPLY_MEG, (event: any) => {
+    useMitt.on(MittEnum.REPLY_MEG, (event: MessageType) => {
       // 如果输入框不存在，直接返回
       if (!messageInputDom.value) return
 
       try {
-        const userInfo = groupStore.getUserInfo(event.fromUser.uid)!
-        const accountName = userInfo.name
-        const avatar = userInfo.avatar
+        const userInfo = groupStore.getUserInfo(event.fromUser.uid)
+        const accountName = userInfo?.name || event.fromUser.username
+        const avatar = userInfo?.avatar || event.fromUser.avatar
 
         // 步骤1: 确保输入框先获得焦点
         focusOn(messageInputDom.value)
@@ -1008,7 +1008,7 @@ export const useMsgInput = (messageInputDom: Ref) => {
             // 插入回复框
             insertNode(
               MsgEnum.REPLY,
-              { avatar: avatar, accountName: accountName, content: reply.value.content },
+              { avatar: avatar, uid: event.fromUser.uid, accountName: accountName, content: reply.value.content },
               {} as HTMLElement
             )
 
@@ -1020,10 +1020,12 @@ export const useMsgInput = (messageInputDom: Ref) => {
             triggerInputEvent(messageInputDom.value)
           } catch (err) {
             console.error('插入回复框时错误:', err)
+            window.$message.error(t('editor.reply_error'))
           }
         })
       } catch (err) {
         console.error('回复_meg处理程序错误:', err)
+        window.$message.error(t('editor.reply_error'))
       }
     })
   })

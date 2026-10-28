@@ -7,6 +7,7 @@
     "cut": "剪切"
   },
   "send": "发送",
+  "reply_error": "无法引用该消息，请重试",
   "placeholder": "善言一句暖人心，恶语一句伤人心",
   "send_or_newline": "{send} 发送/{newline} 换行",
   "file": "文件",

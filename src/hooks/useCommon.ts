@@ -17,6 +17,7 @@ import { getSessionDetailWithFriends } from '@/utils/ImRequestUtils'
 import { getImageCache } from '@/utils/PathUtil.ts'
 import { isPathUploadFile, type UploadFile } from '@/utils/FileType'
 import { isMobile } from '@/utils/PlatformConstants'
+import { insertReplyNode } from '@/utils/ReplyEditor'
 import { invokeWithErrorHandler } from '../utils/TauriInvokeHandler'
 
 export interface SelectionRange {
@@ -46,7 +47,7 @@ export const useCommon = () => {
   /** 当前登录用户的uid */
   const userUid = computed(() => userStore.userInfo!.uid)
   /** 回复消息 */
-  const reply = ref({
+  const reply = ref<{ avatar: string; accountName: string; content: string; key: string | number; imgCount: number }>({
     avatar: '',
     accountName: '',
     content: '',
@@ -216,7 +217,7 @@ export const useCommon = () => {
     const { range, selection } = sr
 
     // 删除选中的内容
-    range?.deleteContents()
+    if (type !== MsgEnum.REPLY) range?.deleteContents()
 
     // 将节点插入范围最前面添加节点
     if (type === MsgEnum.AIT) {
@@ -256,90 +257,7 @@ export const useCommon = () => {
       // 创建回复节点
       const replyNode = createReplyDom(dom)
 
-      // 如果已经存在回复框，则替换它
-      const preReplyNode = document.getElementById('replyDiv')
-      if (preReplyNode) {
-        preReplyNode.replaceWith(replyNode)
-      } else {
-        // 检查输入框是否有内容
-        const hasChildNodes =
-          inputElement.childNodes.length > 0 &&
-          !(
-            inputElement.childNodes.length === 1 &&
-            inputElement.childNodes[0].nodeType === Node.TEXT_NODE &&
-            !inputElement.childNodes[0].textContent?.trim()
-          )
-        // 插入回复节点
-        inputElement.insertBefore(replyNode, inputElement.firstChild)
-
-        // 如果输入框已有内容，需要确保光标位置正确
-        if (hasChildNodes) {
-          // 获取回复框后的第一个文本节点
-          let nextNode = replyNode.nextSibling
-          let position = 0
-
-          // 将选择范围设置在回复框之后
-          if (nextNode) {
-            if (nextNode.nodeType === Node.TEXT_NODE) {
-              position = 0 // 文本节点的开始位置
-            } else {
-              // 如果不是文本节点，找到下一个文本节点
-              while (nextNode && nextNode.nodeType !== Node.TEXT_NODE) {
-                nextNode = nextNode.nextSibling
-              }
-              if (!nextNode) {
-                // 如果没有找到文本节点，创建一个
-                nextNode = document.createTextNode(' ')
-                inputElement.appendChild(nextNode)
-              }
-              position = 0
-            }
-
-            // 设置选区在回复框之后
-            selection.removeAllRanges()
-            const rangeAfter = document.createRange()
-            rangeAfter.setStart(nextNode, position)
-            rangeAfter.setEnd(nextNode, position)
-            selection.addRange(rangeAfter)
-          } else {
-            // 没有后续节点，创建一个
-            nextNode = document.createTextNode(' ')
-            inputElement.appendChild(nextNode)
-
-            // 设置选区在新创建的节点
-            selection.removeAllRanges()
-            const rangeAfter = document.createRange()
-            rangeAfter.setStart(nextNode, 0)
-            rangeAfter.setEnd(nextNode, 0)
-            selection.addRange(rangeAfter)
-          }
-        } else {
-          // 如果输入框没有内容，添加一个空格节点以便于后续编辑
-          const spaceNode = document.createElement('span')
-          spaceNode.textContent = '\u00A0'
-          spaceNode.contentEditable = 'false'
-          spaceNode.style.userSelect = 'none'
-
-          // 在回复框后插入空格节点
-          const afterRange = document.createRange()
-          afterRange.selectNode(replyNode)
-          afterRange.collapse(false) // 折叠到结束位置
-          afterRange.insertNode(spaceNode)
-
-          // 在空格节点后插入一个空的文本节点，便于光标定位
-          const textNode = document.createTextNode('')
-          afterRange.selectNode(spaceNode)
-          afterRange.collapse(false)
-          afterRange.insertNode(textNode)
-
-          // 设置光标位置在文本节点处
-          selection.removeAllRanges()
-          const newRangeAfter = document.createRange()
-          newRangeAfter.setStart(textNode, 0)
-          newRangeAfter.setEnd(textNode, 0)
-          selection.addRange(newRangeAfter)
-        }
-      }
+      insertReplyNode(inputElement, replyNode, selection)
 
       // 触发输入事件，确保UI更新
       triggerInputEvent(inputElement)
@@ -377,7 +295,7 @@ export const useCommon = () => {
       const author = dom.name
       // 创建一个img标签节点作为头像
       const imgNode = document.createElement('img')
-      const avatarUrl = AvatarUtils.getAvatarUrl(dom.avatar)
+      const avatarUrl = AvatarUtils.getAvatarUrl(dom.avatar, dom.uid)
       if (isSafeUrl(avatarUrl)) {
         imgNode.src = avatarUrl
       } else {
@@ -495,7 +413,7 @@ export const useCommon = () => {
   /**
    * create a reply element
    */
-  function createReplyDom(dom: { accountName: string; content: string; avatar: string }) {
+  function createReplyDom(dom: { accountName: string; content: string; avatar: string; uid?: string }) {
     // 创建一个div标签节点
     const replyNode = document.createElement('div')
     replyNode.id = REPLY_NODE_ID // 设置id为replyDiv
@@ -522,7 +440,7 @@ export const useCommon = () => {
     let content = dom.content
     // 创建一个img标签节点作为头像
     const imgNode = document.createElement('img')
-    const avatarUrl = AvatarUtils.getAvatarUrl(dom.avatar)
+    const avatarUrl = AvatarUtils.getAvatarUrl(dom.avatar, dom.uid)
     if (isSafeUrl(avatarUrl)) {
       imgNode.src = avatarUrl
     } else {

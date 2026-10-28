@@ -13,7 +13,6 @@
       preview-disabled
       style="border-radius: 8px; cursor: pointer !important"
       :src="displayImageSrc"
-      @dblclick="handleOpenImageViewer"
       @click="handleOpenImage"
       @error="handleImageError">
       <template #placeholder>
@@ -89,8 +88,12 @@ const handleImageError = () => {
   isError.value = true
 }
 
-const handleOpenImage = () => {
-  if (!isMobile()) return // 非移动端直接返回
+const handleOpenImage = (event: MouseEvent) => {
+  if (!isMobile()) {
+    if (event.detail > 1) return
+    handleOpenImageViewer()
+    return
+  }
 
   if (props.body?.url) {
     imagesRef.value = [props.body.url]

@@ -8,6 +8,7 @@ import { useImageViewer as useImageViewerStore } from '@/stores/imageViewer'
 import type { FilesMeta } from '@/services/types'
 import { extractFileName } from '@/utils/Formatting'
 import { getFilesMeta } from '@/utils/PathUtil'
+import { useI18nGlobal } from '@/services/i18n'
 
 type WorkerResponse = {
   success: boolean
@@ -24,6 +25,7 @@ type WorkerRequest = {
 
 const workerRequests = new Map<string, WorkerRequest>()
 let imageDownloadWorker: Worker | null = null
+let openingViewer = false
 const imageDownloaderWorkerUrl = new URL('../workers/imageDownloader.ts', import.meta.url)
 
 const ensureWorker = () => {
@@ -98,6 +100,7 @@ const deduplicateList = (list: string[]) => {
  * 图片查看器Hook，用于处理图片和表情包的查看功能
  */
 export const useImageViewer = () => {
+  const { t } = useI18nGlobal()
   const chatStore = useChatStore()
   const { createWebviewWindow } = useWindow()
   const imageViewerStore = useImageViewerStore()
@@ -274,7 +277,8 @@ export const useImageViewer = () => {
     includeTypes: MsgEnum[] = [MsgEnum.IMAGE, MsgEnum.EMOJI],
     customImageList?: string[]
   ) => {
-    if (!url) return
+    if (!url || openingViewer) return
+    openingViewer = true
 
     try {
       let list: string[]
@@ -296,77 +300,57 @@ export const useImageViewer = () => {
         index = result.index
       }
 
+      if (!list.includes(url)) {
+        list = [url, ...list]
+        index = 0
+      }
       const dedupedList = deduplicateList(list)
-      const resolvedList = await Promise.all(dedupedList.map((item) => resolveDisplayUrl(item, includeTypes)))
-
       const targetIndex = dedupedList.indexOf(url)
       const resolvedIndex = targetIndex === -1 ? (index >= 0 ? index : 0) : targetIndex
 
-      imageViewerStore.resetImageList(resolvedList, resolvedIndex, dedupedList)
+      imageViewerStore.resetImageList(dedupedList, resolvedIndex, dedupedList)
+
+      void resolveDisplayUrl(url, includeTypes)
+        .then((resolvedUrl) => {
+          if (imageViewerStore.originalImageList[resolvedIndex] === url) {
+            imageViewerStore.updateImageAt(resolvedIndex, resolvedUrl)
+          }
+        })
+        .catch((error) => console.error('解析图片地址失败:', error))
 
       // 检查图片查看器窗口是否已存在
       const existingWindow = await WebviewWindow.getByLabel('imageViewer')
 
       if (existingWindow) {
         // 如果窗口已存在，更新图片内容并显示窗口
-        await existingWindow.emit('update-image', { list: resolvedList, index: resolvedIndex })
+        await existingWindow.emit('update-image', { list: dedupedList, index: resolvedIndex })
         await existingWindow.show()
         await existingWindow.setFocus()
         return
       }
 
-      const img = new Image()
-      img.src = resolvedList[resolvedIndex] || url
-
-      await new Promise((resolve, reject) => {
-        img.onload = resolve
-        img.onerror = reject
-      })
-
-      // 默认窗口尺寸（最小尺寸）
-      const MIN_WINDOW_WIDTH = 630
-      const MIN_WINDOW_HEIGHT = 660
-      // 计算实际窗口尺寸（保留一定边距）
-      const MARGIN = 100 // 窗口边距
-      let windowWidth = MIN_WINDOW_WIDTH
-      let windowHeight = MIN_WINDOW_HEIGHT
-
-      // 获取屏幕尺寸
-      const { width: screenWidth, height: screenHeight } = window.screen
-
-      // 计算最大可用尺寸（考虑边距）
-      const maxWidth = screenWidth - MARGIN * 2
-      const maxHeight = screenHeight - MARGIN * 2
-
-      // 保持图片比例计算窗口尺寸
-      const imageRatio = img.width / img.height
-
-      // 计算实际窗口尺寸
-      if (img.width > MIN_WINDOW_WIDTH || img.height > MIN_WINDOW_HEIGHT) {
-        if (imageRatio > maxWidth / maxHeight) {
-          // 以宽度为基准
-          windowWidth = Math.min(img.width + MARGIN, maxWidth)
-          windowHeight = Math.max(windowWidth / imageRatio + MARGIN, MIN_WINDOW_HEIGHT)
-        } else {
-          // 以高度为基准
-          windowHeight = Math.min(img.height + MARGIN, maxHeight)
-          windowWidth = Math.max(windowHeight * imageRatio + MARGIN, MIN_WINDOW_WIDTH)
-        }
-      }
-
-      // 创建窗口，使用计算后的尺寸
       await createWebviewWindow(
         '图片查看',
         'imageViewer',
-        Math.round(windowWidth),
-        Math.round(windowHeight),
+        800,
+        680,
         '',
         true,
-        Math.round(windowWidth),
-        Math.round(windowHeight)
+        630,
+        500,
+        undefined,
+        undefined,
+        undefined,
+        (error) => {
+          console.error('图片查看器窗口创建失败:', error)
+          window.$message.error(t('message.image_viewer.open_error'))
+        }
       )
     } catch (error) {
       console.error('打开图片查看器失败:', error)
+      window.$message.error(t('message.image_viewer.open_error'))
+    } finally {
+      openingViewer = false
     }
   }
 
