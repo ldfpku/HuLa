@@ -6,7 +6,7 @@ import { info } from '@tauri-apps/plugin-log'
 import { assign } from 'es-toolkit/compat'
 import { CallTypeEnum, EventEnum, RoomTypeEnum } from '@/enums'
 import { useGlobalStore } from '@/stores/global'
-import { isCompatibility, isDesktop, isMac, isWindows, isWindows10 } from '@/utils/PlatformConstants'
+import { isCompatibility, isDesktop, isMac, isWeb, isWindows, isWindows10 } from '@/utils/PlatformConstants'
 
 /** 判断是兼容的系统 */
 const isCompatibilityMode = computed(() => isCompatibility())
@@ -105,7 +105,8 @@ export const useWindow = () => {
     minH = 495,
     transparent?: boolean,
     visible = false,
-    queryParams?: Record<string, string | number | boolean>
+    queryParams?: Record<string, string | number | boolean>,
+    onCreateError?: (error: unknown) => void
   ) => {
     // 移动端不支持窗口管理，直接返回空对象
     if (!isDesktop()) {
@@ -177,10 +178,14 @@ export const useWindow = () => {
       }
     })
 
-    await webview.once('tauri://error', async () => {
+    await webview.once('tauri://error', async (event) => {
       info('窗口创建失败')
-      // TODO 这里利用错误处理的方式来查询是否是已经创建了窗口,如果一开始就使用WebviewWindow.getByLabel来查询在刷新的时候就会出现问题 (nyh -> 2024-03-06 23:54:17)
-      await checkWinExist(label)
+      try {
+        if (!(await checkWinExist(label))) onCreateError?.(event.payload)
+      } catch (error) {
+        console.error('检查窗口创建状态失败:', error)
+        onCreateError?.(error)
+      }
     })
 
     return webview
@@ -407,26 +412,19 @@ export const useWindow = () => {
   const checkWinExist = async (L: string) => {
     // 移动端不支持窗口管理
     if (!isDesktop()) {
-      return Promise.resolve()
+      return false
     }
     const isExistsWinds = await WebviewWindow.getByLabel(L)
     if (isExistsWinds) {
-      nextTick().then(async () => {
-        // 如果窗口已存在，首先检查是否最小化了
-        const minimized = await isExistsWinds.isMinimized()
-        // 检查是否是隐藏
-        const hidden = await isExistsWinds.isVisible()
-        if (!hidden) {
-          await isExistsWinds.show()
-        }
-        if (minimized) {
-          // 如果已最小化，恢复窗口
-          await isExistsWinds.unminimize()
-        }
-        // 如果窗口已存在，则给它焦点，使其在最前面显示
-        await isExistsWinds.setFocus()
-      })
+      await nextTick()
+      const minimized = await isExistsWinds.isMinimized()
+      const visible = await isExistsWinds.isVisible()
+      if (!visible) await isExistsWinds.show()
+      if (minimized) await isExistsWinds.unminimize()
+      await isExistsWinds.setFocus()
+      return true
     }
+    return false
   }
 
   /**
@@ -458,10 +456,16 @@ export const useWindow = () => {
         window.$message?.warning?.('当前会话尚未准备好')
         return
       }
+      const preflighted = isDesktop() && !isWeb()
+      if (preflighted) {
+        const { preflightMedia } = await import('@/hooks/useMediaPreflight')
+        if (!(await preflightMedia(callType))) return
+      }
+
       // 群聊的音视频是多人会议（Cloudflare RealtimeKit），立即开始并把会议链接发到群里
       if (currentSession.type === RoomTypeEnum.GROUP) {
         const { useMeeting } = await import('@/hooks/useMeeting')
-        await useMeeting().startMeeting({ roomId: globalStore.currentSessionRoomId })
+        await useMeeting().startMeeting({ roomId: globalStore.currentSessionRoomId }, preflighted)
         return
       }
 

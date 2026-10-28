@@ -124,12 +124,15 @@
     "bg_image_invalid": "The image could not be read; try a JPG or PNG"
   },
   "permission": {
+    "device_unsupported": "This environment does not support media devices",
     "mic": {
+      "busy": "The microphone is unavailable or in use by another application",
       "title": "Microphone permission",
       "denied": "Microphone permission denied. Please enable it in system settings and retry",
       "unavailable": "No microphone device detected"
     },
     "camera": {
+      "busy": "The camera is unavailable or in use by another application",
       "title": "Camera permission",
       "denied": "Camera permission denied. Please enable it in system settings and retry",
       "unavailable": "No camera device detected"
@@ -158,6 +161,7 @@
     "default_msg": "I'm {name}"
   },
   "message_list": {
+    "group_count": "Online / total members",
     "sync_loading": "Syncing messages",
     "official_popover": "Official group",
     "bot_popover": "SMJ Assistant",
@@ -185,6 +189,10 @@
     "notification_silent": "Receiving silently"
   },
   "image_viewer": {
+    "open_error": "Could not open the image viewer. Please try again.",
+    "loading": "Loading image…",
+    "load_error": "Failed to load image",
+    "retry": "Retry",
     "zoom_out": "Zoom out",
     "zoom_in": "Zoom in",
     "rotate_left": "Rotate left",

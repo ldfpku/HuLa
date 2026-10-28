@@ -117,7 +117,7 @@
                     </svg>
                     <p>{{ t('editor.screenshot') }}</p>
                   </n-flex>
-                  <p class="text-(12px #909090)">{{ settingStore.shortcuts.screenshot }}</p>
+                  <p class="text-(12px [--text-muted-color])">{{ settingStore.shortcuts.screenshot }}</p>
                 </n-flex>
 
                 <n-flex
@@ -224,7 +224,7 @@ import { isPhoneLayout } from '@/hooks/usePhoneLayout'
 import { readFile } from '@tauri-apps/plugin-fs'
 import { FOOTER_HEIGHT, MAX_FOOTER_HEIGHT, MIN_FOOTER_HEIGHT } from '@/common/constants'
 import LocationModal from '@/components/rightBox/location/LocationModal.vue'
-import { MittEnum, MobilePanelStateEnum, MsgEnum, RoomTypeEnum } from '@/enums'
+import { CallTypeEnum, MittEnum, MobilePanelStateEnum, MsgEnum, RoomTypeEnum } from '@/enums'
 import { useChatLayoutGlobal } from '@/hooks/useChatLayout'
 import { type SelectionRange, useCommon } from '@/hooks/useCommon.ts'
 import { useGlobalShortcut } from '@/hooks/useGlobalShortcut.ts'
@@ -239,7 +239,7 @@ import { useSettingStore } from '@/stores/setting'
 import { useEmojiStore } from '@/stores/emoji'
 import FileUtil from '@/utils/FileUtil'
 import { extractFileName, getMimeTypeFromExtension } from '@/utils/Formatting'
-import { isMac, isMobile } from '@/utils/PlatformConstants'
+import { isDesktop, isMac, isMobile, isWeb } from '@/utils/PlatformConstants'
 import { useDebounceFn } from '@vueuse/core'
 import { useI18n } from 'vue-i18n'
 
@@ -570,7 +570,11 @@ const updateRecentEmojis = (emoji: string) => {
   historyStore.setEmoji(updatedEmojis)
 }
 
-const handleVoiceRecord = () => {
+const handleVoiceRecord = async () => {
+  if (!MsgInputRef.value?.isVoiceMode && isDesktop() && !isWeb()) {
+    const { preflightMedia } = await import('@/hooks/useMediaPreflight')
+    if (!(await preflightMedia(CallTypeEnum.AUDIO))) return
+  }
   // 触发录音模式切换事件
   useMitt.emit(MittEnum.VOICE_RECORD_TOGGLE)
 }

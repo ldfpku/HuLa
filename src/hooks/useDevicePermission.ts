@@ -4,7 +4,7 @@ import { error, info } from '@tauri-apps/plugin-log'
 import { openUrl } from '@tauri-apps/plugin-opener'
 import { NButton } from 'naive-ui'
 import { h } from 'vue'
-import { useI18n } from 'vue-i18n'
+import { useI18nGlobal } from '@/services/i18n'
 import {
   buildPermissionGuide,
   type DeviceKind,
@@ -24,7 +24,7 @@ export type { DeviceKind }
  * Android 的运行时权限由 MainActivity.kt 在启动时请求。
  */
 export const useDevicePermission = () => {
-  const { t } = useI18n()
+  const { t } = useI18nGlobal()
 
   /** Mac 桌面版才有系统授权可查，网页版的 Mac 走浏览器自己的权限 */
   const hasNativeMediaPermission = () => isMac() && !isWeb()

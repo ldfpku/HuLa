@@ -124,12 +124,15 @@
     "bg_image_invalid": "图片无法读取，请换一张 JPG 或 PNG 图片"
   },
   "permission": {
+    "device_unsupported": "当前环境不支持音视频设备访问",
     "mic": {
+      "busy": "麦克风不可用或被其他程序占用",
       "title": "麦克风权限",
       "denied": "SMJ 没有获得麦克风权限，请按提示开启后重新拨打",
       "unavailable": "未检测到麦克风设备"
     },
     "camera": {
+      "busy": "摄像头不可用或被其他程序占用",
       "title": "摄像头权限",
       "denied": "SMJ 没有获得摄像头权限，请按提示开启后重新拨打",
       "unavailable": "未检测到摄像头设备"
@@ -158,6 +161,7 @@
     "default_msg": "我是{name}"
   },
   "message_list": {
+    "group_count": "在线人数/总人数",
     "sync_loading": "正在同步消息",
     "official_popover": "官方群聊认证",
     "bot_popover": "SMJ助手",
@@ -185,6 +189,10 @@
     "notification_silent": "已设置接收消息但不提醒"
   },
   "image_viewer": {
+    "open_error": "打开图片查看器失败，请重试",
+    "loading": "正在加载图片…",
+    "load_error": "图片加载失败",
+    "retry": "重试",
     "zoom_out": "缩小",
     "zoom_in": "放大",
     "rotate_left": "向左旋转",

@@ -656,7 +656,7 @@ import VideoBackgroundPicker from './components/VideoBackgroundPicker.vue'
 import { useVideoBackgroundStore } from '@/stores/videoBackground'
 import { useSettingStore } from '@/stores/setting'
 import { AvatarUtils } from '@/utils/AvatarUtils'
-import { isDesktop, isMac, isMobile, isWindows } from '@/utils/PlatformConstants'
+import { isDesktop, isMac, isMobile, isWeb, isWindows } from '@/utils/PlatformConstants'
 import { invokeSilently } from '@/utils/TauriInvokeHandler'
 import router from '@/router'
 import { useGroupStore } from '@/stores/group'
@@ -867,7 +867,7 @@ const hangUp = (status: CallResponseStatus = CallResponseStatus.DROPPED) => {
   handleCallResponse(status)
 }
 
-const avatarSrc = computed(() => AvatarUtils.getAvatarUrl(remoteUserInfo.avatar as string))
+const avatarSrc = computed(() => AvatarUtils.getAvatarUrl(remoteUserInfo.avatar, remoteUserId))
 
 const callStatusText = computed(() => {
   switch (connectionStatus.value) {
@@ -1106,6 +1106,10 @@ const toggleVideoLayout = async () => {
 
 // 接听通话
 const acceptCall = async () => {
+  if (isDesktop() && !isWeb()) {
+    const { preflightMedia } = await import('@/hooks/useMediaPreflight')
+    if (!(await preflightMedia(callType))) return
+  }
   // 立即停止铃声
   stopBell()
   isCallAccepted.value = true

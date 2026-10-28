@@ -107,12 +107,15 @@
     "rc_auto_hint": "Connected, asking to control their computer"
   },
   "permission": {
+    "device_unsupported": "현재 환경에서 미디어 장치를 사용할 수 없습니다",
     "mic": {
+      "busy": "마이크를 사용할 수 없거나 다른 프로그램에서 사용 중입니다",
       "title": "마이크 권한",
       "denied": "마이크 권한이 거부되었습니다. 시스템 설정에서 권한을 허용한 후 다시 시도해주세요",
       "unavailable": "마이크 장치를 찾을 수 없습니다"
     },
     "camera": {
+      "busy": "카메라를 사용할 수 없거나 다른 프로그램에서 사용 중입니다",
       "title": "카메라 권한",
       "denied": "카메라 권한이 거부되었습니다. 시스템 설정에서 권한을 허용한 후 다시 시도해주세요",
       "unavailable": "카메라 장치를 찾을 수 없습니다"
@@ -141,6 +144,7 @@
     "default_msg": "저는 {name}입니다"
   },
   "message_list": {
+    "group_count": "온라인 / 전체 멤버",
     "sync_loading": "메시지 동기화 중",
     "official_popover": "공식 그룹",
     "bot_popover": "SMJ 어시스턴트",
@@ -168,6 +172,10 @@
     "notification_silent": "무음으로 수신 중입니다"
   },
   "image_viewer": {
+    "open_error": "이미지 뷰어를 열 수 없습니다. 다시 시도하세요.",
+    "loading": "이미지를 불러오는 중…",
+    "load_error": "이미지를 불러오지 못했습니다",
+    "retry": "다시 시도",
     "zoom_out": "축소",
     "zoom_in": "확대",
     "rotate_left": "왼쪽으로 회전",

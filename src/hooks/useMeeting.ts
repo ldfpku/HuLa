@@ -6,6 +6,7 @@ import { openPath, openUrl } from '@tauri-apps/plugin-opener'
 import { error, info } from '@tauri-apps/plugin-log'
 import { useMitt } from '@/hooks/useMitt'
 import { WsResponseMessageType } from '@/services/wsType'
+import { CallTypeEnum } from '@/enums'
 import { isDesktop, isWeb } from '@/utils/PlatformConstants'
 import {
   cancelMeeting,
@@ -35,7 +36,20 @@ export const parseMeetingLink = (url: string): string | null => {
  */
 export const useMeeting = () => {
   /** 以当前账号入会并打开会议窗口 */
-  const openMeeting = async (id: string) => {
+  const openMeeting = async (id: string, preflighted = false) => {
+    const label = `meeting-${id}`
+    if (isDesktop()) {
+      const existing = await WebviewWindow.getByLabel(label)
+      if (existing) {
+        await existing.unminimize().catch(() => undefined)
+        await existing.setFocus()
+        return
+      }
+    }
+    if (isDesktop() && !isWeb() && !preflighted) {
+      const { preflightMedia } = await import('@/hooks/useMediaPreflight')
+      if (!(await preflightMedia(CallTypeEnum.AUDIO))) return
+    }
     const joined = await joinMeeting(id)
     const meta = {
       title: joined.title,
@@ -52,13 +66,6 @@ export const useMeeting = () => {
     if (!isDesktop()) {
       // 移动端没有多窗口，交给系统浏览器
       await openUrl(url)
-      return
-    }
-    const label = `meeting-${id}`
-    const existing = await WebviewWindow.getByLabel(label)
-    if (existing) {
-      await existing.unminimize().catch(() => undefined)
-      await existing.setFocus()
       return
     }
     // 由 Rust 打开，才能跟随会议页标题在被共享的屏幕四周画边框
@@ -88,7 +95,12 @@ export const useMeeting = () => {
   }
 
   /** 发起或预约会议；立即开始的会议创建后直接打开 */
-  const startMeeting = async (params: MeetingCreateParams): Promise<MeetingCreateResult> => {
+  const startMeeting = async (params: MeetingCreateParams, preflighted = false): Promise<MeetingCreateResult> => {
+    const needsPreflight = !params.startAt && isDesktop() && !isWeb() && !preflighted
+    if (needsPreflight) {
+      const { preflightMedia } = await import('@/hooks/useMediaPreflight')
+      if (!(await preflightMedia(CallTypeEnum.AUDIO))) throw new Error('无法使用麦克风，未创建会议')
+    }
     const created = await createMeeting(params)
     info(`[会议] 已创建 ${created.id}，邮件邀请 ${created.invited.length} 人`)
     // 和收到的消息走同一条路（去重、显示、存本地），否则发起人要刷新才看到会议卡片
@@ -96,7 +108,7 @@ export const useMeeting = () => {
     if (created.mailError) {
       window.$message?.warning?.(`会议已创建，但邀请邮件未发出：${created.mailError}`)
     }
-    if (!params.startAt) await openMeeting(created.id)
+    if (!params.startAt) await openMeeting(created.id, needsPreflight || preflighted)
     return created
   }
 
