@@ -150,6 +150,20 @@ export const useGroupStore = defineStore(
       setRoomMemberList(roomId, members)
     }
 
+    const applyPresence = (users: Pick<UserItem, 'uid' | 'activeStatus' | 'lastOptTime'>[]) => {
+      const byId = new Map(users.map((user) => [user.uid, user]))
+      for (const [roomId, members] of Object.entries(userListMap)) {
+        for (const member of members) {
+          const user = byId.get(member.uid)
+          if (user) {
+            member.activeStatus = user.activeStatus
+            member.lastOptTime = user.lastOptTime
+          }
+        }
+        onlineCountMap[roomId] = members.filter((member) => member.activeStatus === OnlineEnum.ONLINE).length
+      }
+    }
+
     /**
      * 添加会话切换方法
      */
@@ -634,6 +648,7 @@ export const useGroupStore = defineStore(
 
       const list = Array.isArray(data) ? [...data] : []
       updateMemberCache(roomId, list)
+      applyPresence(list)
 
       return userListMap[roomId]
     }
@@ -957,6 +972,7 @@ export const useGroupStore = defineStore(
       loadMoreGroupMembers,
       getGroupUserList,
       updateUserItem,
+      applyPresence,
       addUserItem,
       removeUserItem,
       currentLordId,

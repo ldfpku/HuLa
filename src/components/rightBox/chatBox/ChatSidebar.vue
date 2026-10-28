@@ -171,16 +171,16 @@
                       <p :title="item.name" class="text-12px truncate flex-1 leading-tight">
                         {{ item.myName ? item.myName : item.name }}
                       </p>
-                      <n-flex
-                        v-if="item.userStateId && getUserState(item.userStateId)"
-                        align="center"
-                        :size="4"
-                        class="flex-1">
-                        <img class="size-12px" :src="getUserState(item.userStateId)?.url" alt="" />
-                        <span
-                          class="text-10px text-[--chat-text-color] flex-1 min-w-0 truncate"
-                          :title="translateStateTitle(getUserState(item.userStateId)?.title)">
-                          {{ translateStateTitle(getUserState(item.userStateId)?.title) }}
+                      <n-flex align="center" :size="4" class="flex-1">
+                        <img
+                          class="size-10px"
+                          :src="item.activeStatus === OnlineEnum.ONLINE ? '/status/online.png' : '/status/offline.png'"
+                          alt="" />
+                        <span class="text-10px text-[--chat-text-color] flex-1 min-w-0 truncate">
+                          {{ item.activeStatus === OnlineEnum.ONLINE ? t('home.profile_card.status.online') : t('home.profile_card.status.offline') }}
+                          <template v-if="item.activeStatus === OnlineEnum.ONLINE && item.userStateId && item.userStateId !== '1' && getUserState(item.userStateId)">
+                            · {{ translateStateTitle(getUserState(item.userStateId)?.title) }}
+                          </template>
                         </span>
                       </n-flex>
                     </n-flex>
@@ -242,15 +242,32 @@ const settingStore = useSettingStore()
 const announcementStore = useAnnouncementStore()
 const { clearAnnouncements } = announcementStore
 const { themes } = storeToRefs(settingStore)
+const { stateList } = storeToRefs(useUserStatusStore())
+const getUserState = (stateId: string) => stateList.value.find((state: { id: string }) => state.id === stateId)
+const translateStateTitle = (title?: string) => {
+  if (!title) return ''
+  const key = `auth.onlineStatus.states.${title}`
+  const translated = t(key)
+  return translated === key ? title : translated
+}
 // 当前加载的群聊ID
-// 如果成员列表未完全加载，使用当前列表的在线人数，避免与头像显示不一致
 const onlineCountDisplay = computed(() => {
-  const totalOnline = groupStore.countInfo?.onlineNum ?? 0
-  const loadedOnline =
-    groupStore.onlineCountMap[globalStore.currentSessionRoomId] ??
-    groupStore.userList.filter((m) => m.activeStatus === OnlineEnum.ONLINE).length
-  return groupStore.userListOptions.isLast ? totalOnline : loadedOnline
+  return groupStore.countInfo?.onlineNum ?? '–'
 })
+let presenceTimer: ReturnType<typeof setInterval> | undefined
+let refreshingPresence = false
+const refreshPresence = async () => {
+  const roomId = globalStore.currentSessionRoomId
+  if (!isGroup.value || !roomId || refreshingPresence || document.visibilityState === 'hidden') return
+  refreshingPresence = true
+  try {
+    await groupStore.getGroupUserList(roomId, true)
+  } catch (error) {
+    console.error('刷新群成员在线状态失败:', error)
+  } finally {
+    refreshingPresence = false
+  }
+}
 const isGroup = computed(() => globalStore.currentSession?.type === RoomTypeEnum.GROUP)
 const groupName = computed(() => globalStore.currentSession?.name ?? '')
 const canRename = computed(
@@ -292,7 +309,13 @@ const { handlePopoverUpdate, enableScroll } = usePopover(selectKey, 'image-chat-
 provide('popoverControls', { enableScroll })
 
 // 用于稳定展示的用户列表
-const displayedUserList = ref<UserItem[]>([])
+const displayedUserList = computed(() => {
+  const keyword = searchRef.value.trim().toLowerCase()
+  if (!keyword) return groupStore.userList
+  return groupStore.userList.filter((member) =>
+    member.name?.toLowerCase().includes(keyword) || member.myName?.toLowerCase().includes(keyword)
+  )
+})
 /** 用户信息加载状态 */
 const userLoadedMap = ref<Record<string, boolean>>({})
 
@@ -330,48 +353,18 @@ const onClickMember = async (item: UserItem) => {
   })
 }
 
-// 监听成员源列表变化
-watch(
-  () => groupStore.userList,
-  (newList) => {
-    if (searchRef.value.trim()) {
-      return
-    }
-
-    displayedUserList.value = Array.isArray(newList) ? [...newList] : []
-  },
-  { immediate: true }
-)
-
 /**
  * 监听搜索输入过滤用户
  * @param value 输入值
  */
 const handleSearch = useDebounceFn((value: string) => {
   searchRef.value = value
-  const keyword = value.trim().toLowerCase()
-
-  // 如果没有搜索关键字,显示全部成员
-  if (!keyword) {
-    displayedUserList.value = Array.isArray(groupStore.userList) ? [...groupStore.userList] : []
-    return
-  }
-
-  // 前端本地过滤成员列表
-  const filteredList = groupStore.userList.filter((member) => {
-    const matchName = member.name?.toLowerCase().includes(keyword)
-    const matchMyName = member.myName?.toLowerCase().includes(keyword)
-    return matchName || matchMyName
-  })
-
-  displayedUserList.value = filteredList
 }, 10)
 
 const handleBlur = () => {
   if (searchRef.value) return
   isSearch.value = false
   searchRequestId.value++
-  displayedUserList.value = Array.isArray(groupStore.userList) ? [...groupStore.userList] : []
 }
 
 /**
@@ -404,7 +397,6 @@ const handleSelect = () => {
   } else {
     searchRequestId.value++
     searchRef.value = ''
-    displayedUserList.value = Array.isArray(groupStore.userList) ? [...groupStore.userList] : []
   }
 }
 
@@ -423,20 +415,6 @@ const handleOpenAnnoun = (isAdd: boolean) => {
   })
 }
 
-const userStatusStore = useUserStatusStore()
-const { stateList } = storeToRefs(userStatusStore)
-
-const getUserState = (stateId: string) => {
-  return stateList.value.find((state: { id: string }) => state.id === stateId)
-}
-
-const translateStateTitle = (title?: string) => {
-  if (!title) return ''
-  const key = `auth.onlineStatus.states.${title}`
-  const translated = t(key)
-  return translated === key ? title : translated
-}
-
 appWindow.listen('announcementUpdated', async (event: any) => {
   if (event.payload) {
     const { hasAnnouncements } = event.payload
@@ -449,6 +427,8 @@ appWindow.listen('announcementUpdated', async (event: any) => {
 })
 
 onMounted(async () => {
+  presenceTimer = setInterval(() => void refreshPresence(), 30_000)
+  document.addEventListener('visibilitychange', refreshPresence)
   // 通知父级：Sidebar 已挂载，可移除占位
   emit('ready')
 
@@ -464,12 +444,6 @@ onMounted(async () => {
 
   // 初始化时获取当前群组用户的信息
   if (groupStore.userList.length > 0) {
-    // 初始展示当前列表
-    displayedUserList.value = [...groupStore.userList]
-    const currentRoom = globalStore.currentSessionRoomId
-    if (currentRoom) {
-      groupStore.updateMemberCache(currentRoom, displayedUserList.value)
-    }
     const handleAnnounInitOnEvent = (shouldReload: boolean) => {
       return async (event: any) => {
         if (shouldReload || event) {
@@ -484,6 +458,8 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
+  if (presenceTimer) clearInterval(presenceTimer)
+  document.removeEventListener('visibilitychange', refreshPresence)
   groupStore.cleanupSession()
 })
 </script>

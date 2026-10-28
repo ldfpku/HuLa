@@ -38,19 +38,16 @@
             <p class="text-(11px [--link-color])">{{ t('home.chat_header.bot_tag') }}</p>
           </div>
         </label>
-        <svg v-if="activeItem?.hotFlag === IsAllUserEnum.Yes" class="size-20px color-[--link-color] select-none outline-none">
-          <use href="#auth"></use>
-        </svg>
-        <n-flex v-else-if="activeItem?.type === RoomTypeEnum.SINGLE && !isBotUser" align="center">
+        <n-flex v-if="activeItem?.type === RoomTypeEnum.SINGLE && !isBotUser" align="center">
           <template v-if="shouldShowDeleteFriend">
             <n-flex align="center" :size="6">
               <!-- 状态图标 -->
-              <img v-if="hasCustomState && statusIcon" :src="statusIcon" class="size-18px rounded-50%" alt="" />
-              <n-badge v-else :color="isOnline ? '#1ab292' : '#909090'" dot />
+              <n-badge :color="isOnline ? '#13987f' : '#909090'" dot />
 
               <!-- 状态文本 -->
               <p v-if="!isPhoneLayout" class="text-(12px [--text-color])">
-                {{ statusTitle }}
+                {{ isOnline ? t('home.profile_card.status.online') : t('home.profile_card.status.offline') }}
+                <template v-if="hasCustomState"> · {{ statusTitle }}</template>
               </p>
             </n-flex>
           </template>
@@ -469,7 +466,7 @@ const chatTargetUid = computed(() => {
   if (!session || session.type === RoomTypeEnum.GROUP) return undefined
   return session.detailId
 })
-const { isOnline, statusIcon, statusTitle, hasCustomState } = useOnlineStatus(chatTargetUid)
+const { isOnline, statusTitle, hasCustomState } = useOnlineStatus(chatTargetUid)
 
 /** 是否还是好友 */
 const shouldShowDeleteFriend = computed(() => {

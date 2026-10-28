@@ -105,15 +105,14 @@
                               <div class="text leading-tight text-12px flex-y-center gap-4px flex-1 truncate">
                                 [
                                 <template v-if="isBotUser(item.uid)">助手</template>
-                                <template v-else-if="getUserState(item.uid)">
-                                  <img class="size-12px rounded-50%" :src="getUserState(item.uid)?.url" alt="" />
-                                  {{ getUserState(item.uid)?.title }}
-                                </template>
                                 <template v-else>
                                   <n-badge
-                                    :color="item.activeStatus === OnlineEnum.ONLINE ? '#1ab292' : '#909090'"
+                                    :color="item.activeStatus === OnlineEnum.ONLINE ? '#13987f' : '#909090'"
                                     dot />
                                   {{ item.activeStatus === OnlineEnum.ONLINE ? '在线' : '离线' }}
+                                  <template v-if="item.activeStatus === OnlineEnum.ONLINE && getUserState(item.uid)">
+                                    · {{ getUserState(item.uid)?.title }}
+                                  </template>
                                 </template>
                                 ]
                               </div>

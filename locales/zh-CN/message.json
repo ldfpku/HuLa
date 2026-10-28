@@ -163,6 +163,7 @@
   "message_list": {
     "sections": { "groups": "群聊", "people": "人员" },
     "group_count": "在线人数/总人数",
+    "group_count_value": "在线 {online}/{total}",
     "sync_loading": "正在同步消息",
     "official_popover": "官方群聊认证",
     "bot_popover": "SMJ助手",

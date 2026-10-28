@@ -163,6 +163,7 @@
   "message_list": {
     "sections": { "groups": "Groups", "people": "People" },
     "group_count": "Online / total members",
+    "group_count_value": "Online {online}/{total}",
     "sync_loading": "Syncing messages",
     "official_popover": "Official group",
     "bot_popover": "SMJ Assistant",

@@ -1467,12 +1467,12 @@ export async function getDriveItems(parentId?: string) {
 }
 
 /** Workers AI：摘要会话最近 count 条消息（默认 100，最多 500），结果只给自己看 */
-export async function summarizeChat(body: { roomId: string; count?: number }) {
+export async function summarizeChat(body: { roomId: string; count?: number; confirmed: true }) {
   return await imRequest<ChatSummaryResult>({ url: ImUrlEnum.AI_SUMMARY, body })
 }
 
 /** Workers AI：根据邮件（mailId）或聊天里的邮件卡片（shareId）生成待办草稿 */
-export async function draftMailTodo(body: { mailId?: string; shareId?: string }) {
+export async function draftMailTodo(body: { mailId?: string; shareId?: string; confirmed: true }) {
   return await imRequest<MailTodoDraft>({ url: ImUrlEnum.AI_MAIL_TODO, body })
 }
 

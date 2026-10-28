@@ -7,6 +7,13 @@
     "cut": "Cut"
   },
   "send": "Send",
+  "ai_confirm": {
+    "title": "Confirm AI use",
+    "description": "Your message and relevant context will be sent to the AI service and may consume credits or incur charges. Nothing runs until you confirm.",
+    "confirm": "Confirm",
+    "cancel": "Cancel",
+    "context_changed": "The conversation or model changed. Please confirm again."
+  },
   "reply_error": "Could not quote this message. Please try again.",
   "placeholder": "A kind word warms the heart; a harsh word wounds it.",
   "send_or_newline": "{send} Send/{newline} Enter",

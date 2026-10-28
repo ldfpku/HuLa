@@ -64,14 +64,13 @@
                       {{ groupStore.getUserInfo(item.uid)!.name }}
                     </span>
                     <div class="text-12px text-gray-500 flex items-center gap-4px truncate">
-                      <template v-if="getUserState(item.uid)">
-                        <img class="size-12px rounded-50%" :src="getUserState(item.uid)?.url" alt="" />
-                        <n-text>{{ getUserState(item.uid)?.title }}</n-text>
-                      </template>
-                      <template v-else>
-                        <n-badge :color="item.activeStatus === OnlineEnum.ONLINE ? '#1ab292' : '#909090'" dot />
-                        <n-text>{{ item.activeStatus === OnlineEnum.ONLINE ? '在线' : '离线' }}</n-text>
-                      </template>
+                      <n-badge :color="item.activeStatus === OnlineEnum.ONLINE ? '#13987f' : '#909090'" dot />
+                      <n-text>
+                        {{ item.activeStatus === OnlineEnum.ONLINE ? '在线' : '离线' }}
+                        <template v-if="item.activeStatus === OnlineEnum.ONLINE && getUserState(item.uid)">
+                          · {{ getUserState(item.uid)?.title }}
+                        </template>
+                      </n-text>
                     </div>
                   </div>
                 </div>

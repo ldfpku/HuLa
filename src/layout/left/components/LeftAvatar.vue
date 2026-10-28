@@ -21,7 +21,7 @@
           :aria-label="t('home.profile_card.online_status')"
           class="bg-[--left-bg-color] text-10px rounded-50% size-12px absolute bottom--2px right--2px border-(2px solid [--left-bg-color])"
           @click.stop="openContent(t('home.profile_card.online_status'), 'onlineStatus', 320, 480)">
-          <img :src="statusIcon" alt="" class="rounded-50% size-full" />
+          <img :src="presenceIcon" alt="" class="rounded-50% size-full" />
         </div>
       </div>
     </template>
@@ -51,8 +51,11 @@
               align="center"
               class="item-hover ml--4px"
               @click="openContent(t('home.profile_card.online_status'), 'onlineStatus', 320, 480)">
-              <img :src="statusIcon" alt="" class="rounded-50% size-18px" />
-              <span>{{ statusTitle }}</span>
+              <img :src="presenceIcon" alt="" class="rounded-50% size-18px" />
+              <span>
+                {{ isOnline ? t('home.profile_card.status.online') : t('home.profile_card.status.offline') }}
+                <template v-if="hasCustomState"> · {{ statusTitle }}</template>
+              </span>
             </n-flex>
           </n-flex>
         </n-flex>
@@ -97,7 +100,8 @@ const currentUserLocation = computed(() => {
   return groupStore.getUserInfo(uid)?.locPlace ?? ''
 })
 const { shrinkStatus, infoShow, themeColor, openContent, handleEditing } = leftHook()
-const { statusIcon, statusTitle, statusBgColor } = useOnlineStatus()
+const { isOnline, hasCustomState, statusTitle, statusBgColor } = useOnlineStatus()
+const presenceIcon = computed(() => (isOnline.value ? '/status/online.png' : '/status/offline.png'))
 </script>
 <style lang="scss" scoped>
 @use '../style';

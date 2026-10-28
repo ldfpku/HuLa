@@ -724,6 +724,7 @@
               ref="MsgInputRef"
               :isAIMode="!!selectedModel"
               :isAIStreaming="isAIStreaming"
+              :ai-context-key="`${currentChat.id}:${selectedModel?.id ?? ''}`"
               @send-ai="handleSendAI"
               @stop-ai="handleStopAIStream" />
           </div>

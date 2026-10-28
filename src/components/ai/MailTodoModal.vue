@@ -10,6 +10,9 @@
         </svg>
       </div>
       <p class="text-12px text-[--chat-text-color] truncate" :title="subject">邮件：{{ subject || '(无主题)' }}</p>
+      <p class="text-12px text-[--chat-text-color] leading-5">
+        可以手动填写；使用 AI 会将邮件内容发送给 AI 服务，可能消耗额度或产生费用。
+      </p>
 
       <div v-if="drafting" class="flex flex-col items-center gap-10px py-28px text-13px text-[--chat-text-color]">
         <n-spin size="small" />
@@ -34,6 +37,7 @@
           </n-form-item>
         </n-form>
         <n-flex justify="end" :size="10">
+          <n-button size="small" secondary :disabled="saving" @click="generate">确认使用 AI 生成</n-button>
           <n-button size="small" secondary @click="visible = false">取消</n-button>
           <n-button size="small" color="#034fbc" text-color="#ffffff" :loading="saving" :disabled="!title.trim()" @click="save">
             保存到我的待办
@@ -65,25 +69,34 @@ const notes = ref('')
 
 const source = () => (props.shareId ? { shareId: props.shareId } : { mailId: props.mailId })
 
-watch(visible, async (show) => {
+let requestVersion = 0
+watch(visible, (show) => {
+  requestVersion++
   if (!show) return
-  title.value = ''
+  title.value = `处理邮件：${props.subject || '(无主题)'}`.slice(0, 100)
   dueAt.value = null
   notes.value = ''
   draftError.value = ''
+  drafting.value = false
+})
+
+const generate = async () => {
+  if (drafting.value || saving.value) return
+  const version = ++requestVersion
+  draftError.value = ''
   drafting.value = true
   try {
-    const draft = await draftMailTodo(source())
+    const draft = await draftMailTodo({ ...source(), confirmed: true })
+    if (version !== requestVersion) return
     title.value = draft.title
     dueAt.value = draft.dueAt
     notes.value = draft.notes
   } catch (err) {
-    draftError.value = (err as Error)?.message || 'AI 生成失败'
-    title.value = `处理邮件：${props.subject || '(无主题)'}`.slice(0, 100)
+    if (version === requestVersion) draftError.value = (err as Error)?.message || 'AI 生成失败'
   } finally {
-    drafting.value = false
+    if (version === requestVersion) drafting.value = false
   }
-})
+}
 
 const save = async () => {
   saving.value = true

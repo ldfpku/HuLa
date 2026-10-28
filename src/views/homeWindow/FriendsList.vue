@@ -61,17 +61,16 @@
                       <div class="text leading-tight text-12px flex-y-center gap-4px flex-1 truncate">
                         [
                         <template v-if="isBotUser(item.uid)">{{ t('home.friends_list.bot_tag') }}</template>
-                        <template v-else-if="getUserState(item.uid)">
-                          <img class="size-12px rounded-50%" :src="getUserState(item.uid)?.url" alt="" />
-                          {{ translateStateTitle(getUserState(item.uid)?.title) }}
-                        </template>
                         <template v-else>
-                          <n-badge :color="item.activeStatus === OnlineEnum.ONLINE ? '#1ab292' : '#909090'" dot />
+                          <n-badge :color="item.activeStatus === OnlineEnum.ONLINE ? '#13987f' : '#909090'" dot />
                           {{
                             item.activeStatus === OnlineEnum.ONLINE
                               ? t('home.friends_list.status.online')
                               : t('home.friends_list.status.offline')
                           }}
+                          <template v-if="item.activeStatus === OnlineEnum.ONLINE && getUserState(item.uid)">
+                            · {{ translateStateTitle(getUserState(item.uid)?.title) }}
+                          </template>
                         </template>
                         ]
                       </div>

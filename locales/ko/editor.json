@@ -7,6 +7,13 @@
     "cut": "잘라내기"
   },
   "send": "전송",
+  "ai_confirm": {
+    "title": "AI 사용 확인",
+    "description": "메시지와 관련 문맥이 AI 서비스로 전송되며 사용량 또는 비용이 발생할 수 있습니다. 확인하기 전에는 실행되지 않습니다.",
+    "confirm": "실행",
+    "cancel": "취소",
+    "context_changed": "대화 또는 모델이 변경되었습니다. 다시 확인해 주세요."
+  },
   "reply_error": "메시지를 인용할 수 없습니다. 다시 시도하세요.",
   "placeholder": "따뜻한 말 한마디가 마음을 녹이고, 모진 말 한마디가 마음에 상처를 남깁니다.",
   "send_or_newline": "{send} 전송/{newline} 줄바꿈",

@@ -663,7 +663,25 @@ const requestNetworkPermissionForIOS = async () => {
   })
 }
 
+let contactPresenceTimer: ReturnType<typeof setInterval> | undefined
+let refreshingContactPresence = false
+const refreshContactPresence = async () => {
+  if (refreshingContactPresence || document.visibilityState === 'hidden') return
+  refreshingContactPresence = true
+  try {
+    await contactStore.refreshPresence()
+  } catch (error) {
+    console.error('刷新联系人在线状态失败:', error)
+  } finally {
+    refreshingContactPresence = false
+  }
+}
+
 onMounted(() => {
+  if ((isDesktop() && appWindow.label === 'home') || isWeb() || isMobile()) {
+    contactPresenceTimer = setInterval(() => void refreshContactPresence(), 30_000)
+    document.addEventListener('visibilitychange', refreshContactPresence)
+  }
   // iOS应用启动时预请求网络权限（必须在最开始执行）
   if (isIOS()) {
     requestNetworkPermissionForIOS()
@@ -729,6 +747,8 @@ onMounted(() => {
 })
 
 onUnmounted(async () => {
+  if (contactPresenceTimer) clearInterval(contactPresenceTimer)
+  document.removeEventListener('visibilitychange', refreshContactPresence)
   window.removeEventListener('contextmenu', preventGlobalContextMenu, false)
   window.removeEventListener('dragstart', preventDrag)
 

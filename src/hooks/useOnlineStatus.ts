@@ -32,7 +32,7 @@ export const useOnlineStatus = (uid?: ComputedRef<string | undefined> | Ref<stri
   const hasCustomState = computed(() => {
     const stateId = userStateId.value
     // 只有 '0' 表示清空状态（无自定义状态），其他都是自定义状态
-    return !!stateId && stateId !== '0'
+    return activeStatus.value === OnlineEnum.ONLINE && !!stateId && stateId !== '0' && stateId !== '1'
   })
 
   // 获取用户的状态信息
@@ -63,7 +63,7 @@ export const useOnlineStatus = (uid?: ComputedRef<string | undefined> | Ref<stri
     if (hasCustomState.value && userStatus.value?.bgColor) {
       return userStatus.value.bgColor
     }
-    return isOnline.value ? 'rgba(3, 79, 188, 0.4)' : 'rgba(144, 144, 144, 0.4)'
+    return isOnline.value ? 'rgba(19, 152, 127, 0.4)' : 'rgba(144, 144, 144, 0.4)'
   })
 
   return {

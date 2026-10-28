@@ -255,6 +255,7 @@ import type { UploadFile } from '@/utils/FileType'
 interface Props {
   isAIMode?: boolean
   isAIStreaming?: boolean
+  aiContextKey?: string
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -605,17 +606,38 @@ const clearInput = () => {
 }
 
 // AI发送逻辑
+let aiConfirmationOpen = false
 const handleAISend = async () => {
+  if (aiConfirmationOpen) return
   const content = getInputContent()
   if (!content.trim()) {
     window.$message.warning('请输入消息内容')
     return
   }
 
-  selfEmitter('send-ai', {
-    content: content
+  aiConfirmationOpen = true
+  const contextKey = props.aiContextKey
+  window.$dialog.warning({
+    title: t('editor.ai_confirm.title'),
+    content: t('editor.ai_confirm.description'),
+    positiveText: t('editor.ai_confirm.confirm'),
+    negativeText: t('editor.ai_confirm.cancel'),
+    onPositiveClick: () => {
+      aiConfirmationOpen = false
+      if (!props.isAIMode || props.aiContextKey !== contextKey) {
+        window.$message.warning(t('editor.ai_confirm.context_changed'))
+        return
+      }
+      selfEmitter('send-ai', { content })
+      if (getInputContent() === content) clearInput()
+    },
+    onNegativeClick: () => {
+      aiConfirmationOpen = false
+    },
+    onClose: () => {
+      aiConfirmationOpen = false
+    }
   })
-  clearInput()
 }
 
 // 桌面端发送逻辑

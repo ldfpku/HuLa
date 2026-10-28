@@ -115,14 +115,6 @@ watch(
             </svg>
           </div>
 
-          <n-popover trigger="hover" v-if="activeItem?.hotFlag === IsAllUserEnum.Yes && !isEditingGroupName">
-            <template #trigger>
-              <svg class="size-20px select-none outline-none cursor-pointer color-#034fbc">
-                <use href="#auth"></use>
-              </svg>
-            </template>
-            <span>{{ t('home.chat_header.sidebar.group.official_badge') }}</span>
-          </n-popover>
         </n-flex>
 
         <n-flex align="center" :size="8">

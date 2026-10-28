@@ -9,6 +9,7 @@ import { useUserStore } from '@/stores/user'
 import {
   deleteFriend,
   getFriendPage,
+  getUserByIds,
   getNoticeUnreadCount,
   handleInvite,
   requestNoticePage
@@ -64,6 +65,26 @@ export const useContactStore = defineStore(StoresEnum.CONTACTS, () => {
     } finally {
       contactsOptions.value.isLoading = false
     }
+  }
+
+  const refreshPresence = async () => {
+    const account = userStore.userInfo?.uid
+    const ids = contactsList.value.map((contact) => contact.uid)
+    if (!account || !ids.length) return
+    const users = []
+    for (let offset = 0; offset < ids.length; offset += 100) {
+      users.push(...(await getUserByIds(ids.slice(offset, offset + 100))))
+    }
+    if (account !== userStore.userInfo?.uid) return
+    const byId = new Map(users.map((user) => [user.uid, user]))
+    for (const contact of contactsList.value) {
+      const user = byId.get(contact.uid)
+      if (user) {
+        contact.activeStatus = user.activeStatus
+        contact.lastOptTime = user.lastOptTime
+      }
+    }
+    groupStore.applyPresence(users)
   }
 
   /**
@@ -227,6 +248,7 @@ export const useContactStore = defineStore(StoresEnum.CONTACTS, () => {
 
   return {
     getContactList,
+    refreshPresence,
     getApplyPage,
     getApplyUnReadCount,
     contactsList,

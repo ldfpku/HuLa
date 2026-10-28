@@ -143,6 +143,27 @@ describe('group member counts', () => {
     expect(store.getGroupDetailByRoomId('unknown')).toBeUndefined()
   })
 
+  it('synchronizes a user’s connection status across cached rooms without changing server totals', async () => {
+    groupList.mockResolvedValue([{ ...detail }])
+    const store = useGroupStore()
+    await store.setGroupDetails()
+    const member = {
+      uid: 'member',
+      name: 'Member',
+      account: 'member',
+      avatar: '',
+      lastOptTime: 1,
+      activeStatus: OnlineEnum.ONLINE
+    }
+    store.updateMemberCache('room', [{ ...member }])
+    store.updateMemberCache('other', [{ ...member }])
+    store.applyPresence([{ uid: 'member', activeStatus: OnlineEnum.OFFLINE, lastOptTime: 2 }])
+    expect(store.userListMap.room[0].activeStatus).toBe(OnlineEnum.OFFLINE)
+    expect(store.userListMap.other[0].activeStatus).toBe(OnlineEnum.OFFLINE)
+    expect(store.onlineCountMap.room).toBe(0)
+    expect(store.getGroupDetailByRoomId('room')?.onlineNum).toBe(3)
+  })
+
   it('clears counts and details when changing accounts', async () => {
     groupList.mockResolvedValue([{ ...detail }])
     const store = useGroupStore()

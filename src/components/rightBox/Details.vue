@@ -83,14 +83,6 @@
         <n-flex vertical :size="16">
           <n-flex align="center" :size="12">
             <span class="text-(20px [--text-color])">{{ item.groupName }}</span>
-            <n-popover trigger="hover" v-if="item.roomId === '1'">
-              <template #trigger>
-                <svg class="size-20px color-#034fbc select-none outline-none cursor-pointer">
-                  <use href="#auth"></use>
-                </svg>
-              </template>
-              <span>{{ t('home.chat_details.group.official_badge') }}</span>
-            </n-popover>
           </n-flex>
           <n-flex align="center" :size="12">
             <span class="text-(14px [--text-muted-color])">{{ t('home.chat_details.group.id', { account: item.account }) }}</span>

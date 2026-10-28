@@ -36,9 +36,16 @@
         </p>
         <n-flex justify="end" :size="10">
           <n-button size="small" secondary @click="copy">复制</n-button>
-          <n-button size="small" color="#034fbc" text-color="#ffffff" @click="run">重新生成</n-button>
         </n-flex>
       </template>
+      <p class="text-12px text-[--chat-text-color] leading-5">
+        将所选范围内的聊天内容发送给 AI 服务生成摘要，可能消耗额度或产生费用。摘要仅自己可见。
+      </p>
+      <n-flex justify="end">
+        <n-button size="small" color="#034fbc" text-color="#ffffff" :disabled="loading" @click="run">
+          {{ result ? '重新生成摘要' : '确认生成摘要' }}
+        </n-button>
+      </n-flex>
     </div>
   </n-modal>
 </template>
@@ -77,7 +84,7 @@ const run = async () => {
   error.value = ''
   try {
     const count = range.value === 'unread' ? unreadCount.value : Number(range.value)
-    result.value = await summarizeChat({ roomId: props.roomId, count })
+    result.value = await summarizeChat({ roomId: props.roomId, count, confirmed: true })
   } catch (err) {
     result.value = null
     error.value = (err as Error)?.message || '摘要生成失败，请稍后再试'
@@ -88,7 +95,8 @@ const run = async () => {
 
 const selectRange = (value: string) => {
   range.value = value
-  run()
+  result.value = null
+  error.value = ''
 }
 
 const copy = async () => {
@@ -106,7 +114,6 @@ watch(visible, (show) => {
   result.value = null
   error.value = ''
   range.value = unreadCount.value > 0 ? 'unread' : '100'
-  run()
 })
 </script>
 

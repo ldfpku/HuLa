@@ -7,6 +7,13 @@
     "cut": "剪切"
   },
   "send": "发送",
+  "ai_confirm": {
+    "title": "确认使用 AI",
+    "description": "消息及相关上下文将发送给 AI 服务，可能消耗额度或产生费用。确认后才会执行。",
+    "confirm": "确认执行",
+    "cancel": "取消",
+    "context_changed": "会话或模型已变化，请重新确认。"
+  },
   "reply_error": "无法引用该消息，请重试",
   "placeholder": "善言一句暖人心，恶语一句伤人心",
   "send_or_newline": "{send} 发送/{newline} 换行",

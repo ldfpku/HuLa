@@ -45,7 +45,12 @@ vi.mock('pinia', async () => {
   return { storeToRefs: toRefs }
 })
 vi.mock('vue-router', () => ({ useRoute: () => ({ path: '/message' }) }))
-vi.mock('vue-i18n', () => ({ useI18n: () => ({ t: (key: string) => key }) }))
+vi.mock('vue-i18n', () => ({
+  useI18n: () => ({
+    t: (key: string, values?: { online: number; total: number }) =>
+      key === 'message.message_list.group_count_value' && values ? `在线 ${values.online}/${values.total}` : key
+  })
+}))
 vi.mock('@tauri-apps/api/webviewWindow', () => ({
   WebviewWindow: { getCurrent: () => ({ label: 'other' }) }
 }))

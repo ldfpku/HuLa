@@ -52,22 +52,14 @@
                 <span class="text-14px leading-tight flex-1 truncate">{{ item.name }}</span>
                 <span
                   v-if="item.type === RoomTypeEnum.GROUP"
-                  class="text-11px color-[--text-muted-color] whitespace-nowrap ml-4px"
+                  class="text-11px color-[--text-muted-color] whitespace-nowrap ml-4px inline-flex items-center gap-2px"
                   :class="{ 'color-[--msg-active-text-color]!': globalStore.currentSessionRoomId === item.roomId }"
                   :title="t('message.message_list.group_count')">
-                  {{ groupCount(item.roomId) }}
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="size-12px" aria-hidden="true">
+                    <circle cx="9" cy="8" r="3" /><path d="M3 19v-1a6 6 0 0 1 12 0v1M16 5a3 3 0 0 1 0 6M17 13a5 5 0 0 1 4 5v1" />
+                  </svg>
+                  {{ t('message.message_list.group_count_value', groupCount(item.roomId)) }}
                 </span>
-                <n-popover trigger="hover" v-if="item.hotFlag === IsAllUserEnum.Yes">
-                  <template #trigger>
-                    <svg
-                      class="color-[--link-color] size-20px select-none outline-none cursor-pointer"
-                      :class="{ 'color-[--msg-active-text-color]!': globalStore.currentSessionRoomId === item.roomId }">
-                      <use href="#auth"></use>
-                    </svg>
-                  </template>
-                  <span>{{ t('message.message_list.official_popover') }}</span>
-                </n-popover>
-
                 <n-popover trigger="hover" v-if="item.account === UserType.BOT">
                   <template #trigger>
                     <svg
@@ -191,7 +183,7 @@ import { useMessage } from '@/hooks/useMessage.ts'
 import { useMitt } from '@/hooks/useMitt'
 import { useReplaceMsg } from '@/hooks/useReplaceMsg.ts'
 import { useTauriListener } from '@/hooks/useTauriListener'
-import { IsAllUserEnum, type SessionItem } from '@/services/types.ts'
+import type { SessionItem } from '@/services/types.ts'
 import { useChatStore } from '@/stores/chat.ts'
 import { useGlobalStore } from '@/stores/global.ts'
 import { useGroupStore } from '@/stores/group.ts'
@@ -222,8 +214,8 @@ const { handleMsgClick, handleMsgDelete, handleMsgDblclick, visibleMenu, visible
 const groupCount = (roomId: string) => {
   const detail = groupStore.getGroupDetailByRoomId(roomId)
   return detail && Number.isFinite(detail.onlineNum) && Number.isFinite(detail.memberNum)
-    ? `${detail.onlineNum}/${detail.memberNum}`
-    : '–/–'
+    ? { online: detail.onlineNum, total: detail.memberNum }
+    : { online: '–', total: '–' }
 }
 // 跟踪当前显示右键菜单的会话ID
 const activeContextMenuRoomId = ref<string | null>(null)

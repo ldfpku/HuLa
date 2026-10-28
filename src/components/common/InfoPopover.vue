@@ -33,7 +33,7 @@
         </div>
 
         <!-- 在线状态点 -->
-        <template v-if="!statusIcon">
+        <template>
           <n-popover trigger="hover" placement="top" :show-arrow="false">
             <template #trigger>
               <div
@@ -44,7 +44,7 @@
                 "
                 class="z-30 absolute top-72px left-72px border-(6px solid [--avatar-border-color]) rounded-full size-18px"
                 :class="[
-                  displayActiveStatus === OnlineEnum.ONLINE ? 'bg-#1ab292' : 'bg-#909090',
+                  displayActiveStatus === OnlineEnum.ONLINE ? 'bg-#13987f' : 'bg-#909090',
                   isCurrentUserUid ? 'cursor-pointer' : 'cursor-default'
                 ]"></div>
             </template>
@@ -54,28 +54,10 @@
                   ? t('home.profile_card.status.online')
                   : t('home.profile_card.status.offline')
               }}
+              <template v-if="displayActiveStatus === OnlineEnum.ONLINE && currentStateTitle !== t('home.profile_card.status.online')">
+                · {{ currentStateTitle }}
+              </template>
             </span>
-          </n-popover>
-        </template>
-
-        <!-- 独立的状态图标 -->
-        <template v-if="statusIcon">
-          <n-popover trigger="hover" placement="top" :show-arrow="false">
-            <template #trigger>
-              <div class="z-30 absolute top-72px left-72px size-26px bg-[--avatar-border-color] rounded-full">
-                <img
-                  :src="statusIcon"
-                  @click="
-                    isCurrentUserUid
-                      ? openContent(t('home.profile_card.online_status'), 'onlineStatus', 320, 480)
-                      : void 0
-                  "
-                  class="p-4px rounded-full size-18px"
-                  :class="isCurrentUserUid ? 'cursor-pointer' : 'cursor-default'"
-                  alt="" />
-              </div>
-            </template>
-            <span>{{ currentStateTitle }}</span>
           </n-popover>
         </template>
 
@@ -215,7 +197,7 @@ import { AvatarUtils } from '@/utils/AvatarUtils'
 
 const { t } = useI18n()
 
-const { uid } = defineProps<{
+const { uid, activeStatus } = defineProps<{
   uid: string
   activeStatus?: OnlineEnum
 }>()
@@ -285,28 +267,14 @@ const groupNickname = computed(() => {
 })
 // 显示的在线状态
 const displayActiveStatus = computed(() => {
-  return resolvedUserInfo.value?.activeStatus ?? OnlineEnum.OFFLINE
-})
-
-// 计算当前用户状态图标
-const statusIcon = computed(() => {
-  const userStateId = resolvedUserInfo.value?.userStateId
-
-  // 如果在线且有特殊状态
-  if (userStateId && userStateId !== '1') {
-    const state = stateList.value.find((s: { id: string }) => s.id === userStateId)
-    if (state) {
-      return state.url
-    }
-  }
-  return null
+  return resolvedUserInfo.value?.activeStatus ?? activeStatus ?? OnlineEnum.OFFLINE
 })
 
 // 计算当前状态的标题
 const currentStateTitle = computed(() => {
   const userStateId = resolvedUserInfo.value?.userStateId
 
-  if (userStateId && userStateId !== '1') {
+  if (displayActiveStatus.value === OnlineEnum.ONLINE && userStateId && userStateId !== '1') {
     const state = stateList.value.find((s: { id: string }) => s.id === userStateId)
     if (state) {
       return state.title

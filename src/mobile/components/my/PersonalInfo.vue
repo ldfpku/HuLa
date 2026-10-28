@@ -16,16 +16,16 @@
         <div class="flex flex-warp gap-4 items-center">
           <n-text class="font-bold text-20px">{{ userDetailInfo!.name }}</n-text>
           <div
-            v-show="hasUserOnlineState"
+            v-if="presence !== undefined"
             class="bg-#E7EFE6 flex flex-wrap ps-2 px-8px items-center rounded-full gap-1 h-24px">
             <span class="w-12px h-12px rounded-15px flex items-center">
               <img
-                :src="friendUserState.url ? friendUserState.url : currentState?.url"
+                :src="presence === OnlineEnum.ONLINE ? '/status/online.png' : '/status/offline.png'"
                 alt=""
                 class="rounded-50% size-14px" />
             </span>
             <span class="text-bold-style" style="font-size: 12px; color: #373838">
-              {{ friendUserState.title ? friendUserState.title : currentState.title }}
+              {{ presence === OnlineEnum.ONLINE ? t('home.profile_card.status.online') : t('home.profile_card.status.offline') }}
             </span>
           </div>
         </div>
@@ -144,7 +144,6 @@
 import { showDialog } from 'vant'
 import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
-import { useUserStatusStore } from '@/stores/userStatus'
 import { AvatarUtils } from '@/utils/AvatarUtils'
 import 'vant/es/dialog/style'
 import { OnlineEnum, UserType } from '@/enums'
@@ -177,7 +176,6 @@ const props = defineProps({
 const { t } = useI18n()
 const router = useRouter()
 const userStore = useUserStore()
-const userStatusStore = useUserStatusStore()
 const groupStore = useGroupStore()
 const route = useRoute()
 const contactStore = useContactStore() // 联系人
@@ -224,32 +222,10 @@ const userDetailInfo = ref<UserItem | UserInfoType | undefined>({
   resume: ''
 })
 
-// 这个值只有在查看好友详细信息时才用
-const friendUserState = ref<any>({
-  title: '',
-  url: ''
+const presence = computed(() => {
+  const targetUid = uid || userStore.userInfo?.uid
+  return targetUid ? groupStore.getUserInfo(targetUid)?.activeStatus : undefined
 })
-
-// 是否存在用户在线状态
-const hasUserOnlineState = ref(false)
-
-const { stateList } = storeToRefs(userStatusStore)
-
-const getUserState = (
-  stateId: string
-): {
-  createBy: string
-  createTime: number
-  id: string
-  title: string
-  updateBy: null
-  updateTime: null
-  url: string
-} => {
-  // 不直接return，不然不好debug
-  const foundedState = stateList.value.find((state: { id: string }) => state.id === stateId)
-  return foundedState
-}
 
 onMounted(() => {
   if (!uid) {
@@ -261,22 +237,12 @@ onMounted(() => {
 
   userDetailInfo.value = foundedUser
 
-  if (foundedUser?.userStateId && foundedUser?.userStateId !== '0') {
-    const state = getUserState(foundedUser.userStateId)
-    friendUserState.value = state
-
-    // 设置完成状态后最后再显示状态
-    hasUserOnlineState.value = true
-  }
-
   const foundedFriend = contactStore.contactsList.find((item) => item.uid === uid)
 
   if (foundedFriend) {
     isFriend.value = true
   }
 })
-
-const currentState = computed(() => userStatusStore.currentState)
 
 const loading = ref(false)
 
