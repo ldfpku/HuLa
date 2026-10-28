@@ -21,22 +21,22 @@
       "dmg"
     ],
     "icon": [
-      "icons/macos/light/32x32.png",
-      "icons/macos/light/128x128.png",
-      "icons/macos/light/128x128@2x.png",
-      "icons/macos/light/icon.icns",
-      "icons/macos/light/icon.ico",
-      "icons/macos/light/icon.png",
-      "icons/macos/light/Square30x30Logo.png",
-      "icons/macos/light/Square44x44Logo.png",
-      "icons/macos/light/Square71x71Logo.png",
-      "icons/macos/light/Square89x89Logo.png",
-      "icons/macos/light/Square107x107Logo.png",
-      "icons/macos/light/Square142x142Logo.png",
-      "icons/macos/light/Square150x150Logo.png",
-      "icons/macos/light/Square284x284Logo.png",
-      "icons/macos/light/Square310x310Logo.png",
-      "icons/macos/light/StoreLogo.png"
+      "icons/desktop/32x32.png",
+      "icons/desktop/128x128.png",
+      "icons/desktop/128x128@2x.png",
+      "icons/desktop/icon.icns",
+      "icons/desktop/icon.ico",
+      "icons/desktop/icon.png",
+      "icons/desktop/Square30x30Logo.png",
+      "icons/desktop/Square44x44Logo.png",
+      "icons/desktop/Square71x71Logo.png",
+      "icons/desktop/Square89x89Logo.png",
+      "icons/desktop/Square107x107Logo.png",
+      "icons/desktop/Square142x142Logo.png",
+      "icons/desktop/Square150x150Logo.png",
+      "icons/desktop/Square284x284Logo.png",
+      "icons/desktop/Square310x310Logo.png",
+      "icons/desktop/StoreLogo.png"
     ],
     "macOS": {
       "dmg": {
