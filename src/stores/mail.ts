@@ -1,9 +1,11 @@
 import { WebviewWindow } from '@tauri-apps/api/webviewWindow'
+import { invoke } from '@tauri-apps/api/core'
 import { sendNotification } from '@tauri-apps/plugin-notification'
 import { defineStore } from 'pinia'
 import { StoresEnum } from '@/enums'
 import type { MailCardBody, MailSearchHit } from '@/services/types'
 import { getMailSsoUrl, getMailUnread } from '@/utils/ImRequestUtils'
+import { desktopMailTarget } from '@/utils/DesktopMail'
 
 /** 服务端推送的新邮件事件（mailNew） */
 export type MailNewEvent = {
@@ -16,6 +18,43 @@ export type MailNewEvent = {
 
 /** 邮件窗口的标识 */
 const MAIL_WINDOW_LABEL = 'mail'
+
+async function prepareMailWindow(
+  webview: WebviewWindow,
+  refreshUnread?: () => Promise<void>,
+  onFinished?: () => void
+) {
+  const created = webview.once('tauri://created', async () => {
+    try {
+      await invoke('set_mail_window_identity', { label: webview.label })
+    } catch (error) {
+      console.error('设置邮件窗口图标失败:', error)
+      window.$message.warning('邮件窗口图标设置失败')
+    }
+    try {
+      await webview.show()
+    } catch (error) {
+      console.error('显示邮件窗口失败:', error)
+      window.$message.error('打开邮件窗口失败，请重试')
+    } finally {
+      onFinished?.()
+    }
+  })
+  const failed = webview.once('tauri://error', (event) => {
+    console.error('创建邮件窗口失败:', event.payload)
+    window.$message.error('打开邮件窗口失败，请重试')
+    onFinished?.()
+  })
+  const registrations = [created, failed]
+  if (refreshUnread) {
+    registrations.push(
+      webview.once('tauri://destroyed', () => {
+        refreshUnread().catch((error) => console.error('刷新未读邮件数失败:', error))
+      })
+    )
+  }
+  await Promise.all(registrations)
+}
 
 /**
  * 邮件：邮件功能由斯米伽邮箱网页提供，在独立窗口中通过一次性链接免登录打开；
@@ -40,6 +79,7 @@ export const useMailStore = defineStore(StoresEnum.MAIL, () => {
 
   /** 打开邮件窗口；已打开时直接聚焦 */
   const openMail = async (next?: string) => {
+    if (opening) return
     const existing = await WebviewWindow.getByLabel(MAIL_WINDOW_LABEL)
     if (existing) {
       await existing.unminimize()
@@ -50,7 +90,7 @@ export const useMailStore = defineStore(StoresEnum.MAIL, () => {
     if (opening) return
     opening = true
     try {
-      const { url } = await getMailSsoUrl(next)
+      const { url } = await getMailSsoUrl(desktopMailTarget(next))
       const webview = new WebviewWindow(MAIL_WINDOW_LABEL, {
         url,
         title: '斯米伽邮箱',
@@ -61,13 +101,14 @@ export const useMailStore = defineStore(StoresEnum.MAIL, () => {
         center: true,
         resizable: true,
         decorations: true,
-        visible: true
+        visible: false
       })
-      await webview.once('tauri://destroyed', () => {
-        refreshUnread()
+      await prepareMailWindow(webview, refreshUnread, () => {
+        opening = false
       })
-    } finally {
+    } catch (error) {
       opening = false
+      throw error
     }
   }
 
@@ -82,8 +123,8 @@ export const useMailStore = defineStore(StoresEnum.MAIL, () => {
       await existing.setFocus()
       return
     }
-    const { url } = await getMailSsoUrl(path)
-    new WebviewWindow(label, {
+    const { url } = await getMailSsoUrl(desktopMailTarget(path))
+    const webview = new WebviewWindow(label, {
       url,
       title: card.subject || '邮件',
       width: 900,
@@ -93,8 +134,9 @@ export const useMailStore = defineStore(StoresEnum.MAIL, () => {
       center: true,
       resizable: true,
       decorations: true,
-      visible: true
+      visible: false
     })
+    await prepareMailWindow(webview)
   }
 
   /** 打开搜索到的邮件：每封邮件一个窗口，打开邮件网页里这封邮件的页面 */
@@ -107,7 +149,7 @@ export const useMailStore = defineStore(StoresEnum.MAIL, () => {
       await existing.setFocus()
       return
     }
-    const { url } = await getMailSsoUrl(mail.path)
+    const { url } = await getMailSsoUrl(desktopMailTarget(mail.path))
     const webview = new WebviewWindow(label, {
       url,
       title: mail.subject || '邮件',
@@ -118,12 +160,10 @@ export const useMailStore = defineStore(StoresEnum.MAIL, () => {
       center: true,
       resizable: true,
       decorations: true,
-      visible: true
+      visible: false
     })
     // 在邮件网页里读过后，刷新未读数
-    await webview.once('tauri://destroyed', () => {
-      refreshUnread()
-    })
+    await prepareMailWindow(webview, refreshUnread)
   }
 
   return { unreadCount, refreshUnread, handleMailNew, openMail, openMailShare, openMailMessage }

@@ -36,6 +36,8 @@ use desktops::media_permission::{
     media_permission_request, media_permission_reset, media_permission_status,
 };
 #[cfg(desktop)]
+use desktops::mail_window::set_mail_window_identity;
+#[cfg(desktop)]
 use desktops::remote_control::{
     remote_control_activate, remote_control_active, remote_control_heartbeat, remote_control_input,
     remote_control_prepare, remote_control_request, remote_control_stop,
@@ -471,6 +473,8 @@ fn get_invoke_handlers() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Se
         // 桌面端特定命令
         #[cfg(desktop)]
         default_window_icon,
+        #[cfg(desktop)]
+        set_mail_window_identity,
         #[cfg(desktop)]
         screenshot,
         #[cfg(desktop)]

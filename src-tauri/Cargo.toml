@@ -167,9 +167,12 @@ objc2-foundation = "0.3.2"
 [target."cfg(target_os = \"windows\")".dependencies]
 windows = { version = "0.62.2", features = [
   "Win32_System_Com",
+  "Win32_System_Com_StructuredStorage",
   "Win32_System_Diagnostics_Debug",
   "Win32_UI_Shell",
   "Win32_UI_Shell_Common",
+  "Win32_UI_Shell_PropertiesSystem",
+  "Win32_Storage_EnhancedStorage",
   "Win32_Graphics_Gdi",
   "Win32_Foundation",
   "Win32_System_Ole",
