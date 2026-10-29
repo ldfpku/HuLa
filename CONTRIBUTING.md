@@ -13,7 +13,7 @@ HuLa is an open-source project, and we welcome your collaboration. Before you ju
 📦 Clone your forked repository to your local machine using the `git clone` command:
 
 ```bash
-git clone https://github.com/HuLaSpark/HuLa.git
+git clone https://github.com/YOUR_USERNAME/HuLa.git
 ```
 
 ## Create a New Branch
@@ -46,21 +46,13 @@ pnpm run commit
 
 This will commit all the files to git, Please keep your commits focused and clear. And remember to be kind to your fellow contributors; keep your commits concise.
 
-## Sync with Upstream
+## Repository Updates
 
-⚙️ Periodically, sync your forked repository with the original (upstream) repository to stay up-to-date with the latest changes.
-
-```bash
-git remote add upstream https://github.com/HuLaSpark/HuLa.git
-git fetch upstream
-git merge upstream/master
-```
-
-This ensures you're working on the most current version of HuLa. Stay fresh! 💨
+This repository is maintained independently and does not sync changes from HuLaSpark/HuLa. Contributors should base their work on the latest `master` branch of [ldfpku/HuLa](https://github.com/ldfpku/HuLa).
 
 ## Open a Pull Request
 
-🚀 Time to share your contribution! Head over to the original HuLa repository and open a Pull Request (PR). Our maintainers will review your work.
+🚀 Time to share your contribution! Open a Pull Request (PR) against [ldfpku/HuLa](https://github.com/ldfpku/HuLa). Our maintainers will review your work.
 
 ## Review and Collaboration
 
