@@ -53,6 +53,10 @@ describe('WebSocketClient.init', () => {
     expect(emit).toHaveBeenCalledWith('ws-user-profile-change', { uid: 'u1', name: 'New' })
     sockets[0].onmessage?.({ data: JSON.stringify({ type: 'userProfileChange', data: { uid: 'u1', avatar: '022' } }) })
     expect(emit).toHaveBeenCalledWith('ws-user-profile-change', { uid: 'u1', avatar: '022' })
+    sockets[0].onmessage?.({
+      data: JSON.stringify({ type: 'presenceChanged', data: { uid: 'u2', activeStatus: 1, lastOptTime: 123 } })
+    })
+    expect(emit).toHaveBeenCalledWith('ws-presence-changed', { uid: 'u2', activeStatus: 1, lastOptTime: 123 })
     ws.disconnect()
     vi.unstubAllGlobals()
   })

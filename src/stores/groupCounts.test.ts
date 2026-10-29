@@ -162,6 +162,8 @@ describe('group member counts', () => {
     expect(store.userListMap.other[0].activeStatus).toBe(OnlineEnum.OFFLINE)
     expect(store.onlineCountMap.room).toBe(0)
     expect(store.getGroupDetailByRoomId('room')?.onlineNum).toBe(3)
+    store.applyPresence([{ uid: 'member', activeStatus: OnlineEnum.ONLINE, lastOptTime: 1 }])
+    expect(store.userListMap.room[0].activeStatus).toBe(OnlineEnum.OFFLINE)
   })
 
   it('clears counts and details when changing accounts', async () => {

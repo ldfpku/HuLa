@@ -38,6 +38,11 @@ use desktops::media_permission::{
 #[cfg(desktop)]
 use desktops::mail_window::set_mail_window_identity;
 #[cfg(desktop)]
+use desktops::embedded_mail::{
+    close_embedded_mail, create_embedded_mail, navigate_embedded_mail,
+    set_embedded_mail_visible, update_embedded_mail_bounds,
+};
+#[cfg(desktop)]
 use desktops::remote_control::{
     remote_control_activate, remote_control_active, remote_control_heartbeat, remote_control_input,
     remote_control_prepare, remote_control_request, remote_control_stop,
@@ -475,6 +480,16 @@ fn get_invoke_handlers() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Se
         default_window_icon,
         #[cfg(desktop)]
         set_mail_window_identity,
+        #[cfg(desktop)]
+        create_embedded_mail,
+        #[cfg(desktop)]
+        navigate_embedded_mail,
+        #[cfg(desktop)]
+        update_embedded_mail_bounds,
+        #[cfg(desktop)]
+        set_embedded_mail_visible,
+        #[cfg(desktop)]
+        close_embedded_mail,
         #[cfg(desktop)]
         screenshot,
         #[cfg(desktop)]

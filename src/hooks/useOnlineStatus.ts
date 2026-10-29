@@ -4,59 +4,77 @@ import { OnlineEnum } from '@/enums'
 import { useGroupStore } from '@/stores/group'
 import { useUserStore } from '@/stores/user'
 import { useUserStatusStore } from '@/stores/userStatus'
+import { useNetworkStatus } from '@/hooks/useNetworkStatus'
+import { userStateIcon } from '@/utils/UserStateIcon'
 
-// 在线状态管理(仅是在线和离线)
 export const useOnlineStatus = (uid?: ComputedRef<string | undefined> | Ref<string | undefined>) => {
   const { t } = useI18n()
   const userStore = useUserStore()
   const groupStore = useGroupStore()
   const userStatusStore = useUserStatusStore()
+  const { wsStatus } = useNetworkStatus()
   const { currentState } = storeToRefs(userStatusStore)
+  const isSelf = computed(() => !uid || (!!uid.value && uid.value === userStore.userInfo?.uid))
 
-  // 如果传入了uid参数，使用传入的uid对应的用户信息；否则使用当前登录用户的信息
-  const currentUser = uid
-    ? computed(() => (uid.value ? groupStore.getUserInfo(uid.value) : undefined))
-    : computed(() => {
-        // 没有传入uid时，从groupStore获取当前用户信息以获得activeStatus
-        const currentUid = userStore.userInfo?.uid
-        return currentUid ? groupStore.getUserInfo(currentUid) : undefined
-      })
+  const currentUser = computed(() => {
+    const targetUid = uid ? uid.value : userStore.userInfo?.uid
+    return targetUid ? groupStore.getUserInfo(targetUid) : undefined
+  })
 
-  // userStateId优先从userStore获取（保证响应式更新），如果没有则从currentUser获取
-  const userStateId = uid
-    ? computed(() => currentUser.value?.userStateId)
-    : computed(() => userStore.userInfo?.userStateId)
+  const userStateId = computed(() => (isSelf.value ? userStore.userInfo?.userStateId : currentUser.value?.userStateId))
 
-  const activeStatus = computed(() => currentUser.value?.activeStatus ?? OnlineEnum.OFFLINE)
+  const activeStatus = computed(() =>
+    isSelf.value
+      ? userStore.userInfo?.uid && wsStatus.value === 'connected'
+        ? OnlineEnum.ONLINE
+        : OnlineEnum.OFFLINE
+      : (currentUser.value?.activeStatus ?? OnlineEnum.OFFLINE)
+  )
+  const isOnline = computed(() => activeStatus.value === OnlineEnum.ONLINE)
+  const isConnectionPending = computed(
+    () => isSelf.value && (wsStatus.value === 'connecting' || wsStatus.value === 'unknown')
+  )
+  const connectionKnown = computed(() => (isSelf.value ? wsStatus.value !== 'unknown' : !!currentUser.value))
+  const connectionTitle = computed(() => {
+    if (isSelf.value) {
+      if (!userStore.userInfo?.uid || wsStatus.value === 'unknown') return t('home.profile_card.status.unknown')
+      if (wsStatus.value === 'connecting') return t('home.profile_card.status.connecting')
+      if (wsStatus.value === 'disconnected' || wsStatus.value === 'error') {
+        return t('home.profile_card.status.disconnected')
+      }
+    } else if (!currentUser.value) {
+      return t('home.profile_card.status.unknown')
+    }
+    return isOnline.value ? t('home.profile_card.status.online') : t('home.profile_card.status.offline')
+  })
 
   const hasCustomState = computed(() => {
     const stateId = userStateId.value
-    // 只有 '0' 表示清空状态（无自定义状态），其他都是自定义状态
-    return activeStatus.value === OnlineEnum.ONLINE && !!stateId && stateId !== '0' && stateId !== '1'
+    return (isSelf.value || isOnline.value) && !!stateId && stateId !== '0' && stateId !== '1'
   })
 
-  // 获取用户的状态信息
   const userStatus = computed(() => {
     if (!userStateId.value) return null
     return userStatusStore.stateList.find((state: { id: string }) => state.id === userStateId.value)
   })
 
-  const isOnline = computed(() => activeStatus.value === OnlineEnum.ONLINE)
+  const customStatusTitle = computed(() => {
+    if (!hasCustomState.value || !userStatus.value?.title) return ''
+    const key = `auth.onlineStatus.states.${userStatus.value.title}`
+    const translated = t(key)
+    return translated === key ? userStatus.value.title : translated
+  })
 
   const statusIcon = computed(() => {
-    if (hasCustomState.value && userStatus.value?.url) {
-      return userStatus.value.url
+    if (hasCustomState.value && userStatus.value) {
+      return userStateIcon(userStatus.value)
     }
     return isOnline.value ? '/status/online.png' : '/status/offline.png'
   })
 
   const statusTitle = computed(() => {
-    if (hasCustomState.value && userStatus.value?.title) {
-      const key = `auth.onlineStatus.states.${userStatus.value.title}`
-      const translated = t(key)
-      return translated === key ? userStatus.value.title : translated
-    }
-    return isOnline.value ? t('home.profile_card.status.online') : t('home.profile_card.status.offline')
+    if (isSelf.value && wsStatus.value !== 'connected') return connectionTitle.value
+    return customStatusTitle.value || connectionTitle.value
   })
 
   const statusBgColor = computed(() => {
@@ -73,6 +91,10 @@ export const useOnlineStatus = (uid?: ComputedRef<string | undefined> | Ref<stri
     statusTitle,
     statusBgColor,
     isOnline,
+    isConnectionPending,
+    connectionKnown,
+    connectionTitle,
+    customStatusTitle,
     hasCustomState,
     userStatus
   }

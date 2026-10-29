@@ -321,6 +321,12 @@ class RustWebSocketClient {
     )
 
     this.listenerController.add(
+      await listen('ws-presence-changed', (event: { payload: unknown }) => {
+        useMitt.emit(WsResponseMessageType.PRESENCE_CHANGED, event.payload)
+      })
+    )
+
+    this.listenerController.add(
       await listen('ws-user-state-change', (event: any) => {
         info(`用户状态改变: ${JSON.stringify(event.payload)}`)
         useMitt.emit(WsResponseMessageType.USER_STATE_CHANGE, event.payload)

@@ -17,11 +17,12 @@
 
         <div
           role="button"
-          :title="t('home.profile_card.online_status')"
-          :aria-label="t('home.profile_card.online_status')"
+          :title="`${t('home.profile_card.online_status')}：${connectionTitle}`"
+          :aria-label="`${t('home.profile_card.online_status')}：${connectionTitle}`"
           class="bg-[--left-bg-color] text-10px rounded-50% size-12px absolute bottom--2px right--2px border-(2px solid [--left-bg-color])"
           @click.stop="openContent(t('home.profile_card.online_status'), 'onlineStatus', 320, 480)">
-          <img :src="presenceIcon" alt="" class="rounded-50% size-full" />
+          <span v-if="isConnectionPending" class="block rounded-50% size-full bg-#f0a020" aria-hidden="true" />
+          <img v-else :src="presenceIcon" alt="" class="rounded-50% size-full" />
         </div>
       </div>
     </template>
@@ -51,10 +52,11 @@
               align="center"
               class="item-hover ml--4px"
               @click="openContent(t('home.profile_card.online_status'), 'onlineStatus', 320, 480)">
-              <img :src="presenceIcon" alt="" class="rounded-50% size-18px" />
+              <span v-if="isConnectionPending" class="block rounded-50% size-18px bg-#f0a020" aria-hidden="true" />
+              <img v-else :src="presenceIcon" alt="" class="rounded-50% size-18px" />
               <span>
-                {{ isOnline ? t('home.profile_card.status.online') : t('home.profile_card.status.offline') }}
-                <template v-if="hasCustomState"> · {{ statusTitle }}</template>
+                {{ connectionTitle }}
+                <template v-if="hasCustomState && customStatusTitle">· {{ customStatusTitle }}</template>
               </span>
             </n-flex>
           </n-flex>
@@ -100,7 +102,8 @@ const currentUserLocation = computed(() => {
   return groupStore.getUserInfo(uid)?.locPlace ?? ''
 })
 const { shrinkStatus, infoShow, themeColor, openContent, handleEditing } = leftHook()
-const { isOnline, hasCustomState, statusTitle, statusBgColor } = useOnlineStatus()
+const { isOnline, isConnectionPending, connectionTitle, customStatusTitle, hasCustomState, statusBgColor } =
+  useOnlineStatus()
 const presenceIcon = computed(() => (isOnline.value ? '/status/online.png' : '/status/offline.png'))
 </script>
 <style lang="scss" scoped>

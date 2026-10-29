@@ -855,6 +855,9 @@ impl WebSocketClient {
                 info!("User offline");
                 let _ = app_handle.emit_to("home", "ws-offline", data);
             }
+            "presenceChanged" => {
+                let _ = app_handle.emit_to("home", "ws-presence-changed", data);
+            }
             "userStateChange" => {
                 info!("User state changed");
                 let _ = app_handle.emit_to("home", "ws-user-state-change", data);

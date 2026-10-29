@@ -12,7 +12,7 @@
         <n-avatar
           :class="[
             'rounded-8px select-none',
-            { grayscale: activeItem?.type === RoomTypeEnum.SINGLE && !isOnline && !isBotUser }
+            { grayscale: activeItem?.type === RoomTypeEnum.SINGLE && connectionKnown && !isOnline && !isBotUser }
           ]"
           :size="28"
           :color="themes.content === ThemeEnum.DARK ? '' : '#fff'"
@@ -42,12 +42,12 @@
           <template v-if="shouldShowDeleteFriend">
             <n-flex align="center" :size="6">
               <!-- 状态图标 -->
-              <n-badge :color="isOnline ? '#13987f' : '#909090'" dot />
+              <n-badge :color="!connectionKnown ? '#f0a020' : isOnline ? '#13987f' : '#909090'" dot />
 
               <!-- 状态文本 -->
               <p v-if="!isPhoneLayout" class="text-(12px [--text-color])">
-                {{ isOnline ? t('home.profile_card.status.online') : t('home.profile_card.status.offline') }}
-                <template v-if="hasCustomState"> · {{ statusTitle }}</template>
+                {{ connectionTitle }}
+                <template v-if="hasCustomState && customStatusTitle">· {{ customStatusTitle }}</template>
               </p>
             </n-flex>
           </template>
@@ -466,7 +466,7 @@ const chatTargetUid = computed(() => {
   if (!session || session.type === RoomTypeEnum.GROUP) return undefined
   return session.detailId
 })
-const { isOnline, statusTitle, hasCustomState } = useOnlineStatus(chatTargetUid)
+const { isOnline, connectionKnown, connectionTitle, customStatusTitle, hasCustomState } = useOnlineStatus(chatTargetUid)
 
 /** 是否还是好友 */
 const shouldShowDeleteFriend = computed(() => {

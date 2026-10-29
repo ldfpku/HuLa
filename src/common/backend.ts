@@ -15,5 +15,7 @@ export const MFA_REQUIRED_MESSAGE = 'MFA_REQUIRED'
  * 应用功能开关：朋友圈（动态）和 AI 机器人以插件形式提供，mailflare 服务端不支持，因此隐藏插件入口和插件管理。
  */
 export const APP_FEATURES = {
-  plugins: false
+  plugins: false,
+  // Keep the existing mail window until embedded navigation and draft safety are verified.
+  embeddedMailWorkspace: false
 } as const

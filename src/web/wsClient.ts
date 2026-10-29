@@ -59,6 +59,7 @@ const EVENT_BY_TYPE: Record<string, string> = {
   msgMarkItem: 'ws-msg-mark-item',
   online: 'ws-online',
   offline: 'ws-offline',
+  presenceChanged: 'ws-presence-changed',
   userStateChange: 'ws-user-state-change',
   userProfileChange: 'ws-user-profile-change',
   notifyEvent: 'ws-request-notify-event',

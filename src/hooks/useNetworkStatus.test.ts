@@ -1,16 +1,21 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { effectScope, nextTick } from 'vue'
 
-const { handlers } = vi.hoisted(() => ({ handlers: [] as Array<(event: { payload: unknown }) => void> }))
+const { handlers, getState, listen } = vi.hoisted(() => {
+  const handlers: Array<(event: { payload: unknown }) => void> = []
+  return {
+    handlers,
+    getState: vi.fn(async (): Promise<string | null> => null),
+    listen: vi.fn(async (_name: string, handler: (event: { payload: unknown }) => void) => {
+      handlers.push(handler)
+      return () => {}
+    })
+  }
+})
 
-vi.mock('@tauri-apps/api/event', () => ({
-  listen: vi.fn(async (_name: string, handler: (event: { payload: unknown }) => void) => {
-    handlers.push(handler)
-    return () => {}
-  })
-}))
+vi.mock('@tauri-apps/api/event', () => ({ listen }))
 vi.mock('@/services/webSocketRust', () => ({
-  default: { getState: vi.fn(async () => null) },
+  default: { getState },
   ConnectionState: {
     DISCONNECTED: 'DISCONNECTED',
     CONNECTING: 'CONNECTING',
@@ -34,6 +39,7 @@ describe('useNetworkStatus 断线提示', () => {
   beforeEach(async () => {
     vi.useFakeTimers()
     handlers.length = 0
+    getState.mockReset().mockResolvedValue(null)
     ;(window as Window & { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__ = {}
     scope = effectScope()
     status = scope.run(() => useNetworkStatus())!
@@ -68,5 +74,69 @@ describe('useNetworkStatus 断线提示', () => {
     await setState('RECONNECTING')
     vi.advanceTimersByTime(30_000)
     expect(status.wsOutageLong.value).toBe(false)
+  })
+
+  it('does not replace a newer live connection event with an older initial query', async () => {
+    scope.stop()
+    handlers.length = 0
+    let resolve!: (state: string) => void
+    getState.mockImplementationOnce(() => new Promise((done) => (resolve = done)))
+    scope = effectScope()
+    status = scope.run(() => useNetworkStatus())!
+    await Promise.resolve()
+    expect(getState).toHaveBeenCalledTimes(2)
+    await setState('CONNECTED')
+    resolve('DISCONNECTED')
+    await Promise.resolve()
+    expect(status.wsStatus.value).toBe('connected')
+  })
+
+  it('unregisters a listener that finishes registration after disposal', async () => {
+    scope.stop()
+    let finish!: (unlisten: () => void) => void
+    const unlisten = vi.fn()
+    listen.mockImplementationOnce(() => new Promise((resolve) => (finish = resolve)))
+    scope = effectScope()
+    status = scope.run(() => useNetworkStatus())!
+    scope.stop()
+    finish(unlisten)
+    await Promise.resolve()
+    expect(unlisten).toHaveBeenCalledOnce()
+  })
+
+  it('retries a failed listener registration and resumes live updates', async () => {
+    scope.stop()
+    handlers.length = 0
+    const warning = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    listen.mockRejectedValueOnce(new Error('listener unavailable'))
+    scope = effectScope()
+    status = scope.run(() => useNetworkStatus())!
+    await Promise.resolve()
+    expect(warning).toHaveBeenCalledOnce()
+    await vi.advanceTimersByTimeAsync(3000)
+    await setState('CONNECTED')
+    expect(status.wsStatus.value).toBe('connected')
+    warning.mockRestore()
+  })
+
+  it('ignores an older initial query after a listener retry has refreshed the state', async () => {
+    scope.stop()
+    handlers.length = 0
+    getState.mockReset()
+    let finish!: (state: string) => void
+    getState
+      .mockImplementationOnce(() => new Promise((resolve) => (finish = resolve)))
+      .mockResolvedValueOnce('CONNECTED')
+    const warning = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    listen.mockRejectedValueOnce(new Error('listener unavailable'))
+    scope = effectScope()
+    status = scope.run(() => useNetworkStatus())!
+    await Promise.resolve()
+    await vi.advanceTimersByTimeAsync(3000)
+    expect(status.wsStatus.value).toBe('connected')
+    finish('DISCONNECTED')
+    await Promise.resolve()
+    expect(status.wsStatus.value).toBe('connected')
+    warning.mockRestore()
   })
 })

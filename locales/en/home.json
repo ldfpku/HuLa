@@ -327,7 +327,10 @@
     "online_status": "Online status",
     "status": {
       "online": "Online",
-      "offline": "Offline"
+      "offline": "Offline",
+      "connecting": "Connecting",
+      "disconnected": "Connection lost",
+      "unknown": "Status unknown"
     },
     "labels": {
       "account": "Account",

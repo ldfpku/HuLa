@@ -155,7 +155,11 @@ export const useGroupStore = defineStore(
       for (const [roomId, members] of Object.entries(userListMap)) {
         for (const member of members) {
           const user = byId.get(member.uid)
-          if (user) {
+          if (
+            user &&
+            Number.isFinite(user.lastOptTime) &&
+            (!Number.isFinite(member.lastOptTime) || user.lastOptTime >= member.lastOptTime)
+          ) {
             member.activeStatus = user.activeStatus
             member.lastOptTime = user.lastOptTime
           }

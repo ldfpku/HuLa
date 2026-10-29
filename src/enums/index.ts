@@ -154,6 +154,8 @@ export enum StoresEnum {
   MAIL = 'mail',
   /** 我的待办 */
   TODO = 'todo',
+  /** 主窗口工作区 */
+  WORKSPACE = 'workspace',
   /** 聊天里会议卡片的状态 */
   MEETING_STATUS = 'meetingStatus',
   /** 账号账号历史记录列表 */

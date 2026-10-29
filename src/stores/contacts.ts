@@ -76,10 +76,18 @@ export const useContactStore = defineStore(StoresEnum.CONTACTS, () => {
       users.push(...(await getUserByIds(ids.slice(offset, offset + 100))))
     }
     if (account !== userStore.userInfo?.uid) return
+    applyPresence(users)
+  }
+
+  const applyPresence = (users: Pick<FriendItem, 'uid' | 'activeStatus' | 'lastOptTime'>[]) => {
     const byId = new Map(users.map((user) => [user.uid, user]))
     for (const contact of contactsList.value) {
       const user = byId.get(contact.uid)
-      if (user) {
+      if (
+        user &&
+        Number.isFinite(user.lastOptTime) &&
+        (!Number.isFinite(contact.lastOptTime) || user.lastOptTime >= contact.lastOptTime)
+      ) {
         contact.activeStatus = user.activeStatus
         contact.lastOptTime = user.lastOptTime
       }
@@ -249,6 +257,7 @@ export const useContactStore = defineStore(StoresEnum.CONTACTS, () => {
   return {
     getContactList,
     refreshPresence,
+    applyPresence,
     getApplyPage,
     getApplyUnReadCount,
     contactsList,

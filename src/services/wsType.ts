@@ -10,6 +10,8 @@ export enum WsResponseMessageType {
   RECEIVE_MESSAGE = 'receiveMessage',
   /** 上线推送 */
   ONLINE = 'online',
+  /** 联系人的连接状态变化 */
+  PRESENCE_CHANGED = 'presenceChanged',
   /** 前端token失效 */
   TOKEN_EXPIRED = 'tokenExpired',
   /** 禁用的用户 */

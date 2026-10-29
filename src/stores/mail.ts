@@ -2,10 +2,13 @@ import { WebviewWindow } from '@tauri-apps/api/webviewWindow'
 import { invoke } from '@tauri-apps/api/core'
 import { sendNotification } from '@tauri-apps/plugin-notification'
 import { defineStore } from 'pinia'
+import { APP_FEATURES } from '@/common/backend'
 import { StoresEnum } from '@/enums'
 import type { MailCardBody, MailSearchHit } from '@/services/types'
 import { getMailSsoUrl, getMailUnread } from '@/utils/ImRequestUtils'
 import { desktopMailTarget } from '@/utils/DesktopMail'
+import { isDesktop, isWeb } from '@/utils/PlatformConstants'
+import { useWorkspaceStore } from '@/stores/workspace'
 
 /** 服务端推送的新邮件事件（mailNew） */
 export type MailNewEvent = {
@@ -19,11 +22,7 @@ export type MailNewEvent = {
 /** 邮件窗口的标识 */
 const MAIL_WINDOW_LABEL = 'mail'
 
-async function prepareMailWindow(
-  webview: WebviewWindow,
-  refreshUnread?: () => Promise<void>,
-  onFinished?: () => void
-) {
+async function prepareMailWindow(webview: WebviewWindow, refreshUnread?: () => Promise<void>, onFinished?: () => void) {
   const created = webview.once('tauri://created', async () => {
     try {
       await invoke('set_mail_window_identity', { label: webview.label })
@@ -77,8 +76,21 @@ export const useMailStore = defineStore(StoresEnum.MAIL, () => {
     })
   }
 
+  const openEmbeddedMail = async (path?: string) => {
+    const home = await WebviewWindow.getByLabel('home')
+    if (!home) throw new Error('主窗口不可用，无法打开邮件')
+    await home.unminimize()
+    await home.show()
+    await home.setFocus()
+    useWorkspaceStore().openMail(path)
+  }
+
   /** 打开邮件窗口；已打开时直接聚焦 */
   const openMail = async (next?: string) => {
+    if (APP_FEATURES.embeddedMailWorkspace && isDesktop() && !isWeb()) {
+      await openEmbeddedMail(next)
+      return
+    }
     if (opening) return
     const existing = await WebviewWindow.getByLabel(MAIL_WINDOW_LABEL)
     if (existing) {
@@ -115,6 +127,11 @@ export const useMailStore = defineStore(StoresEnum.MAIL, () => {
   /** 打开聊天里的邮件卡片：每封分享的邮件一个窗口，同样通过一次性链接免登录 */
   const openMailShare = async (card: MailCardBody) => {
     const path = new URL(card.url).pathname
+    if (APP_FEATURES.embeddedMailWorkspace && isDesktop() && !isWeb()) {
+      if (path !== `/api/im/mail/share/${encodeURIComponent(card.shareId)}`) throw new Error('邮件分享地址无效')
+      await openEmbeddedMail(path)
+      return
+    }
     const label = `mail-share-${card.shareId}`
     const existing = await WebviewWindow.getByLabel(label)
     if (existing) {
@@ -141,6 +158,10 @@ export const useMailStore = defineStore(StoresEnum.MAIL, () => {
 
   /** 打开搜索到的邮件：每封邮件一个窗口，打开邮件网页里这封邮件的页面 */
   const openMailMessage = async (mail: Pick<MailSearchHit, 'id' | 'path' | 'subject'>) => {
+    if (APP_FEATURES.embeddedMailWorkspace && isDesktop() && !isWeb()) {
+      await openEmbeddedMail(mail.path)
+      return
+    }
     const label = `mail-message-${mail.id.replace(/[^a-zA-Z0-9_-]/g, '')}`
     const existing = await WebviewWindow.getByLabel(label)
     if (existing) {

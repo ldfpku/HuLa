@@ -69,6 +69,11 @@ const useSharedNetworkStatus = createSharedComposable(() => {
   )
   const isListening = ref(false)
   let wsUnlisten: UnlistenFn | null = null
+  let listenerGeneration = 0
+  let wsRevision = 0
+  let wsQueryGeneration = 0
+  let wsListenerRetry: ReturnType<typeof setTimeout> | null = null
+  let wsListenerRetryDelay = 3000
 
   // 监听浏览器网络状态变化
   const handleOnline = () => {
@@ -109,25 +114,47 @@ const useSharedNetworkStatus = createSharedComposable(() => {
     wsState.value = resolved
   }
 
-  const initWsListener = async () => {
-    if (!isTauriContext() || wsUnlisten) return
+  const initWsListener = async (generation: number) => {
+    if (!isTauriContext()) return
     try {
-      wsUnlisten = await listen('websocket-event', (event) => {
+      const unlisten = await listen('websocket-event', (event) => {
+        if (!isListening.value || generation !== listenerGeneration) return
         const payload = event.payload as { type?: string; state?: string }
         if (!payload) return
         if (payload.type !== 'connectionStateChanged') return
+        if (!resolveWsState(payload.state)) return
+        wsRevision++
         updateWsState(payload.state)
       })
+      if (!isListening.value || generation !== listenerGeneration) {
+        unlisten()
+        return
+      }
+      wsUnlisten = unlisten
+      wsListenerRetryDelay = 3000
     } catch (error) {
       console.warn('[Network] websocket-event 监听失败:', error)
+      if (isListening.value && generation === listenerGeneration) {
+        wsListenerRetry = setTimeout(() => {
+          wsListenerRetry = null
+          void initWsListener(generation)
+        }, wsListenerRetryDelay)
+        wsListenerRetryDelay = Math.min(wsListenerRetryDelay * 2, 60_000)
+      }
     }
-  }
-
-  const initWsState = async () => {
-    if (!isTauriContext()) return
+    if (!isListening.value || generation !== listenerGeneration) return
+    const revision = wsRevision
+    const queryGeneration = ++wsQueryGeneration
     try {
       const state = await rustWebSocketClient.getState()
-      updateWsState(state)
+      if (
+        isListening.value &&
+        generation === listenerGeneration &&
+        revision === wsRevision &&
+        queryGeneration === wsQueryGeneration
+      ) {
+        updateWsState(state)
+      }
     } catch (error) {
       console.warn('[Network] WebSocket 状态获取失败:', error)
     }
@@ -139,8 +166,7 @@ const useSharedNetworkStatus = createSharedComposable(() => {
     window.addEventListener('online', handleOnline)
     window.addEventListener('offline', handleOffline)
     isListening.value = true
-    void initWsListener()
-    void initWsState()
+    void initWsListener(++listenerGeneration)
   }
 
   // 清理网络状态监听
@@ -149,6 +175,12 @@ const useSharedNetworkStatus = createSharedComposable(() => {
     window.removeEventListener('online', handleOnline)
     window.removeEventListener('offline', handleOffline)
     isListening.value = false
+    listenerGeneration++
+    if (wsListenerRetry) {
+      clearTimeout(wsListenerRetry)
+      wsListenerRetry = null
+    }
+    wsListenerRetryDelay = 3000
     if (wsUnlisten) {
       wsUnlisten()
       wsUnlisten = null

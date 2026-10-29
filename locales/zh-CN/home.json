@@ -323,7 +323,10 @@
     "online_status": "在线状态",
     "status": {
       "online": "在线",
-      "offline": "离线"
+      "offline": "离线",
+      "connecting": "连接中",
+      "disconnected": "连接已断开",
+      "unknown": "状态未知"
     },
     "labels": {
       "account": "账号",

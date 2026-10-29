@@ -10,7 +10,8 @@
       data-tauri-drag-region>
       <!-- 当前选中的状态 -->
       <n-flex justify="center" align="center" class="pt-80px" data-tauri-drag-region>
-        <img class="w-34px h-34px" :src="statusIcon" alt="" />
+        <span v-if="isConnectionPending" class="block size-34px rounded-50% bg-#f0a020" aria-hidden="true" />
+        <img v-else class="w-34px h-34px" :src="statusIcon" alt="" />
         <span class="text-22px ml-8px" :title="statusTitle">{{ displayStatusTitle }}</span>
       </n-flex>
 
@@ -36,7 +37,7 @@
               align="center"
               :size="8"
               class="status-item">
-              <img class="size-24px" :src="item.url" alt="" />
+              <img class="size-24px" :src="userStateIcon(item)" alt="" />
               <span class="text-11px" :title="translateStateTitle(item.title)">
                 {{ translateStateTitle(item.title) }}
               </span>
@@ -56,11 +57,12 @@ import { useUserStore } from '@/stores/user'
 import { useUserStatusStore } from '@/stores/userStatus'
 import { useOnlineStatus } from '@/hooks/useOnlineStatus.ts'
 import { changeUserState } from '@/utils/ImRequestUtils'
+import { userStateIcon } from '@/utils/UserStateIcon'
 
 const userStatusStore = useUserStatusStore()
 const userStore = useUserStore()
 const { stateList, stateId } = storeToRefs(userStatusStore)
-const { currentState, statusIcon, statusTitle, statusBgColor, hasCustomState } = useOnlineStatus()
+const { currentState, statusIcon, statusTitle, statusBgColor, hasCustomState, isConnectionPending } = useOnlineStatus()
 const { t } = useI18n()
 const resetState = computed<UserState>(() => ({
   id: '0',
@@ -73,7 +75,7 @@ const translateStateTitle = (title?: string) => {
   const translated = t(key)
   return translated === key ? title : translated
 }
-const displayStatusTitle = computed(() => translateStateTitle(statusTitle.value))
+const displayStatusTitle = computed(() => statusTitle.value)
 const handleResetState = () => handleActive(resetState.value)
 /** 这里不写入activeItem中是因为v-bind要绑定的值是响应式的 */
 const RGBA = ref(statusBgColor.value)
@@ -88,10 +90,16 @@ watchEffect(() => {
  */
 const handleActive = async (item: UserState) => {
   try {
+    const uid = userStore.userInfo?.uid
+    if (!uid) throw new Error(t('home.profile_edit.toast.account_changed'))
     await changeUserState({ id: item.id })
+    if (userStore.userInfo?.uid !== uid) {
+      window.$message?.warning(t('home.profile_edit.toast.account_changed'))
+      return
+    }
 
-    stateId.value = item.id
-    userStore.userInfo!.userStateId = item.id
+    stateId.value = item.id === '0' ? '1' : item.id
+    userStore.userInfo.userStateId = stateId.value
 
     window.$message?.success(t('auth.onlineStatus.messages.success'))
   } catch (error) {

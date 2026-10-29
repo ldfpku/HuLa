@@ -40,6 +40,7 @@ import { isCallOrMeetingWindow } from '@/utils/RtcCallUtils'
 import { useContactStore } from '@/stores/contacts.ts'
 import { useGroupStore } from '@/stores/group'
 import { useUserStore } from '@/stores/user'
+import { useUserStatusStore } from '@/stores/userStatus'
 import { useChatStore } from '@/stores/chat'
 import { useMeetingStatusStore, type MeetingStatusInfo } from '@/stores/meetingStatus'
 import { useAnnouncementStore } from '@/stores/announcement'
@@ -50,6 +51,7 @@ import * as ImRequestUtils from '@/utils/ImRequestUtils'
 import { listen } from '@tauri-apps/api/event'
 import { useTauriListener } from '@/hooks/useTauriListener'
 import { updateSettings } from '@/services/tauriCommand.ts'
+import { parsePresenceChange, PresenceVersionTracker } from '@/utils/PresenceEvents'
 import { useI18n } from 'vue-i18n'
 const mobileRtcCallFloatCell = isMobile()
   ? defineAsyncComponent(() => import('@/mobile/components/RtcCallFloatCell.vue'))
@@ -60,12 +62,14 @@ const showMemoryMonitor = ref(true)
 const isHomeDesktopWindow = computed(() => isDesktop() && appWindow.label === 'home')
 
 const userStore = useUserStore()
+const userStatusStore = useUserStatusStore()
 const contactStore = useContactStore()
 const announcementStore = useAnnouncementStore()
 const feedStore = useFeedStore()
 const feedNotificationStore = useFeedNotificationStore()
 const userUid = computed(() => userStore.userInfo!.uid)
 const groupStore = useGroupStore()
+const presenceVersions = new PresenceVersionTracker()
 const chatStore = useChatStore()
 const meetingStatusStore = useMeetingStatusStore()
 const appWindow = WebviewWindow.getCurrent()
@@ -386,6 +390,11 @@ useMitt.on(WsResponseMessageType.INVALID_USER, (param: { uid: string }) => {
 })
 
 useMitt.on(WsResponseMessageType.ONLINE, async (onStatusChangeType: OnStatusChangeType) => {
+  if (!onStatusChangeType || typeof onStatusChangeType.uid !== 'string') {
+    console.warn('[Presence] 无效的上线事件')
+    return
+  }
+  if (!presenceVersions.accept(userStore.userInfo?.uid, onStatusChangeType.uid, onStatusChangeType.lastOptTime)) return
   console.log('收到用户上线通知')
   // 群聊
   if (onStatusChangeType.type === 1) {
@@ -406,6 +415,16 @@ useMitt.on(WsResponseMessageType.ONLINE, async (onStatusChangeType: OnStatusChan
   }
 })
 
+useMitt.on(WsResponseMessageType.PRESENCE_CHANGED, (payload: unknown) => {
+  const change = parsePresenceChange(payload)
+  if (!change) {
+    console.warn('[Presence] 无效的连接状态事件')
+    return
+  }
+  if (!presenceVersions.accept(userStore.userInfo?.uid, change.uid, change.lastOptTime)) return
+  contactStore.applyPresence([change])
+})
+
 useMitt.on(WsResponseMessageType.ROOM_DISSOLUTION, async (roomId: string) => {
   console.log('收到群解散通知', roomId)
   // 移除群聊的会话
@@ -420,6 +439,10 @@ useMitt.on(WsResponseMessageType.ROOM_DISSOLUTION, async (roomId: string) => {
 
 useMitt.on(WsResponseMessageType.USER_STATE_CHANGE, async (data: { uid: string; userStateId: string }) => {
   console.log('收到用户状态改变', data)
+  if (data.uid === userStore.userInfo?.uid) {
+    userStore.userInfo.userStateId = data.userStateId
+    userStatusStore.stateId = data.userStateId
+  }
   groupStore.updateUserItem(data.uid, {
     userStateId: data.userStateId
   })
@@ -524,6 +547,11 @@ useMitt.on(WsResponseMessageType.GROUP_SET_ADMIN_SUCCESS, (event) => {
 })
 
 useMitt.on(WsResponseMessageType.OFFLINE, async (onStatusChangeType: OnStatusChangeType) => {
+  if (!onStatusChangeType || typeof onStatusChangeType.uid !== 'string') {
+    console.warn('[Presence] 无效的下线事件')
+    return
+  }
+  if (!presenceVersions.accept(userStore.userInfo?.uid, onStatusChangeType.uid, onStatusChangeType.lastOptTime)) return
   console.log('收到用户下线通知', onStatusChangeType)
   // 群聊
   if (onStatusChangeType.type === 1) {
@@ -596,7 +624,7 @@ const refreshActiveGroupMembers = async () => {
     if (activeRoomId) {
       tasks.push(groupStore.getGroupUserList(activeRoomId, true))
     }
-    await Promise.allSettled(tasks)
+    await Promise.all(tasks)
   } catch (error) {
     console.error('[Network] 刷新群成员失败:', error)
   }
@@ -631,6 +659,11 @@ const handleWebsocketEvent = async (event: any) => {
 
     // 重连后同步当前/首个群聊成员信息，避免展示断网前的旧数据
     await refreshActiveGroupMembers()
+    try {
+      await contactStore.refreshPresence()
+    } catch (error) {
+      console.error('[Network] 重连后刷新联系人状态失败:', error)
+    }
 
     if (globalStore.currentSessionRoomId) {
       const currentRoomId = globalStore.currentSessionRoomId

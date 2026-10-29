@@ -8,6 +8,9 @@ const mocks = vi.hoisted(() => ({
   unread: vi.fn(),
   warning: vi.fn(),
   error: vi.fn(),
+  isDesktop: vi.fn(),
+  isWeb: vi.fn(),
+  features: { embeddedMailWorkspace: false },
   windows: [] as Array<{
     label: string
     options: Record<string, unknown>
@@ -16,6 +19,7 @@ const mocks = vi.hoisted(() => ({
   }>
 }))
 vi.mock('@tauri-apps/api/core', () => ({ invoke: mocks.invoke }))
+vi.mock('@/common/backend', () => ({ APP_FEATURES: mocks.features }))
 vi.mock('@tauri-apps/plugin-notification', () => ({ sendNotification: vi.fn() }))
 vi.mock('@tauri-apps/api/webviewWindow', () => ({
   WebviewWindow: class {
@@ -35,8 +39,10 @@ vi.mock('@tauri-apps/api/webviewWindow', () => ({
   }
 }))
 vi.mock('@/utils/ImRequestUtils', () => ({ getMailSsoUrl: mocks.sso, getMailUnread: mocks.unread }))
+vi.mock('@/utils/PlatformConstants', () => ({ isDesktop: mocks.isDesktop, isWeb: mocks.isWeb }))
 
 import { useMailStore } from './mail'
+import { useWorkspaceStore } from './workspace'
 
 describe('desktop mail windows', () => {
   beforeEach(() => {
@@ -46,6 +52,9 @@ describe('desktop mail windows', () => {
     mocks.getByLabel.mockResolvedValue(null)
     mocks.sso.mockResolvedValue({ url: 'https://mail.example.test/sso' })
     mocks.invoke.mockResolvedValue(undefined)
+    mocks.isDesktop.mockReturnValue(false)
+    mocks.isWeb.mockReturnValue(true)
+    mocks.features.embeddedMailWorkspace = false
     Object.assign(window, { $message: { warning: mocks.warning, error: mocks.error } })
   })
 
@@ -85,5 +94,48 @@ describe('desktop mail windows', () => {
     expect(mocks.sso).toHaveBeenCalledWith('/message/m1?smj_desktop=1')
     await mail.handlers['tauri://created']({})
     expect(mocks.invoke).toHaveBeenCalledWith('set_mail_window_identity', { label: 'mail-message-m1' })
+  })
+
+  it('routes desktop inbox and message links to the main workspace without creating a window', async () => {
+    const home = { unminimize: vi.fn(), show: vi.fn(), setFocus: vi.fn() }
+    mocks.isDesktop.mockReturnValue(true)
+    mocks.isWeb.mockReturnValue(false)
+    mocks.features.embeddedMailWorkspace = true
+    mocks.getByLabel.mockResolvedValue(home)
+    const mail = useMailStore()
+    await mail.openMail()
+    expect(useWorkspaceStore().active).toBe('mail')
+    await mail.openMailMessage({ id: 'm1', path: '/inbox/m1', subject: 'Subject' })
+    expect(useWorkspaceStore().mailNavigation?.target).toBe('/inbox/m1?smj_desktop=1')
+    expect(mocks.windows).toHaveLength(0)
+    expect(mocks.sso).not.toHaveBeenCalled()
+    expect(home.setFocus).toHaveBeenCalledTimes(2)
+  })
+
+  it('rejects a desktop share card whose path does not match its share ID', async () => {
+    mocks.isDesktop.mockReturnValue(true)
+    mocks.isWeb.mockReturnValue(false)
+    mocks.features.embeddedMailWorkspace = true
+    await expect(
+      useMailStore().openMailShare({
+        shareId: 'share-1',
+        url: 'https://mail.example.test/inbox',
+        subject: '',
+        from: '',
+        fromName: '',
+        date: 0,
+        snippet: '',
+        attachmentCount: 0
+      })
+    ).rejects.toThrow('邮件分享地址无效')
+    expect(mocks.getByLabel).not.toHaveBeenCalled()
+  })
+
+  it('keeps the existing desktop window available while the embedded workspace is disabled', async () => {
+    mocks.isDesktop.mockReturnValue(true)
+    mocks.isWeb.mockReturnValue(false)
+    await useMailStore().openMail()
+    expect(mocks.windows).toHaveLength(1)
+    expect(useWorkspaceStore().active).toBe('chat')
   })
 })
