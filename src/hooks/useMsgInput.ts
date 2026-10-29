@@ -17,6 +17,7 @@ import { messageStrategyMap } from '@/strategy/MessageStrategy.ts'
 import { processClipboardImage } from '@/utils/ImageUtils.ts'
 import { getReplyContent } from '@/utils/MessageReply.ts'
 import { isPathUploadFile, type PathUploadFile, type UploadFile } from '@/utils/FileType'
+import { createUploadProgressUpdater, yieldBeforeFileUpload } from '@/utils/FileUploadScheduling'
 import { isMac, isMobile, isWindows } from '@/utils/PlatformConstants'
 import { type SelectionRange, useCommon } from './useCommon.ts'
 import { globalFileUploadQueue } from './useFileUploadQueue.ts'
@@ -75,21 +76,13 @@ export const useMsgInput = (messageInputDom: Ref) => {
   const { triggerInputEvent, insertNode, getMessageContentType, getEditorRange, imgPaste, reply, userUid } = useCommon()
 
   const createRafProgressUpdater = (tempMsgId: string) => {
-    let scheduled = false
-    let latest = 0
-    return (value: number) => {
-      latest = value
-      if (scheduled) return
-      scheduled = true
-      requestAnimationFrame(() => {
-        scheduled = false
-        chatStore.updateMsg({
-          msgId: tempMsgId,
-          status: MessageStatusEnum.SENDING,
-          uploadProgress: latest
-        })
+    return createUploadProgressUpdater((value) => {
+      chatStore.updateMsg({
+        msgId: tempMsgId,
+        status: MessageStatusEnum.SENDING,
+        uploadProgress: value
       })
-    }
+    })
   }
   const settingStore = useSettingStore()
   const { chat } = storeToRefs(settingStore)
@@ -816,18 +809,9 @@ export const useMsgInput = (messageInputDom: Ref) => {
     tempMsg.message.status = MessageStatusEnum.SENDING
     chatStore.pushMsg(tempMsg)
 
-    let isProgressActive = true
-    const cleanup = () => {
-      isProgressActive = false
-    }
+    const { update: progressCallback, stop: cleanup } = createRafProgressUpdater(tempMsgId)
 
     try {
-      const updateProgress = createRafProgressUpdater(tempMsgId)
-      const progressCallback = (pct: number) => {
-        if (!isProgressActive) return
-        updateProgress(pct)
-      }
-
       const { uploadUrl, downloadUrl, config } = await messageStrategy.uploadFile(msg.path, {
         provider: UploadProviderEnum.QINIU
       })
@@ -891,18 +875,9 @@ export const useMsgInput = (messageInputDom: Ref) => {
     tempMsg.message.status = MessageStatusEnum.SENDING
     chatStore.pushMsg(tempMsg)
 
-    let isProgressActive = true
-    const cleanup = () => {
-      isProgressActive = false
-    }
+    const { update: progressCallback, stop: cleanup } = createRafProgressUpdater(tempMsgId)
 
     try {
-      const updateProgress = createRafProgressUpdater(tempMsgId)
-      const progressCallback = (pct: number) => {
-        if (!isProgressActive) return
-        updateProgress(pct)
-      }
-
       const { uploadUrl, downloadUrl, config } = await messageStrategy.uploadFile(msg.path, {
         provider: UploadProviderEnum.QINIU
       })
@@ -1085,9 +1060,7 @@ export const useMsgInput = (messageInputDom: Ref) => {
 
     // 让 UI 先渲染占位消息，再开始耗时上传/分片逻辑
     await nextTick()
-    await new Promise<void>((resolve) => {
-      requestAnimationFrame(() => resolve())
-    })
+    await yieldBeforeFileUpload()
 
     // 控制并发数，避免同时上传过多文件拖慢渲染与交互
     const limit = pLimit(3)

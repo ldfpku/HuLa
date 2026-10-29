@@ -59,7 +59,7 @@ const handleSelect = async (direction: SplitDirection | 'restore') => {
     if (!splitWindowState.saved) {
       splitWindowState.saved = {
         position: await appWindow.outerPosition(),
-        size: await appWindow.outerSize(),
+        size: await appWindow.innerSize(),
         maximized: await appWindow.isMaximized(),
         fullscreen: await appWindow.isFullscreen()
       }
@@ -67,7 +67,14 @@ const handleSelect = async (direction: SplitDirection | 'restore') => {
     if (await appWindow.isFullscreen()) await appWindow.setFullscreen(false)
     if (await appWindow.isMaximized()) await appWindow.unmaximize()
     await appWindow.setMinSize(new LogicalSize(330, 200))
-    await appWindow.setSize(new PhysicalSize(target.width, target.height))
+    const outer = await appWindow.outerSize()
+    const inner = await appWindow.innerSize()
+    const width = target.width - Math.max(0, outer.width - inner.width)
+    const height = target.height - Math.max(0, outer.height - inner.height)
+    if (width < 330 * monitor.scaleFactor || height < 200 * monitor.scaleFactor) {
+      throw new Error('Work area is too small')
+    }
+    await appWindow.setSize(new PhysicalSize(width, height))
     await appWindow.setPosition(new PhysicalPosition(target.x, target.y))
     await new Promise((resolve) => setTimeout(resolve, 200))
     const actual = await appWindow.outerPosition()

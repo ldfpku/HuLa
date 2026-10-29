@@ -17,13 +17,27 @@ const goToMailLogin = () => {
   location.replace(`/login?next=${encodeURIComponent(import.meta.env.BASE_URL)}`)
 }
 
+const errorMessage = (error: unknown) => (error instanceof Error ? error.message : String(error))
+
+const reportSignInError = (error: unknown) => {
+  console.error('[web] 自动登录失败:', error)
+  window.$message?.error(errorMessage(error))
+}
+
 export const tryWebSignIn = async (label: string) => {
   if (label !== 'login') return
   let tokens = tokenStore.get()
   if (!tokens) {
-    const resp = await requestPath<{ token: string; refreshToken: string; uid: string }>('POST', 'web/session').catch(
-      () => null
-    )
+    let resp: { token: string; refreshToken: string; uid: string } | null
+    try {
+      resp = await requestPath('POST', 'web/session')
+    } catch (error) {
+      if (errorMessage(error).includes('network_error')) {
+        reportSignInError(error)
+        return
+      }
+      resp = null
+    }
     if (!resp?.token) {
       goToMailLogin()
       return
@@ -31,8 +45,14 @@ export const tryWebSignIn = async (label: string) => {
     tokens = { uid: resp.uid, token: resp.token, refreshToken: resp.refreshToken }
     tokenStore.set(tokens)
   }
-  await loginCommand({ uid: tokens.uid }, true).catch(() => {
-    tokenStore.clear()
-    goToMailLogin()
-  })
+  try {
+    await loginCommand({ uid: tokens.uid }, true)
+  } catch (error) {
+    if (errorMessage(error).includes('请重新登录')) {
+      tokenStore.clear()
+      goToMailLogin()
+    } else {
+      reportSignInError(error)
+    }
+  }
 }

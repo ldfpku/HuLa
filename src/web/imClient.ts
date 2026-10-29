@@ -32,6 +32,8 @@ export const tokenStore = {
 
 export class ImRequestError extends Error {}
 
+class ImFetchError extends ImRequestError {}
+
 const buildUrl = (path: string, params?: Record<string, unknown> | null) => {
   const url = new URL(`${webConfig.baseUrl}/${path}`)
   if (params) {
@@ -45,30 +47,62 @@ const buildUrl = (path: string, params?: Record<string, unknown> | null) => {
 }
 
 const NETWORK_RETRY_DELAYS = [500, 1500]
+const REQUEST_TIMEOUT_MS = 30_000
+
+type ImResponse = { code?: number; msg?: string; data?: unknown; success?: boolean }
+
+const fetchJson = async (url: string, init: RequestInit, refreshRequest = false): Promise<ImResponse> => {
+  const controller = new AbortController()
+  let timer: ReturnType<typeof setTimeout> | undefined
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => {
+      reject(new ImRequestError('network_error: 请求超时，请检查操作结果后重试'))
+      controller.abort()
+    }, REQUEST_TIMEOUT_MS)
+  })
+  const request = async () => {
+    let response: Response
+    try {
+      response = await fetch(url, { ...init, signal: controller.signal })
+    } catch (error) {
+      throw new ImFetchError(`network_error: ${error}`)
+    }
+    if (response.status === 429 || response.status >= 500) {
+      throw new ImRequestError(`network_error: 服务暂不可用 (${response.status})`)
+    }
+    if (refreshRequest && (response.status === 401 || response.status === 403)) {
+      throw new ImRequestError('请重新登录')
+    }
+    try {
+      return (await response.json()) as ImResponse
+    } catch (error) {
+      throw new ImRequestError(`network_error: ${error}`)
+    }
+  }
+  try {
+    return await Promise.race([request(), timeout])
+  } finally {
+    clearTimeout(timer)
+  }
+}
 
 const send = async (method: string, path: string, body?: unknown, params?: Record<string, unknown> | null) => {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' }
   const tokens = tokenStore.get()
   if (tokens?.token) headers.token = tokens.token
   const readOnly = method === 'GET' || method === 'HEAD'
-  let response: Response | undefined
   // 手机网络抖动时 fetch 会直接失败（Safari 报 “Load failed”）；只读请求重试两次，写请求不重试以免重复提交
-  for (let attempt = 0; !response; attempt++) {
+  for (let attempt = 0; ; attempt++) {
     try {
-      response = await fetch(buildUrl(path, params), {
+      return await fetchJson(buildUrl(path, params), {
         method,
         headers,
         body: readOnly ? undefined : JSON.stringify(body ?? {})
       })
     } catch (error) {
-      if (!readOnly || attempt >= NETWORK_RETRY_DELAYS.length) throw new ImRequestError(`network_error: ${error}`)
+      if (!(error instanceof ImFetchError) || !readOnly || attempt >= NETWORK_RETRY_DELAYS.length) throw error
       await new Promise((resolve) => setTimeout(resolve, NETWORK_RETRY_DELAYS[attempt]))
     }
-  }
-  try {
-    return (await response.json()) as { code?: number; msg?: string; data?: unknown; success?: boolean }
-  } catch (error) {
-    throw new ImRequestError(`network_error: ${error}`)
   }
 }
 
@@ -85,16 +119,23 @@ export const refreshTokens = (): Promise<Tokens> => {
 const doRefreshTokens = async (): Promise<Tokens> => {
   const tokens = tokenStore.get()
   if (!tokens?.refreshToken) throw new ImRequestError('请重新登录')
-  const result = await fetch(buildUrl(IM_URLS.refreshToken[1]), {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ refreshToken: tokens.refreshToken })
-  })
-    .then((res) => res.json())
-    .catch(() => null)
-  if (result === null) throw new ImRequestError('network_error: 刷新 token 失败')
+  const result = await fetchJson(
+    buildUrl(IM_URLS.refreshToken[1]),
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refreshToken: tokens.refreshToken })
+    },
+    true
+  )
   const data = result?.data as { token?: string; refreshToken?: string } | undefined
-  if (!result?.success || !data?.token) throw new ImRequestError('请重新登录')
+  if (result?.code === 429 || (result?.code !== undefined && result.code >= 500)) {
+    throw new ImRequestError(`network_error: 刷新服务暂不可用 (${result.code})`)
+  }
+  if (result?.success === false) throw new ImRequestError('请重新登录')
+  if (result?.success !== true || typeof data?.token !== 'string' || !data.token.trim()) {
+    throw new ImRequestError('network_error: 刷新响应缺少有效的 token')
+  }
   const next = { uid: tokens.uid, token: data.token, refreshToken: data.refreshToken || tokens.refreshToken }
   tokenStore.set(next)
   return next

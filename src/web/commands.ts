@@ -85,9 +85,7 @@ export const createCommands = (ws: WebSocketClient, emit: (event: string, payloa
       if (data.isAutoLogin) {
         const stored = tokenStore.get()
         if (!stored || (data.uid && stored.uid !== data.uid)) throw '请重新登录'
-        const tokens = await refreshTokens().catch(() => {
-          throw '请重新登录'
-        })
+        const tokens = await refreshTokens()
         return { token: tokens.token, refreshToken: tokens.refreshToken, client: '', expire: '', uid: tokens.uid }
       }
       const resp = await imRequest<any>('login', data).catch((error) => {

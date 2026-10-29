@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   window: {
     outerPosition: vi.fn(),
     outerSize: vi.fn(),
+    innerSize: vi.fn(),
     isMaximized: vi.fn(),
     isFullscreen: vi.fn(),
     setFullscreen: vi.fn(),
@@ -42,11 +43,12 @@ describe('split window menu', () => {
     })
     mocks.window.outerPosition.mockImplementation(async () => ({ ...position }))
     mocks.window.outerSize.mockImplementation(async () => ({ ...size }))
+    mocks.window.innerSize.mockImplementation(async () => ({ width: size.width - 16, height: size.height - 9 }))
     mocks.window.isMaximized.mockResolvedValue(false)
     mocks.window.isFullscreen.mockResolvedValue(false)
     mocks.window.setMinSize.mockResolvedValue(undefined)
     mocks.window.setSize.mockImplementation(async (value: { width: number; height: number }) => {
-      size = { width: value.width, height: value.height }
+      size = { width: value.width + 16, height: value.height + 9 }
     })
     mocks.window.setPosition.mockImplementation(async (value: { x: number; y: number }) => {
       position = { x: value.x, y: value.y }

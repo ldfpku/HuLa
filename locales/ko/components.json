@@ -30,15 +30,15 @@
       "round": "원형 미리보기",
       "square": "둥근 사각형 미리보기"
     },
-    "avatarPicker": {
-      "title": "프로필 사진 선택",
-      "option": "기본 프로필 사진 {number}",
-      "upload": "이미지 업로드",
-      "saving": "프로필 사진을 변경하는 중…",
-      "save_success": "프로필 사진이 변경되었습니다",
-      "save_failed": "프로필 사진을 변경하지 못했습니다. 다시 시도하세요."
-    },
     "uploading": "업로드 중..."
+  },
+  "avatarPicker": {
+    "title": "프로필 사진 선택",
+    "option": "기본 프로필 사진 {number}",
+    "upload": "이미지 업로드",
+    "saving": "프로필 사진을 변경하는 중…",
+    "save_success": "프로필 사진이 변경되었습니다",
+    "save_failed": "프로필 사진을 변경하지 못했습니다. 다시 시도하세요."
   },
   "announcementCard": {
     "title": "공지사항",

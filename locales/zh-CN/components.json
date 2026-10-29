@@ -30,15 +30,15 @@
       "round": "圆形预览",
       "square": "矩形预览"
     },
-    "avatarPicker": {
-      "title": "选择头像",
-      "option": "内置头像 {number}",
-      "upload": "上传图片",
-      "saving": "正在更新头像…",
-      "save_success": "头像更新成功",
-      "save_failed": "头像更新失败，请重试"
-    },
     "uploading": "上传中..."
+  },
+  "avatarPicker": {
+    "title": "选择头像",
+    "option": "内置头像 {number}",
+    "upload": "上传图片",
+    "saving": "正在更新头像…",
+    "save_success": "头像更新成功",
+    "save_failed": "头像更新失败，请重试"
   },
   "announcementCard": {
     "title": "公告",
