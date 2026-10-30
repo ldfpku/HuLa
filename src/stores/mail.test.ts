@@ -75,6 +75,7 @@ describe('desktop mail windows', () => {
     const mail = mocks.windows[0]
     expect(mocks.sso).toHaveBeenCalledWith('/inbox?folder=sent&smj_desktop=1')
     expect(mail.options.visible).toBe(false)
+    expect(mail.options.dragDropEnabled).toBe(false)
     await mail.handlers['tauri://created']({})
     expect(mocks.invoke).toHaveBeenCalledWith('set_mail_window_identity', { label: 'mail' })
     expect(mocks.invoke.mock.invocationCallOrder[0]).toBeLessThan(mail.show.mock.invocationCallOrder[0])
@@ -104,8 +105,23 @@ describe('desktop mail windows', () => {
     await useMailStore().openMailMessage({ id: 'm1', path: '/message/m1', subject: 'Subject' })
     const mail = mocks.windows[0]
     expect(mocks.sso).toHaveBeenCalledWith('/message/m1?smj_desktop=1')
+    expect(mail.options.dragDropEnabled).toBe(false)
     await mail.handlers['tauri://created']({})
     expect(mocks.invoke).toHaveBeenCalledWith('set_mail_window_identity', { label: 'mail-message-m1' })
+  })
+
+  it('lets the mail share page receive native file drops', async () => {
+    await useMailStore().openMailShare({
+      shareId: 'share-1',
+      url: 'https://mail.example.test/api/im/mail/share/share-1',
+      subject: '',
+      from: '',
+      fromName: '',
+      date: 0,
+      snippet: '',
+      attachmentCount: 0
+    })
+    expect(mocks.windows[0].options.dragDropEnabled).toBe(false)
   })
 
   it.each(['inbox', 'message', 'share'] as const)('rejects an untrusted web SSO origin for %s', async (entry) => {

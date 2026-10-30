@@ -1,10 +1,19 @@
 import { relaunch } from '@tauri-apps/plugin-process'
 import { check, type Update } from '@tauri-apps/plugin-updater'
+import { listen, type UnlistenFn } from '@tauri-apps/api/event'
+import { WebviewWindow } from '@tauri-apps/api/webviewWindow'
 import { NButton } from 'naive-ui'
 import { MittEnum } from '../enums'
 import { useMitt } from './useMitt'
 import { useI18nGlobal } from '@/services/i18n'
-import { isMac, isMobile, isWeb } from '@/utils/PlatformConstants'
+import { isMac, isMobile, isWeb, isWindows } from '@/utils/PlatformConstants'
+import type { WindowsUpdateState } from '@/services/WindowsUpdateController'
+import {
+  openWindowsUpdate,
+  requestWindowsUpdateState,
+  retryWindowsUpdateCheck,
+  UPDATE_STATE_EVENT
+} from '@/services/WindowsUpdateWindow'
 
 /** 已在后台下载好、等用户重启的新版本（每个窗口各自一份，只有主窗口会下载） */
 let readyUpdate: Update | null = null
@@ -75,10 +84,68 @@ export const useCheckUpdate = () => {
   const CHECK_UPDATE_TIME = 4 * 60 * 60 * 1000
   // 登录窗口检查周期
   const CHECK_UPDATE_LOGIN_TIME = 5 * 60 * 1000
+  let unlistenWindowsUpdate: UnlistenFn | undefined
+  let disposed = false
+  let lastNotice = ''
+
+  onMounted(async () => {
+    if (!isWindows() || isWeb()) return
+    try {
+      const unlisten = await listen<WindowsUpdateState>(UPDATE_STATE_EVENT, ({ payload }) => {
+        void (async () => {
+          if (payload.stage !== 'ready' && payload.stage !== 'error') return
+          const updateWindow = await WebviewWindow.getByLabel('update')
+          if (!updateWindow || (await updateWindow.isVisible())) return
+          const noticeKey = `${payload.stage}:${payload.version}`
+          if (noticeKey === lastNotice) return
+          lastNotice = noticeKey
+          const { t } = useI18nGlobal()
+          const notice = window.$notification.create({
+            title: t('message.auto_update.title'),
+            duration: 0,
+            content:
+              payload.stage === 'ready'
+                ? t('message.auto_update.ready_windows', { version: payload.version })
+                : t('message.update_window.error_download'),
+            action: () =>
+              h(
+                NButton,
+                {
+                  text: true,
+                  type: 'primary',
+                  onClick: () => {
+                    lastNotice = ''
+                    notice.destroy()
+                    void openWindowsUpdate(true).catch((error) => {
+                      console.error('[update] 打开更新窗口失败:', error)
+                      window.$message?.error(t('message.update_window.stage_error'))
+                    })
+                  }
+                },
+                { default: () => t('message.update_window.open') }
+              )
+          })
+        })().catch((error) => console.error('[update] 显示更新提醒失败:', error))
+      })
+      if (disposed) {
+        unlisten()
+        return
+      }
+      unlistenWindowsUpdate = unlisten
+      await requestWindowsUpdateState()
+    } catch (error) {
+      console.error('[update] 注册更新提醒失败:', error)
+    }
+  })
+
+  onUnmounted(() => {
+    disposed = true
+    unlistenWindowsUpdate?.()
+  })
 
   /**
    * 检查更新
-   * - 登录窗口（启动时）：有新版直接打开更新窗口下载安装，装完自动打开
+   * - 登录窗口（启动时）：Windows 下载后提示重启；其他平台保持原有更新流程
    * - 主窗口：后台下载，好了再提示重启，不打断正在进行的聊天、通话和会议
    * @param closeWin 当前窗口
    * @param canInstall 登录窗口用：正在登录时返回 false，不打断登录（交给主窗口后台下载）
@@ -90,8 +157,19 @@ export const useCheckUpdate = () => {
     }
 
     try {
+      if (isWindows() && (await WebviewWindow.getByLabel('update'))) {
+        await retryWindowsUpdateCheck()
+        return
+      }
       const update = await check({ timeout: 5000 /* 接口请求时长 5秒 */ })
       if (!update?.available) {
+        return
+      }
+      if (isWindows()) {
+        await update.close()
+        if (closeWin !== 'login' || canInstall()) {
+          await openWindowsUpdate(closeWin === 'login')
+        }
         return
       }
       if (closeWin === 'login') {
@@ -102,7 +180,8 @@ export const useCheckUpdate = () => {
       }
       void prepareUpdate(update)
     } catch (error) {
-      console.log(error)
+      console.error('[update] 检查更新失败:', error)
+      if (isWindows()) window.$message?.error(useI18nGlobal().t('message.update_window.error_download'))
     }
   }
 

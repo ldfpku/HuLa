@@ -23,7 +23,8 @@ import { check } from '@tauri-apps/plugin-updater'
 import { useSettingStore } from '@/stores/setting.ts'
 import { useUserStore } from '@/stores/user.ts'
 import { AvatarUtils } from '@/utils/AvatarUtils'
-import { isMac } from '@/utils/PlatformConstants'
+import { isMac, isWindows } from '@/utils/PlatformConstants'
+import { openWindowsUpdate } from '@/services/WindowsUpdateWindow'
 import {
   currentReleaseDate,
   currentReleaseNotes,
@@ -181,6 +182,16 @@ export const CheckUpdate = defineComponent(() => {
     splitReleaseNotes(notes).map((message) => ({ message, icon: mapCommitType(message) || 'alien-monster' }))
 
   const doUpdate = async () => {
+    if (isWindows()) {
+      try {
+        await openWindowsUpdate(true)
+        modalShow.value = false
+      } catch (error) {
+        console.error('[update] 打开更新窗口失败:', error)
+        window.$message.error(t('message.update_window.stage_error'))
+      }
+      return
+    }
     buttonState.value = 'downloading'
     updating.value = true
     checkLoading.value = true

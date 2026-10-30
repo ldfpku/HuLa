@@ -25,7 +25,7 @@ import { useWindow } from '@/hooks/useWindow.ts'
 import { useNetworkStatus } from '@/hooks/useNetworkStatus'
 import { useGlobalStore } from '@/stores/global'
 import { useSettingStore } from '@/stores/setting.ts'
-import { isDesktop, isIOS, isMobile, isWeb, isWindows10 } from '@/utils/PlatformConstants'
+import { isDesktop, isIOS, isMobile, isWeb, isWindows, isWindows10 } from '@/utils/PlatformConstants'
 import LockScreen from '@/views/LockScreen.vue'
 import MemoryMonitor from '@/components/common/MemoryMonitor.vue'
 import { unreadCountManager } from '@/utils/UnreadCountManager'
@@ -49,7 +49,7 @@ import { useFeedStore } from '@/stores/feed'
 import { useFeedNotificationStore } from '@/stores/feedNotification'
 import type { MarkItemType, MsgFileDeletedType, RevokedMsgType, UserItem } from '@/services/types.ts'
 import * as ImRequestUtils from '@/utils/ImRequestUtils'
-import { listen } from '@tauri-apps/api/event'
+import { emitTo, listen } from '@tauri-apps/api/event'
 import { useTauriListener } from '@/hooks/useTauriListener'
 import { updateSettings } from '@/services/tauriCommand.ts'
 import { parsePresenceChange, PresenceVersionTracker } from '@/utils/PresenceEvents'
@@ -59,6 +59,7 @@ import { isExpiredSession } from '@/utils/ExpiredSession'
 import { APP_FEATURES } from '@/common/backend'
 import { WindowVisibilityController } from '@/utils/WindowVisibilityController'
 import { useI18n } from 'vue-i18n'
+import { UPDATE_PREPARE_EVENT, UPDATE_PREPARED_EVENT, UPDATE_RELEASE_EVENT } from '@/services/WindowsUpdateWindow'
 const mobileRtcCallFloatCell = isMobile()
   ? defineAsyncComponent(() => import('@/mobile/components/RtcCallFloatCell.vue'))
   : null
@@ -118,7 +119,7 @@ if (isDesktop()) {
 }
 
 /** 不需要锁屏的页面 */
-const LockExclusion = new Set(['/login', '/tray', '/qrCode', '/about', '/onlineStatus', '/capture'])
+const LockExclusion = new Set(['/login', '/tray', '/qrCode', '/about', '/onlineStatus', '/capture', '/update'])
 const isLock = computed(() => {
   return !LockExclusion.has(router.currentRoute.value.path) && lockScreen.value.enable
 })
@@ -856,6 +857,61 @@ onMounted(() => {
       closeWindow?.close()
     })
     if (appWindow.label === 'home') {
+      if (isWindows()) {
+        let pendingUpdatePreparation = ''
+        let canceledUpdatePreparation = ''
+        let preparedUpdate: { id: string; locked: boolean; timer: ReturnType<typeof setTimeout> } | undefined
+        const releaseUpdatePreparation = async (id: string) => {
+          if (pendingUpdatePreparation === id) canceledUpdatePreparation = id
+          if (preparedUpdate?.id !== id) return
+          const prepared = preparedUpdate
+          preparedUpdate = undefined
+          clearTimeout(prepared.timer)
+          if (prepared.locked) await useMailStore().releaseLogout()
+        }
+        addListener(listen<{ id: string }>(UPDATE_RELEASE_EVENT, ({ payload }) => {
+          void releaseUpdatePreparation(payload.id).catch((error) => {
+            console.error('[update] 恢复邮件操作失败:', error)
+            window.$message.error(t('message.update_window.release_failed'))
+          })
+        }), 'update-release')
+        addListener(listen<{ id: string }>(UPDATE_PREPARE_EVENT, async ({ payload }) => {
+          try {
+            if (pendingUpdatePreparation || preparedUpdate) throw new Error(t('message.update_window.stage_installing'))
+            pendingUpdatePreparation = payload.id
+            if ((await getAllWebviewWindows()).some((win) => isCallOrMeetingWindow(win.label))) {
+              throw new Error(t('message.update_window.busy_call'))
+            }
+            const locked = await useMailStore().prepareLogout()
+            if (canceledUpdatePreparation === payload.id) {
+              if (locked) await useMailStore().releaseLogout()
+              return
+            }
+            const timer = setTimeout(() => {
+              void releaseUpdatePreparation(payload.id).catch((error) => {
+                console.error('[update] 恢复邮件操作失败:', error)
+                window.$message.error(t('message.update_window.release_failed'))
+              })
+            }, 45000)
+            preparedUpdate = { id: payload.id, locked, timer }
+            await emitTo('update', UPDATE_PREPARED_EVENT, { id: payload.id })
+          } catch (error) {
+            console.error('[update] 安装前检查失败:', error)
+            try {
+              await releaseUpdatePreparation(payload.id)
+              await emitTo('update', UPDATE_PREPARED_EVENT, {
+                id: payload.id,
+                error: error instanceof Error ? error.message : t('message.update_window.error_install')
+              })
+            } catch (reportError) {
+              console.error('[update] 安装前检查结果发送失败:', reportError)
+            }
+          } finally {
+            if (pendingUpdatePreparation === payload.id) pendingUpdatePreparation = ''
+            if (canceledUpdatePreparation === payload.id) canceledUpdatePreparation = ''
+          }
+        }), 'update-prepare')
+      }
       let exiting = false
       addListener(
         appWindow.listen<{ fromTray?: boolean }>(EventEnum.EXIT, async (event) => {

@@ -138,6 +138,7 @@ export const useMailStore = defineStore(StoresEnum.MAIL, () => {
         center: true,
         resizable: true,
         decorations: true,
+        dragDropEnabled: false,
         visible: false
       })
       await prepareMailWindow(webview, refreshUnread, () => {
@@ -176,6 +177,7 @@ export const useMailStore = defineStore(StoresEnum.MAIL, () => {
       center: true,
       resizable: true,
       decorations: true,
+      dragDropEnabled: false,
       visible: false
     })
     await prepareMailWindow(webview)
@@ -206,6 +208,7 @@ export const useMailStore = defineStore(StoresEnum.MAIL, () => {
       center: true,
       resizable: true,
       decorations: true,
+      dragDropEnabled: false,
       visible: false
     })
     // 在邮件网页里读过后，刷新未读数

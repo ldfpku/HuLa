@@ -101,6 +101,7 @@
           </n-timeline>
         </n-scrollbar>
       </div>
+      <p v-if="openUpdateError" class="text-(12px #d03050)" role="alert">{{ openUpdateError }}</p>
       <n-flex justify="end" class="mt-10px">
         <n-button :onclick="dismissUpdate" secondary>{{ t('message.check_update.ignore') }}</n-button>
         <n-button :onclick="doUpdate" secondary type="primary">{{ t('message.check_update.update_now') }}</n-button>
@@ -116,7 +117,8 @@ import { confirm } from '@tauri-apps/plugin-dialog'
 import { check } from '@tauri-apps/plugin-updater'
 import { useWindow } from '@/hooks/useWindow.ts'
 import { useSettingStore } from '@/stores/setting.ts'
-import { isMac } from '@/utils/PlatformConstants'
+import { isMac, isWindows } from '@/utils/PlatformConstants'
+import { openWindowsUpdate } from '@/services/WindowsUpdateWindow'
 import {
   currentReleaseDate,
   currentReleaseNotes,
@@ -137,6 +139,7 @@ const text = ref(t('message.check_update.update_now'))
 const currentVersion = ref('')
 const newVersion = ref('')
 const loading = ref(false)
+const openUpdateError = ref('')
 /** 控制日志是否可见 */
 const logVisible = ref(false)
 /** 版本更新日期 */
@@ -170,6 +173,18 @@ const notesToLogs = (notes?: string) =>
   splitReleaseNotes(notes).map((message) => ({ message, icon: mapCommitType(message) || 'alien-monster' }))
 
 const doUpdate = async () => {
+  if (isWindows()) {
+    try {
+      openUpdateError.value = ''
+      await openWindowsUpdate(true)
+      const checkWindow = await WebviewWindow.getByLabel('checkupdate')
+      await checkWindow?.close()
+    } catch (error) {
+      console.error('[update] 打开更新窗口失败:', error)
+      openUpdateError.value = t('message.update_window.stage_error')
+    }
+    return
+  }
   await createWebviewWindow('更新', 'update', 490, 335, '', false, 490, 335, false, true)
   const windows = await Window.getAll()
   windows.forEach((window) => {

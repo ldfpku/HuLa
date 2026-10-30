@@ -1,34 +1,17 @@
 import { invoke } from '@tauri-apps/api/core'
 import { LogicalSize } from '@tauri-apps/api/dpi'
 import { WebviewWindow } from '@tauri-apps/api/webviewWindow'
-import { UserAttentionType, Window, primaryMonitor, type Monitor } from '@tauri-apps/api/window'
+import { UserAttentionType, Window, primaryMonitor } from '@tauri-apps/api/window'
 import { info } from '@tauri-apps/plugin-log'
 import { assign } from 'es-toolkit/compat'
 import { CallTypeEnum, EventEnum, RoomTypeEnum } from '@/enums'
 import { useGlobalStore } from '@/stores/global'
 import { isCompatibility, isDesktop, isMac, isWeb, isWindows, isWindows10 } from '@/utils/PlatformConstants'
+import { clampSizeToMonitor } from '@/utils/WindowSizing'
 
 /** 判断是兼容的系统 */
 const isCompatibilityMode = computed(() => isCompatibility())
-const WINDOW_SAFE_PADDING = 32
-const MIN_LOGICAL_WIDTH = 320
-const MIN_LOGICAL_HEIGHT = 200
 const MAC_TRAFFIC_LIGHTS_SPACING = 6
-
-const clampSizeToMonitor = (width: number, height: number, monitor?: Monitor | null) => {
-  if (!monitor) {
-    return { width, height }
-  }
-
-  const scaleFactor = monitor.scaleFactor ?? 1
-  const maxLogicalWidth = Math.max(MIN_LOGICAL_WIDTH, monitor.size.width / scaleFactor - WINDOW_SAFE_PADDING)
-  const maxLogicalHeight = Math.max(MIN_LOGICAL_HEIGHT, monitor.size.height / scaleFactor - WINDOW_SAFE_PADDING)
-
-  return {
-    width: Math.min(width, Math.floor(maxLogicalWidth)),
-    height: Math.min(height, Math.floor(maxLogicalHeight))
-  }
-}
 
 // Mac 端用于模拟父窗口禁用态的透明蒙层
 const MAC_MODAL_OVERLAY_ID = 'mac-modal-overlay'

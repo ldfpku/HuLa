@@ -122,6 +122,9 @@ impl<R: Runtime> DesktopCustomInit for tauri::Builder<R> {
                 }
                 // 如果是login窗口被用户关闭，直接退出程序
                 else if win_label.eq("login") {
+                    #[cfg(target_os = "windows")]
+                    let has_home_or_update = windows.contains_key("home");
+                    #[cfg(not(target_os = "windows"))]
                     // 检查是否有其他窗口存在，如果有home窗口，说明是登录成功后的正常关闭
                     let has_home_or_update = windows
                         .iter()
