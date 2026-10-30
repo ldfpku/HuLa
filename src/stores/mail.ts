@@ -1,4 +1,5 @@
 import { WebviewWindow } from '@tauri-apps/api/webviewWindow'
+import { Window } from '@tauri-apps/api/window'
 import { invoke } from '@tauri-apps/api/core'
 import { sendNotification } from '@tauri-apps/plugin-notification'
 import { defineStore } from 'pinia'
@@ -7,8 +8,10 @@ import { StoresEnum } from '@/enums'
 import type { MailCardBody, MailSearchHit } from '@/services/types'
 import { getMailSsoUrl, getMailUnread } from '@/utils/ImRequestUtils'
 import { desktopMailTarget } from '@/utils/DesktopMail'
-import { isDesktop, isWeb } from '@/utils/PlatformConstants'
+import { isDesktop, isWeb, isWindows, PHONE_LAYOUT_QUERY } from '@/utils/PlatformConstants'
 import { useWorkspaceStore } from '@/stores/workspace'
+import { useUserStore } from '@/stores/user'
+import { openWebMailNotification, trustedWebMailSsoUrl } from '@/services/MailNotification'
 
 /** 服务端推送的新邮件事件（mailNew） */
 export type MailNewEvent = {
@@ -21,6 +24,10 @@ export type MailNewEvent = {
 
 /** 邮件窗口的标识 */
 const MAIL_WINDOW_LABEL = 'mail'
+
+function webMailSsoUrl(url: string): string {
+  return isWeb() ? trustedWebMailSsoUrl(url, import.meta.env.VITE_WEB_MAIL_ORIGIN || window.location.origin) : url
+}
 
 async function prepareMailWindow(webview: WebviewWindow, refreshUnread?: () => Promise<void>, onFinished?: () => void) {
   const created = webview.once('tauri://created', async () => {
@@ -70,19 +77,37 @@ export const useMailStore = defineStore(StoresEnum.MAIL, () => {
 
   const handleMailNew = async (mail: MailNewEvent) => {
     unreadCount.value += 1
-    sendNotification({
-      title: `新邮件：${mail.fromName || mail.from}`,
-      body: mail.subject || '(无主题)'
-    })
+    if (isDesktop() && !isWeb() && isWindows()) {
+      await invoke('show_mail_notification', {
+        messageId: mail.messageId,
+        title: `新邮件：${mail.fromName || mail.from}`,
+        body: mail.subject || '(无主题)'
+      })
+    } else if (!isWeb()) {
+      sendNotification({
+        title: `新邮件：${mail.fromName || mail.from}`,
+        body: mail.subject || '(无主题)'
+      })
+    }
   }
 
   const openEmbeddedMail = async (path?: string) => {
-    const home = await WebviewWindow.getByLabel('home')
+    const home = await Window.getByLabel('home')
     if (!home) throw new Error('主窗口不可用，无法打开邮件')
     await home.unminimize()
     await home.show()
     await home.setFocus()
     useWorkspaceStore().openMail(path)
+  }
+
+  const prepareLogout = async () => {
+    if (!APP_FEATURES.embeddedMailWorkspace || !isDesktop() || isWeb()) return false
+    return await invoke<boolean>('prepare_embedded_mail_logout')
+  }
+
+  const releaseLogout = async () => {
+    if (!APP_FEATURES.embeddedMailWorkspace || !isDesktop() || isWeb()) return
+    await invoke('release_embedded_mail_logout')
   }
 
   /** 打开邮件窗口；已打开时直接聚焦 */
@@ -104,7 +129,7 @@ export const useMailStore = defineStore(StoresEnum.MAIL, () => {
     try {
       const { url } = await getMailSsoUrl(desktopMailTarget(next))
       const webview = new WebviewWindow(MAIL_WINDOW_LABEL, {
-        url,
+        url: webMailSsoUrl(url),
         title: '斯米伽邮箱',
         width: 1200,
         height: 800,
@@ -142,7 +167,7 @@ export const useMailStore = defineStore(StoresEnum.MAIL, () => {
     }
     const { url } = await getMailSsoUrl(desktopMailTarget(path))
     const webview = new WebviewWindow(label, {
-      url,
+      url: webMailSsoUrl(url),
       title: card.subject || '邮件',
       width: 900,
       height: 720,
@@ -172,7 +197,7 @@ export const useMailStore = defineStore(StoresEnum.MAIL, () => {
     }
     const { url } = await getMailSsoUrl(desktopMailTarget(mail.path))
     const webview = new WebviewWindow(label, {
-      url,
+      url: webMailSsoUrl(url),
       title: mail.subject || '邮件',
       width: 1100,
       height: 760,
@@ -187,5 +212,36 @@ export const useMailStore = defineStore(StoresEnum.MAIL, () => {
     await prepareMailWindow(webview, refreshUnread)
   }
 
-  return { unreadCount, refreshUnread, handleMailNew, openMail, openMailShare, openMailMessage }
+  const openMailNotification = async (mail: Pick<MailNewEvent, 'messageId' | 'subject'>, account: string) => {
+    if (!account || useUserStore().userInfo?.uid !== account) throw new Error('账号已切换，请重新打开邮件')
+    if (typeof mail.messageId !== 'string' || !mail.messageId || mail.messageId.length > 256)
+      throw new Error('邮件通知无效')
+    const target = {
+      id: mail.messageId,
+      path: `/inbox/${encodeURIComponent(mail.messageId)}`,
+      subject: typeof mail.subject === 'string' ? mail.subject : ''
+    }
+    if (isWeb() && !window.matchMedia(PHONE_LAYOUT_QUERY).matches) {
+      await openWebMailNotification({
+        open: () => window.open('about:blank', '_blank'),
+        requestSso: async () => (await getMailSsoUrl(desktopMailTarget(target.path))).url,
+        isCurrentAccount: () => useUserStore().userInfo?.uid === account,
+        trustedOrigin: import.meta.env.VITE_WEB_MAIL_ORIGIN || window.location.origin
+      })
+      return
+    }
+    await openMailMessage(target)
+  }
+
+  return {
+    unreadCount,
+    refreshUnread,
+    handleMailNew,
+    openMail,
+    openMailShare,
+    openMailMessage,
+    openMailNotification,
+    prepareLogout,
+    releaseLogout
+  }
 })

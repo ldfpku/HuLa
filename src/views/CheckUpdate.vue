@@ -111,7 +111,7 @@
 <script setup lang="ts">
 import { getVersion } from '@tauri-apps/api/app'
 import { WebviewWindow } from '@tauri-apps/api/webviewWindow'
-import { currentMonitor, PhysicalPosition } from '@tauri-apps/api/window'
+import { currentMonitor, PhysicalPosition, Window } from '@tauri-apps/api/window'
 import { confirm } from '@tauri-apps/plugin-dialog'
 import { check } from '@tauri-apps/plugin-updater'
 import { useWindow } from '@/hooks/useWindow.ts'
@@ -171,7 +171,7 @@ const notesToLogs = (notes?: string) =>
 
 const doUpdate = async () => {
   await createWebviewWindow('更新', 'update', 490, 335, '', false, 490, 335, false, true)
-  const windows = await WebviewWindow.getAll()
+  const windows = await Window.getAll()
   windows.forEach((window) => {
     if (window.label === 'login' || window.label === 'home' || window.label === 'checkupdate') {
       window.close()

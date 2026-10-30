@@ -6,7 +6,7 @@ use tauri::{
 
 #[cfg(target_os = "macos")]
 use tauri::{
-    Manager, Runtime,
+    Emitter, Manager, Runtime,
     menu::{MenuBuilder, MenuId, MenuItem, PredefinedMenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
 };
@@ -57,7 +57,7 @@ pub fn create_tray<R: Runtime>(app: &tauri::AppHandle<R>) -> tauri::Result<()> {
                 let id = event.id();
                 if id == &open_id {
                     // 打开主面板
-                    let windows = app.webview_windows();
+                    let windows = app.windows();
 
                     // 优先显示已存在的home窗口
                     for (name, window) in windows {
@@ -69,8 +69,13 @@ pub fn create_tray<R: Runtime>(app: &tauri::AppHandle<R>) -> tauri::Result<()> {
                         }
                     }
                 } else if id == &exit_id {
-                    // 退出应用
-                    let _ = tray_handler.exit(0);
+                    if app.get_window("home").is_some() {
+                        if let Err(error) = app.emit_to("home", "exit", ()) {
+                            tracing::error!("Failed to request guarded exit: {}", error);
+                        }
+                    } else {
+                        tray_handler.exit(0);
+                    }
                 }
             })
             .on_tray_icon_event(move |tray, event| match event {
@@ -83,7 +88,7 @@ pub fn create_tray<R: Runtime>(app: &tauri::AppHandle<R>) -> tauri::Result<()> {
                 } => match button {
                     MouseButton::Left if MouseButtonState::Up == button_state => {
                         // 左键点击直接打开主面板
-                        let windows = tray.app_handle().webview_windows();
+                        let windows = tray.app_handle().windows();
 
                         // 优先显示已存在的home窗口
                         for (name, window) in windows {
@@ -127,7 +132,7 @@ pub fn create_tray<R: Runtime>(app: &tauri::AppHandle<R>) -> tauri::Result<()> {
                     button_state,
                 } => match button {
                     MouseButton::Left => {
-                        let windows = tray.app_handle().webview_windows();
+                        let windows = tray.app_handle().windows();
                         for (name, window) in windows {
                             if name == "login" || name == "home" {
                                 if let Err(e) = window.show() {

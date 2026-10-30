@@ -3,7 +3,7 @@
   <n-modal
     v-model:show="modalShow"
     preset="card"
-    :title="t('home.chat_header.sidebar.group.files.picker_title')"
+    :title="t(attach ? 'todo.attachFile' : 'home.chat_header.sidebar.group.files.picker_title')"
     :bordered="false"
     class="w-520px max-w-[calc(100vw-32px)] rounded-8px">
     <n-flex vertical :size="10">
@@ -28,6 +28,12 @@
 
       <n-scrollbar class="max-h-[min(55vh,420px)]">
         <n-spin :show="loading">
+          <div v-if="loadError" role="alert" class="py-20px text-(13px center [--text-color])">
+            {{ t('home.chat_header.sidebar.group.files.picker_load_failed') }}
+            <n-button text size="small" @click="open(failedParent)">
+              {{ t('home.chat_header.sidebar.group.files.picker_retry') }}
+            </n-button>
+          </div>
           <div v-if="listing && !listing.items.length" class="py-40px text-(13px center [--text-muted-color])">
             {{ t('home.chat_header.sidebar.group.files.drive_empty') }}
           </div>
@@ -58,15 +64,23 @@
                 </span>
               </p>
             </div>
-            <svg v-if="item.kind === 'folder'" class="size-12px color-[--text-muted-color] shrink-0"><use href="#right"></use></svg>
+            <svg v-if="item.kind === 'folder'" class="size-12px color-[--text-muted-color] shrink-0">
+              <use href="#right"></use>
+            </svg>
           </div>
         </n-spin>
       </n-scrollbar>
 
       <n-flex justify="end" :size="8">
         <n-button size="small" secondary @click="modalShow = false">{{ t('home.chat_header.modal.cancel') }}</n-button>
-        <n-button size="small" color="#034fbc" text-color="#ffffff" :disabled="!selected" :loading="sending" @click="handleSend">
-          {{ t('home.chat_header.sidebar.group.files.send') }}
+        <n-button
+          size="small"
+          color="#034fbc"
+          text-color="#ffffff"
+          :disabled="!selected"
+          :loading="sending"
+          @click="handleSend">
+          {{ t(attach ? 'todo.attach' : 'home.chat_header.sidebar.group.files.send') }}
         </n-button>
       </n-flex>
     </n-flex>
@@ -79,12 +93,17 @@ import type { DrivePickerItem, DrivePickerListing } from '@/services/types'
 import { formatBytes, getFileSuffix } from '@/utils/Formatting'
 import { getDriveItems, sendDriveFileToRoom } from '@/utils/ImRequestUtils'
 
-const props = defineProps<{ show: boolean; roomId: string }>()
-const emit = defineEmits<{ 'update:show': [value: boolean]; sent: [] }>()
+const props = withDefaults(defineProps<{ show: boolean; roomId?: string; attach?: boolean }>(), {
+  roomId: '',
+  attach: false
+})
+const emit = defineEmits<{ 'update:show': [value: boolean]; sent: []; selected: [id: string] }>()
 
 const { t } = useI18n()
 const listing = ref<DrivePickerListing | null>(null)
 const loading = ref(false)
+const loadError = ref(false)
+const failedParent = ref<string | undefined>()
 const sending = ref(false)
 const selected = ref<string | null>(null)
 let requestSeq = 0
@@ -104,12 +123,19 @@ const onIconError = (event: Event) => {
 const open = async (parentId: string | undefined) => {
   const seq = ++requestSeq
   loading.value = true
+  loadError.value = false
+  listing.value = null
   selected.value = null
   try {
     const result = await getDriveItems(parentId)
     if (seq === requestSeq) listing.value = result
   } catch (error) {
-    console.error('[DrivePicker] 获取网盘文件失败:', error)
+    if (seq === requestSeq) {
+      console.error('[DrivePicker] 获取网盘文件失败:', error)
+      failedParent.value = parentId
+      loadError.value = true
+      window.$message?.error(t('home.chat_header.sidebar.group.files.picker_load_failed'))
+    }
   } finally {
     if (seq === requestSeq) loading.value = false
   }
@@ -118,7 +144,18 @@ const open = async (parentId: string | undefined) => {
 watch(
   () => props.show,
   (visible) => {
-    if (visible) open(undefined)
+    if (visible) {
+      listing.value = null
+      void open(undefined)
+    } else {
+      requestSeq++
+      listing.value = null
+      selected.value = null
+      loading.value = false
+      loadError.value = false
+      failedParent.value = undefined
+      sending.value = false
+    }
   }
 )
 
@@ -129,15 +166,32 @@ const handleClick = (item: DrivePickerItem) => {
 
 const handleSend = async () => {
   if (!selected.value || sending.value) return
+  if (props.attach) {
+    emit('selected', selected.value)
+    modalShow.value = false
+    return
+  }
+  if (!props.roomId) {
+    window.$message?.error(t('todo.error'))
+    return
+  }
   sending.value = true
+  const seq = requestSeq
   try {
     await sendDriveFileToRoom({ roomId: props.roomId, driveItemId: selected.value })
-    modalShow.value = false
-    emit('sent')
+    if (seq === requestSeq) {
+      modalShow.value = false
+      emit('sent')
+    }
   } catch (error) {
     console.error('[DrivePicker] 发送网盘文件失败:', error)
+    if (seq === requestSeq) window.$message?.error(t('home.chat_header.sidebar.group.files.picker_send_failed'))
   } finally {
-    sending.value = false
+    if (seq === requestSeq) sending.value = false
   }
 }
+
+onBeforeUnmount(() => {
+  requestSeq++
+})
 </script>

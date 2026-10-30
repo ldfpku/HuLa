@@ -4,6 +4,8 @@ import { MittEnum, ModalEnum, PluginEnum } from '@/enums'
 import { useLogin } from '@/hooks/useLogin.ts'
 import { useMitt } from '@/hooks/useMitt.ts'
 import { useWindow } from '@/hooks/useWindow.ts'
+import { guardedLogout } from '@/services/GuardedLogout'
+import { useMailStore } from '@/stores/mail'
 import { useSettingStore } from '@/stores/setting'
 import * as ImRequestUtils from '@/utils/ImRequestUtils'
 
@@ -83,12 +85,19 @@ const useMoreList = () => {
       icon: 'power',
       click: async () => {
         try {
-          await ImRequestUtils.logout({ autoLogin: login.value.autoLogin })
-          await resetLoginState()
-          await logout()
+          const mail = useMailStore()
+          await guardedLogout({
+            prepare: mail.prepareLogout,
+            release: mail.releaseLogout,
+            logout: async () => {
+              await ImRequestUtils.logout({ autoLogin: login.value.autoLogin })
+              await resetLoginState()
+              await logout()
+            }
+          })
         } catch (error) {
           console.error('退出登录失败:', error)
-          window.$message.error('退出登录失败，请重试')
+          window.$message.error(typeof error === 'string' ? error : error instanceof Error ? error.message : '退出登录失败，请重试')
         }
       }
     }

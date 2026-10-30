@@ -1,5 +1,5 @@
 import { invoke } from '@tauri-apps/api/core'
-import { WebviewWindow } from '@tauri-apps/api/webviewWindow'
+import { Window } from '@tauri-apps/api/window'
 import { useDebounceFn } from '@vueuse/core'
 import { sumBy } from 'es-toolkit'
 import { NotificationTypeEnum } from '@/enums'
@@ -105,7 +105,7 @@ export class UnreadCountManager {
     // 在 macOS 上更新 Dock 图标徽章（显示所有类型未读总数）
     if (isMac()) {
       // 使用 getByLabel 获取 home 窗口，即使窗口隐藏也能正常设置徽章
-      const homeWindow = await WebviewWindow.getByLabel('home')
+      const homeWindow = await Window.getByLabel('home')
       if (homeWindow) {
         await homeWindow.setBadgeCount(countValue)
       }

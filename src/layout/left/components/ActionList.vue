@@ -10,8 +10,14 @@
           openWindowsList.has(item.url) ? 'color-[--left-win-icon-color]' : 'top-action flex-col-center',
           showMode === ShowModeEnum.ICON ? 'p-[6px_8px]' : 'w-46px py-4px'
         ]"
+        role="button"
+        tabindex="0"
+        :aria-label="item.title"
+        :aria-pressed="activeUrl === item.url"
         style="text-align: center"
         @click="pageJumps(item.url, item.title, item.size, item.window)"
+        @keydown.enter.prevent="pageJumps(item.url, item.title, item.size, item.window)"
+        @keydown.space.prevent="pageJumps(item.url, item.title, item.size, item.window)"
         :title="item.title">
         <!-- 已经打开窗口时展示 -->
         <n-popover :show-arrow="false" v-if="openWindowsList.has(item.url)" trigger="hover" placement="right">
@@ -238,14 +244,27 @@
                 showMode === ShowModeEnum.ICON ? 'more p-[6px_8px]' : 'w-46px'
               ]"
               class="size-22px relative"
-              @click="settingShow = !settingShow">
+              role="button"
+              tabindex="0"
+              :aria-label="t('home.action.more')"
+              :aria-expanded="settingShow"
+              @click="settingShow = !settingShow"
+              @keydown.enter.prevent="settingShow = !settingShow"
+              @keydown.space.prevent="settingShow = !settingShow">
               <use :href="settingShow ? '#hamburger-button-action' : '#hamburger-button'"></use>
             </svg>
           </template>
           <div class="setting-item">
             <div class="menu-list">
               <div v-for="(item, index) in moreList" :key="index">
-                <div class="menu-item" @click="() => item.click()">
+                <div
+                  class="menu-item"
+                  role="button"
+                  tabindex="0"
+                  :aria-label="item.label"
+                  @click="() => item.click()"
+                  @keydown.enter.prevent="() => item.click()"
+                  @keydown.space.prevent="() => item.click()">
                   <svg>
                     <use :href="`#${item.icon}`"></use>
                   </svg>

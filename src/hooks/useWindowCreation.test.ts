@@ -16,7 +16,13 @@ vi.mock('@tauri-apps/api/webviewWindow', () => ({
     }
   }
 }))
-vi.mock('@tauri-apps/api/window', () => ({ UserAttentionType: {}, primaryMonitor: mocks.primaryMonitor }))
+vi.mock('@tauri-apps/api/window', () => ({
+  Window: class {
+    static getByLabel = mocks.getWindow
+  },
+  UserAttentionType: {},
+  primaryMonitor: mocks.primaryMonitor
+}))
 vi.mock('@tauri-apps/plugin-log', () => ({ info: vi.fn() }))
 vi.mock('@/stores/global', () => ({ useGlobalStore: () => ({}) }))
 vi.mock('@/utils/PlatformConstants', () => ({

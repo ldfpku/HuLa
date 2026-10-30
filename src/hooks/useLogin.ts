@@ -1,5 +1,6 @@
 import { emit, listen } from '@tauri-apps/api/event'
 import { WebviewWindow } from '@tauri-apps/api/webviewWindow'
+import { Window } from '@tauri-apps/api/window'
 import { useRouter } from 'vue-router'
 import { EventEnum, MittEnum, TauriCommand } from '@/enums'
 import { useWindow } from '@/hooks/useWindow.ts'
@@ -150,7 +151,10 @@ export const useLogin = () => {
     if (isDesktop()) {
       const { createWebviewWindow } = useWindow()
       isTrayMenuShow.value = false
+      let home: Window | null = null
       try {
+        home = await Window.getByLabel('home')
+        await home?.hide()
         await sendLogoutEvent()
         // 创建登录窗口
         await createWebviewWindow('登录', 'login', 320, 448, undefined, false, 320, 448)
@@ -161,7 +165,15 @@ export const useLogin = () => {
         await resizeWindow('tray', 130, 44)
       } catch (error) {
         console.error('退出登录失败:', error)
+        if (home) {
+          try {
+            await home.show()
+          } catch (showError) {
+            console.error('恢复主窗口失败:', showError)
+          }
+        }
         window.$message.error('退出登录失败，请重试')
+        throw error
       }
     } else {
       try {
@@ -194,7 +206,7 @@ export const useLogin = () => {
     globalStore.updateCurrentSessionRoomId('')
     // 2. 清除系统托盘图标上的未读数
     if (isMac()) {
-      const homeWindow = await WebviewWindow.getByLabel('home')
+      const homeWindow = await Window.getByLabel('home')
       if (homeWindow) {
         await homeWindow.setBadgeCount(undefined)
       }

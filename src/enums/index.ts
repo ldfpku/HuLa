@@ -154,6 +154,7 @@ export enum StoresEnum {
   MAIL = 'mail',
   /** 我的待办 */
   TODO = 'todo',
+  TODO_WORKSPACE = 'todoWorkspace',
   /** 主窗口工作区 */
   WORKSPACE = 'workspace',
   /** 聊天里会议卡片的状态 */
@@ -657,6 +658,25 @@ export enum ImUrlEnum {
   AI_MAIL_TODO = 'aiMailTodo',
   /** 我的待办：列表 */
   TODO_LIST = 'todoList',
+  /** 我的待办：游标分页 */
+  TODO_PAGE = 'todoPage',
+  TODO_DETAIL = 'todoDetail',
+  TODO_COUNTS = 'todoCounts',
+  TODO_LISTS = 'todoLists',
+  TODO_LIST_CREATE = 'todoListCreate',
+  TODO_LIST_UPDATE = 'todoListUpdate',
+  TODO_LIST_REORDER = 'todoListReorder',
+  TODO_LIST_DELETE = 'todoListDelete',
+  TODO_STEPS = 'todoSteps',
+  TODO_DAY = 'todoDay',
+  TODO_ATTACHMENTS = 'todoAttachments',
+  TODO_ATTACHMENT_CREATE = 'todoAttachmentCreate',
+  TODO_ATTACHMENT_DELETE = 'todoAttachmentDelete',
+  TODO_REMINDERS = 'todoReminders',
+  TODO_REMINDER_DISMISS = 'todoReminderDismiss',
+  TODO_STEP_CREATE = 'todoStepCreate',
+  TODO_STEP_UPDATE = 'todoStepUpdate',
+  TODO_STEP_DELETE = 'todoStepDelete',
   /** 我的待办：新建 */
   TODO_CREATE = 'todoCreate',
   /** 我的待办：修改（标题、要点、截止时间、完成） */

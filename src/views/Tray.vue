@@ -4,10 +4,15 @@
       <n-flex
         v-for="item in stateList.slice(0, 6)"
         :key="item.id"
-        v-memo="[item.id, item.title, item.url, stateId]"
+        v-memo="[item.id, item.title, item.url, stateId, changingStatus]"
+        :aria-disabled="changingStatus"
+        role="button"
+        tabindex="0"
         align="center"
         :size="10"
         @click="toggleStatus(item)"
+        @keydown.enter.prevent="toggleStatus(item)"
+        @keydown.space.prevent="toggleStatus(item)"
         class="p-6px rounded-4px hover:bg-[--tray-hover]">
         <img class="size-14px" :src="item.url" alt="" />
         <span class="flex-1 overflow-hidden text-ellipsis whitespace-nowrap">
@@ -70,7 +75,9 @@
 </template>
 <script setup lang="tsx">
 import { TrayIcon } from '@tauri-apps/api/tray'
+import { emitTo } from '@tauri-apps/api/event'
 import { WebviewWindow } from '@tauri-apps/api/webviewWindow'
+import { Window } from '@tauri-apps/api/window'
 import { exit } from '@tauri-apps/plugin-process'
 import { useWindow } from '@/hooks/useWindow.ts'
 import type { UserState } from '@/services/types'
@@ -78,9 +85,11 @@ import { useGlobalStore } from '@/stores/global.ts'
 import { useSettingStore } from '@/stores/setting.ts'
 import { useUserStore } from '@/stores/user'
 import { useUserStatusStore } from '@/stores/userStatus'
-import { changeUserState } from '@/utils/ImRequestUtils'
+import { changeUserState, getUserDetail } from '@/utils/ImRequestUtils'
+import { changeOwnUserState, userStateChangeError } from '@/utils/UserStateChange'
 import { isWindows } from '@/utils/PlatformConstants'
 import { useI18n } from 'vue-i18n'
+import { EventEnum } from '@/enums'
 
 const appWindow = WebviewWindow.getCurrent()
 const { checkWinExist, createWebviewWindow, resizeWindow } = useWindow()
@@ -93,6 +102,8 @@ const { stateList, stateId } = storeToRefs(userStatusStore)
 const { tipVisible, isTrayMenuShow } = storeToRefs(globalStore)
 const { t } = useI18n()
 const isFocused = ref(false)
+const changingStatus = ref(false)
+let stateChangeSequence = 0
 // 状态栏图标是否显示
 const iconVisible = ref(false)
 
@@ -115,25 +126,46 @@ const translateStateTitle = (title?: string) => {
   return translated === key ? title : translated
 }
 
-const handleExit = () => {
-  /** 退出时关闭锁屏 */
-  lockScreen.value.enable = false
-  if (localStorage.getItem('wsLogin')) {
+const handleExit = async () => {
+  try {
+    const home = await Window.getByLabel('home')
+    if (home) {
+      await emitTo('home', EventEnum.EXIT, { fromTray: true })
+      return
+    }
+    lockScreen.value.enable = false
     localStorage.removeItem('wsLogin')
+    await exit(0)
+  } catch (error) {
+    console.error('退出应用失败:', error)
+    window.$message.error('退出应用失败，请重试')
   }
-  exit(0)
 }
 
 const toggleStatus = async (item: UserState) => {
+  if (changingStatus.value) return
+  changingStatus.value = true
+  const sequence = ++stateChangeSequence
   try {
-    await changeUserState({ id: item.id })
-
-    stateId.value = item.id
-    userStore.userInfo!.userStateId = item.id
+    const applied = await changeOwnUserState(item.id, {
+      currentAccount: () => userStore.userInfo?.uid,
+      change: (id) => changeUserState({ id }),
+      readCurrent: () => getUserDetail(false),
+      isCurrent: () => stateChangeSequence === sequence,
+      apply: (id) => {
+        stateId.value = id
+        if (userStore.userInfo) userStore.userInfo.userStateId = id
+      },
+      accountChangedMessage: t('home.profile_edit.toast.account_changed')
+    })
+    if (!applied) return
     appWindow.hide()
   } catch (error) {
+    if (stateChangeSequence !== sequence) return
     console.error('更新状态失败:', error)
-    appWindow.hide()
+    window.$message?.error(userStateChangeError(error, t('auth.onlineStatus.messages.error')))
+  } finally {
+    changingStatus.value = false
   }
 }
 
@@ -185,7 +217,7 @@ watchEffect(async () => {
 
 // 监听托盘窗口尺寸调整事件
 const handleTrayResize = async () => {
-  const islogin = await WebviewWindow.getByLabel('home')
+  const islogin = await Window.getByLabel('home')
   await resizeWindow('tray', 130, islogin ? 356 : 44)
 }
 
@@ -206,6 +238,7 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
+  stateChangeSequence++
   window.removeEventListener('resize-needed', handleTrayResize)
   if (homeFocusUnlisten) {
     homeFocusUnlisten()

@@ -12,8 +12,17 @@ import type {
   RoomFilePage,
   RoomMailboxState,
   TodoItem,
+  TodoAttachment,
+  TodoList,
+  TodoPage,
+  TodoReminder,
+  TodoRepeat,
+  TodoStep,
+  TodoSort,
+  TodoView,
   UnifiedSearchResult,
   UnifiedSearchScope,
+  UserInfoType,
   UserItem
 } from '@/services/types'
 import { ErrorType, invokeSilently, invokeWithErrorHandler, invokeWithRetry } from '@/utils/TauriInvokeHandler'
@@ -137,10 +146,8 @@ export async function imRequestWithRetry<T = any>(
 /**
  * 快捷方法：获取用户详情
  */
-export async function getUserDetail() {
-  return await imRequest({
-    url: ImUrlEnum.GET_USER_INFO_DETAIL
-  })
+export async function getUserDetail(showError = true): Promise<UserInfoType & { id?: string }> {
+  return await imRequest<UserInfoType & { id?: string }>({ url: ImUrlEnum.GET_USER_INFO_DETAIL }, { showError })
 }
 
 /**
@@ -255,10 +262,7 @@ export async function getMsgList(body: { msgIds?: string[]; async?: boolean }) {
 }
 
 export async function ModifyUserInfo(body: Partial<ModifyUserInfoType>, showError = true) {
-  return await imRequest(
-    { url: ImUrlEnum.MODIFY_USER_INFO, body },
-    { showError }
-  )
+  return await imRequest({ url: ImUrlEnum.MODIFY_USER_INFO, body }, { showError })
 }
 
 export async function setUserBadge(body: { badgeId: string }) {
@@ -339,10 +343,13 @@ export async function getAllUserState() {
 }
 
 export async function changeUserState(params: { id: string }) {
-  return await imRequest({
-    url: ImUrlEnum.CHANGE_USER_STATE,
-    params
-  })
+  return await imRequest(
+    {
+      url: ImUrlEnum.CHANGE_USER_STATE,
+      body: params
+    },
+    { showError: false }
+  )
 }
 
 export async function searchFriend(params: { key: string }) {
@@ -1481,13 +1488,116 @@ export async function getTodoList(status: 'open' | 'done' | 'all' = 'open') {
   return await imRequest<TodoItem[]>({ url: ImUrlEnum.TODO_LIST, params: { status } })
 }
 
+/** 我的待办：按创建时间倒序分页；游标只能用于同一状态筛选 */
+export async function getTodoPage(params: {
+  status?: 'open' | 'done' | 'all'
+  pageSize?: number
+  cursor?: string
+  view?: TodoView
+  listId?: string
+  day?: string
+  q?: string
+  sort?: TodoSort
+}) {
+  return await imRequest<TodoPage>({ url: ImUrlEnum.TODO_PAGE, params })
+}
+
+export async function getTodoDetail(id: string) {
+  return await imRequest<{ available: true; item: TodoItem } | { available: false; item: null }>({
+    url: ImUrlEnum.TODO_DETAIL,
+    params: { id }
+  })
+}
+
+export async function getTodoCounts(day: string, endAt: number) {
+  return await imRequest<{ due: number }>({ url: ImUrlEnum.TODO_COUNTS, params: { day, endAt } })
+}
+
+export async function getTodoLists() {
+  return await imRequest<TodoList[]>({ url: ImUrlEnum.TODO_LISTS })
+}
+
+export async function createTodoList(name: string) {
+  return await imRequest<TodoList>({ url: ImUrlEnum.TODO_LIST_CREATE, body: { name } })
+}
+
+export async function updateTodoList(body: { id: string; name?: string; position?: number }) {
+  return await imRequest<TodoList>({ url: ImUrlEnum.TODO_LIST_UPDATE, body })
+}
+
+export async function reorderTodoLists(ids: string[]) {
+  return await imRequest<TodoList[]>({ url: ImUrlEnum.TODO_LIST_REORDER, body: { ids } })
+}
+
+export async function searchTodoAssignees(key: string) {
+  return await imRequest<UserItem[]>({ url: ImUrlEnum.SEARCH_FRIEND, params: { key } })
+}
+
+export async function deleteTodoList(id: string) {
+  return await imRequest<boolean>({ url: ImUrlEnum.TODO_LIST_DELETE, body: { id } })
+}
+
+export async function getTodoSteps(todoId: string) {
+  return await imRequest<TodoStep[]>({ url: ImUrlEnum.TODO_STEPS, params: { todoId } })
+}
+
+export async function setTodoDay(todoId: string, day: string | null) {
+  return await imRequest<boolean>({ url: ImUrlEnum.TODO_DAY, body: { todoId, day } })
+}
+
+export async function getTodoAttachments(todoId: string) {
+  return await imRequest<TodoAttachment[]>({ url: ImUrlEnum.TODO_ATTACHMENTS, params: { todoId } })
+}
+
+export async function createTodoAttachment(todoId: string, driveItemId: string) {
+  return await imRequest<TodoAttachment>({ url: ImUrlEnum.TODO_ATTACHMENT_CREATE, body: { todoId, driveItemId } })
+}
+
+export async function deleteTodoAttachment(todoId: string, id: string) {
+  return await imRequest<boolean>({ url: ImUrlEnum.TODO_ATTACHMENT_DELETE, body: { todoId, id } })
+}
+
+export async function getTodoReminders() {
+  return await imRequest<TodoReminder[]>({ url: ImUrlEnum.TODO_REMINDERS })
+}
+
+export async function dismissTodoReminder(id: string) {
+  return await imRequest<boolean>({ url: ImUrlEnum.TODO_REMINDER_DISMISS, body: { id } })
+}
+
+export async function createTodoStep(todoId: string, title: string) {
+  return await imRequest<TodoStep>({ url: ImUrlEnum.TODO_STEP_CREATE, body: { todoId, title } })
+}
+
+export async function updateTodoStep(body: {
+  id: string
+  todoId: string
+  expectedVersion: number
+  title?: string
+  position?: number
+  done?: boolean
+}) {
+  return await imRequest<TodoStep>({ url: ImUrlEnum.TODO_STEP_UPDATE, body })
+}
+
+export async function deleteTodoStep(todoId: string, id: string, expectedVersion: number) {
+  return await imRequest<boolean>({ url: ImUrlEnum.TODO_STEP_DELETE, body: { todoId, id, expectedVersion } })
+}
+
 /** 我的待办：新建；带 mailId 或 shareId 时记录来源邮件 */
 export async function createTodo(body: {
   title: string
   notes?: string
   dueAt?: number | null
+  dueDate?: string | null
+  dueTimeZone?: string | null
+  remindAt?: number | null
+  repeat?: TodoRepeat | null
   mailId?: string
   shareId?: string
+  listId?: string | null
+  important?: boolean
+  myDay?: string | null
 }) {
   return await imRequest<TodoItem>({ url: ImUrlEnum.TODO_CREATE, body })
 }
@@ -1495,15 +1605,24 @@ export async function createTodo(body: {
 /** 我的待办：修改传入的字段 */
 export async function updateTodo(body: {
   id: string
+  expectedVersion: number
   title?: string
   notes?: string
   dueAt?: number | null
+  dueDate?: string | null
+  dueTimeZone?: string | null
+  remindAt?: number | null
+  repeat?: TodoRepeat | null
   done?: boolean
+  important?: boolean
+  listId?: string | null
+  assigneeId?: string | null
+  confirmShare?: boolean
 }) {
   return await imRequest<TodoItem>({ url: ImUrlEnum.TODO_UPDATE, body })
 }
 
 /** 我的待办：删除 */
-export async function deleteTodo(id: string) {
-  return await imRequest<boolean>({ url: ImUrlEnum.TODO_DELETE, body: { id } })
+export async function deleteTodo(id: string, expectedVersion: number) {
+  return await imRequest<boolean>({ url: ImUrlEnum.TODO_DELETE, body: { id, expectedVersion } })
 }

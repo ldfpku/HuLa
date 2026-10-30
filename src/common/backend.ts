@@ -16,6 +16,6 @@ export const MFA_REQUIRED_MESSAGE = 'MFA_REQUIRED'
  */
 export const APP_FEATURES = {
   plugins: false,
-  // Keep the existing mail window until embedded navigation and draft safety are verified.
-  embeddedMailWorkspace: false
+  embeddedMailWorkspace: true,
+  todoWorkspace: true
 } as const

@@ -14,6 +14,7 @@
 </template>
 <script setup lang="ts">
 import { WebviewWindow, getAllWebviewWindows } from '@tauri-apps/api/webviewWindow'
+import { Window } from '@tauri-apps/api/window'
 import { info } from '@tauri-apps/plugin-log'
 import { exit } from '@tauri-apps/plugin-process'
 import { loadLanguage } from '@/services/i18n'
@@ -52,6 +53,10 @@ import { listen } from '@tauri-apps/api/event'
 import { useTauriListener } from '@/hooks/useTauriListener'
 import { updateSettings } from '@/services/tauriCommand.ts'
 import { parsePresenceChange, PresenceVersionTracker } from '@/utils/PresenceEvents'
+import { guardedLogout } from '@/services/GuardedLogout'
+import { useMailStore } from '@/stores/mail'
+import { isExpiredSession } from '@/utils/ExpiredSession'
+import { WindowVisibilityController } from '@/utils/WindowVisibilityController'
 import { useI18n } from 'vue-i18n'
 const mobileRtcCallFloatCell = isMobile()
   ? defineAsyncComponent(() => import('@/mobile/components/RtcCallFloatCell.vue'))
@@ -67,7 +72,7 @@ const contactStore = useContactStore()
 const announcementStore = useAnnouncementStore()
 const feedStore = useFeedStore()
 const feedNotificationStore = useFeedNotificationStore()
-const userUid = computed(() => userStore.userInfo!.uid)
+const userUid = computed(() => userStore.userInfo?.uid ?? '')
 const groupStore = useGroupStore()
 const presenceVersions = new PresenceVersionTracker()
 const chatStore = useChatStore()
@@ -329,7 +334,7 @@ useMitt.on(WsResponseMessageType.ROOM_INFO_CHANGE, async (data: { roomId: string
 })
 
 useMitt.on(WsResponseMessageType.TOKEN_EXPIRED, async (wsTokenExpire: WsTokenExpire) => {
-  if (Number(userUid.value) === Number(wsTokenExpire.uid) && userStore.userInfo!.client === wsTokenExpire.client) {
+  if (isExpiredSession(userUid.value, userStore.userInfo?.client, wsTokenExpire)) {
     const { useLogin } = await import('@/hooks/useLogin')
     const { resetLoginState, logout } = useLogin()
     if (isMobile()) {
@@ -363,19 +368,43 @@ useMitt.on(WsResponseMessageType.TOKEN_EXPIRED, async (wsTokenExpire: WsTokenExp
         console.error('处理token过期失败：', error)
       }
     } else {
-      // 桌面端处理：聚焦主窗口并显示远程登录弹窗
-      const home = await WebviewWindow.getByLabel('home')
-      await home?.setFocus()
-      const remoteIp = wsTokenExpire.ip || '未知IP'
-      await sendWindowPayload('login', {
-        remoteLogin: {
-          ip: remoteIp,
-          timestamp: Date.now()
+      if (isDesktop() && !isWeb() && appWindow.label !== 'home') return
+      try {
+        const home = await Window.getByLabel('home')
+        await home?.setFocus()
+        const mail = useMailStore()
+        await guardedLogout({
+          prepare: mail.prepareLogout,
+          release: mail.releaseLogout,
+          logout: async () => {
+            if (!isExpiredSession(userStore.userInfo?.uid, userStore.userInfo?.client, wsTokenExpire)) {
+              throw new Error('账号已切换，请重新操作')
+            }
+            await sendWindowPayload('login', {
+              remoteLogin: {
+                ip: wsTokenExpire.ip || '未知IP',
+                timestamp: Date.now()
+              }
+            })
+            await ImRequestUtils.logout({ autoLogin: login.value.autoLogin })
+            await resetLoginState()
+            await logout()
+          }
+        })
+      } catch (error) {
+        console.error('处理登录失效失败:', error)
+        try {
+          const home = await Window.getByLabel('home')
+          await home?.unminimize()
+          await home?.show()
+          await home?.setFocus()
+        } catch (windowError) {
+          console.error('显示主窗口失败:', windowError)
         }
-      })
-      await ImRequestUtils.logout({ autoLogin: login.value.autoLogin })
-      await resetLoginState()
-      await logout()
+        window.$message.error(
+          typeof error === 'string' ? error : error instanceof Error ? error.message : '登录失效后退出失败'
+        )
+      }
     }
   }
 })
@@ -710,10 +739,40 @@ const refreshContactPresence = async () => {
   }
 }
 
+const visibilityController = new WindowVisibilityController(
+  async () => {
+    const [minimized, visible] = await Promise.all([appWindow.isMinimized(), appWindow.isVisible()])
+    return minimized || !visible
+  },
+  (background) => rustWebSocketClient.setAppBackgroundState(background),
+  (error) => console.error('更新实时连接后台状态失败:', error)
+)
+const updateWebSocketVisibility = () => visibilityController.request()
+let visibilityTimer: ReturnType<typeof setInterval> | undefined
+
 onMounted(() => {
   if ((isDesktop() && appWindow.label === 'home') || isWeb() || isMobile()) {
     contactPresenceTimer = setInterval(() => void refreshContactPresence(), 30_000)
     document.addEventListener('visibilitychange', refreshContactPresence)
+  }
+  if (isDesktop() && !isWeb() && appWindow.label === 'home') {
+    document.addEventListener('visibilitychange', updateWebSocketVisibility)
+    addListener(
+      appWindow.onResized(updateWebSocketVisibility).catch((error) => {
+        console.error('注册窗口尺寸监听失败，将使用定时检查:', error)
+        return () => {}
+      }),
+      'presence-window-resize'
+    )
+    addListener(
+      appWindow.onFocusChanged(updateWebSocketVisibility).catch((error) => {
+        console.error('注册窗口焦点监听失败，将使用定时检查:', error)
+        return () => {}
+      }),
+      'presence-window-focus'
+    )
+    visibilityTimer = setInterval(updateWebSocketVisibility, 5_000)
+    updateWebSocketVisibility()
   }
   // iOS应用启动时预请求网络权限（必须在最开始执行）
   if (isIOS()) {
@@ -766,15 +825,57 @@ onMounted(() => {
     })
     useMitt.on(MittEnum.DO_UPDATE, async (event) => {
       await createWebviewWindow('更新', 'update', 490, 335, '', false, 490, 335, false, true)
-      const closeWindow = await WebviewWindow.getByLabel(event.close)
+      const closeWindow = await Window.getByLabel(event.close)
       closeWindow?.close()
     })
-    addListener(
-      appWindow.listen(EventEnum.EXIT, async () => {
-        await exit(0)
-      }),
-      'app-exit'
-    )
+    if (appWindow.label === 'home') {
+      let exiting = false
+      addListener(
+        appWindow.listen<{ fromTray?: boolean }>(EventEnum.EXIT, async (event) => {
+          if (exiting) return
+          exiting = true
+          try {
+            const mail = useMailStore()
+            await guardedLogout({
+              prepare: mail.prepareLogout,
+              release: mail.releaseLogout,
+              logout: async () => {
+                if (!event.payload?.fromTray) {
+                  await exit(0)
+                  return
+                }
+                const previousLock = lockScreen.value.enable
+                const previousWsLogin = localStorage.getItem('wsLogin')
+                lockScreen.value.enable = false
+                localStorage.removeItem('wsLogin')
+                try {
+                  await exit(0)
+                } catch (error) {
+                  lockScreen.value.enable = previousLock
+                  if (previousWsLogin !== null) localStorage.setItem('wsLogin', previousWsLogin)
+                  throw error
+                }
+              }
+            })
+          } catch (error) {
+            console.error('退出应用失败:', error)
+            try {
+              await appWindow.unminimize()
+              await appWindow.show()
+              await appWindow.setFocus()
+            } catch (windowError) {
+              console.error('显示主窗口失败:', windowError)
+            }
+            window.$message.error(
+              typeof error === 'string' ? error : error instanceof Error ? error.message : '退出应用失败，请重试'
+            )
+          } finally {
+            exiting = false
+          }
+        }),
+        'app-exit'
+      )
+    }
   }
   listenMobileReLogin()
 })
@@ -782,6 +883,9 @@ onMounted(() => {
 onUnmounted(async () => {
   if (contactPresenceTimer) clearInterval(contactPresenceTimer)
   document.removeEventListener('visibilitychange', refreshContactPresence)
+  document.removeEventListener('visibilitychange', updateWebSocketVisibility)
+  if (visibilityTimer) clearInterval(visibilityTimer)
+  visibilityController.dispose()
   window.removeEventListener('contextmenu', preventGlobalContextMenu, false)
   window.removeEventListener('dragstart', preventDrag)
 

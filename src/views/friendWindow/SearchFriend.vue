@@ -146,6 +146,7 @@
 <script setup lang="ts">
 import { emitTo } from '@tauri-apps/api/event'
 import { getCurrentWebviewWindow, WebviewWindow } from '@tauri-apps/api/webviewWindow'
+import { Window } from '@tauri-apps/api/window'
 import { useDebounceFn } from '@vueuse/core'
 import { useI18n } from 'vue-i18n'
 import FloatBlockList from '@/components/common/FloatBlockList.vue'
@@ -424,7 +425,7 @@ const handleAddFriend = async (item: any) => {
 // 处理编辑个人资料
 const handleEditProfile = async () => {
   // 获取主窗口
-  const homeWindow = await WebviewWindow.getByLabel('home')
+  const homeWindow = await Window.getByLabel('home')
   // 激活主窗口
   await homeWindow?.setFocus()
   // 打开个人资料编辑窗口

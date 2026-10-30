@@ -1,7 +1,7 @@
 import { invoke } from '@tauri-apps/api/core'
 import { LogicalSize } from '@tauri-apps/api/dpi'
 import { WebviewWindow } from '@tauri-apps/api/webviewWindow'
-import { UserAttentionType, primaryMonitor, type Monitor } from '@tauri-apps/api/window'
+import { UserAttentionType, Window, primaryMonitor, type Monitor } from '@tauri-apps/api/window'
 import { info } from '@tauri-apps/plugin-log'
 import { assign } from 'es-toolkit/compat'
 import { CallTypeEnum, EventEnum, RoomTypeEnum } from '@/enums'
@@ -173,7 +173,7 @@ export const useWindow = () => {
         } catch {}
       }
       if (wantCloseWindow) {
-        const win = await WebviewWindow.getByLabel(wantCloseWindow)
+        const win = await Window.getByLabel(wantCloseWindow)
         win?.close()
       }
     })
@@ -288,7 +288,7 @@ export const useWindow = () => {
     }
     // 检查窗口是否已存在
     const existingWindow = await WebviewWindow.getByLabel(label)
-    const parentWindow = parent ? await WebviewWindow.getByLabel(parent) : null
+    const parentWindow = parent ? await Window.getByLabel(parent) : null
 
     if (existingWindow) {
       if (isMac()) {
@@ -394,7 +394,7 @@ export const useWindow = () => {
     if (!isDesktop()) {
       return Promise.resolve()
     }
-    const webview = await WebviewWindow.getByLabel(label)
+    const webview = await Window.getByLabel(label)
     const monitor = await primaryMonitor()
     const clampedSize = clampSizeToMonitor(width, height, monitor)
     // 创建一个新的尺寸对象
@@ -414,7 +414,7 @@ export const useWindow = () => {
     if (!isDesktop()) {
       return false
     }
-    const isExistsWinds = await WebviewWindow.getByLabel(L)
+    const isExistsWinds = await Window.getByLabel(L)
     if (isExistsWinds) {
       await nextTick()
       const minimized = await isExistsWinds.isMinimized()
@@ -437,7 +437,7 @@ export const useWindow = () => {
     if (!isDesktop()) {
       return Promise.resolve()
     }
-    const webview = await WebviewWindow.getByLabel(label)
+    const webview = await Window.getByLabel(label)
     if (webview) {
       await webview.setResizable(resizable).catch((error) => {
         console.error('设置窗口可调整大小失败:', error)

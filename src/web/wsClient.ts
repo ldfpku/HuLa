@@ -43,6 +43,7 @@ type Emit = (event: string, payload?: unknown) => void
 
 const HEARTBEAT_INTERVAL = 9900
 const HEARTBEAT_TIMEOUT = 15000
+const BACKGROUND_HEARTBEAT_TIMEOUT = 120000
 const RECONNECT_DELAY = 1000
 const MAX_RECONNECT_DELAY = 30000
 
@@ -56,6 +57,7 @@ const EVENT_BY_TYPE: Record<string, string> = {
   chatPurged: 'ws-chat-purged',
   meetingStatus: 'ws-meeting-status',
   mailNew: 'ws-mail-new',
+  todoReminder: 'ws-todo-reminder',
   msgMarkItem: 'ws-msg-mark-item',
   online: 'ws-online',
   offline: 'ws-offline',
@@ -108,6 +110,7 @@ export class WebSocketClient {
     window.addEventListener('online', () => {
       if (this.state !== 'CONNECTED' && !this.manualClose) this.reconnectNow()
     })
+    document.addEventListener('visibilitychange', () => this.sendVisibility())
   }
 
   getState() {
@@ -220,6 +223,7 @@ export class WebSocketClient {
       this.attempts = 0
       this.lastPong = Date.now()
       this.setState('CONNECTED', isReconnection)
+      this.sendVisibility()
       for (const data of this.pending.splice(0)) socket.send(JSON.stringify(data))
       this.startHeartbeat(socket)
     }
@@ -237,6 +241,11 @@ export class WebSocketClient {
     }
   }
 
+  private sendVisibility() {
+    if (this.socket?.readyState !== WebSocket.OPEN) return
+    this.socket.send(JSON.stringify({ type: 'clientVisibility', background: document.visibilityState !== 'visible' }))
+  }
+
   private scheduleReconnect() {
     const delay = Math.min(RECONNECT_DELAY * 2 ** this.attempts, MAX_RECONNECT_DELAY)
     this.attempts++
@@ -245,7 +254,8 @@ export class WebSocketClient {
 
   private startHeartbeat(socket: WebSocket) {
     this.heartbeatTimer = window.setInterval(() => {
-      if (Date.now() - this.lastPong > HEARTBEAT_TIMEOUT + HEARTBEAT_INTERVAL) {
+      const timeout = document.visibilityState === 'visible' ? HEARTBEAT_TIMEOUT : BACKGROUND_HEARTBEAT_TIMEOUT
+      if (Date.now() - this.lastPong > timeout + HEARTBEAT_INTERVAL) {
         socket.close()
         return
       }

@@ -4,6 +4,8 @@ pub mod directory_scanner;
 pub mod init;
 pub mod media_permission;
 pub mod mail_window;
+#[cfg(target_os = "windows")]
+pub mod mail_notification;
 pub mod embedded_mail;
 pub mod remote_control;
 pub mod share_indicator;

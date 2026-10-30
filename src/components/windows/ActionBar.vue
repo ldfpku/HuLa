@@ -167,6 +167,7 @@ import { useI18n } from 'vue-i18n'
 import SplitWindowMenu from '@/components/windows/SplitWindowMenu.vue'
 import { emit } from '@tauri-apps/api/event'
 import { WebviewWindow } from '@tauri-apps/api/webviewWindow'
+import { Window } from '@tauri-apps/api/window'
 import { info } from '@tauri-apps/plugin-log'
 import { exit } from '@tauri-apps/plugin-process'
 import { CloseBxEnum, EventEnum, MittEnum } from '@/enums'
@@ -224,8 +225,6 @@ const alwaysOnTopStatus = computed(() => {
 let unlistenCloseRequested: (() => void) | null = null
 // resized 事件的 unlisten 函数
 let unlistenResized: (() => void) | null = null
-// 是否是程序内部触发的关闭操作
-let isProgrammaticClose = false
 const handleEscKeyDown = (event: KeyboardEvent) => {
   if (event.key === 'Escape' && escClose.value) {
     handleCloseWin()
@@ -282,8 +281,6 @@ const handleConfirm = async () => {
   tips.value.notTips = tipsRef.notTips
   tipsRef.show = false
   if (tips.value.type === CloseBxEnum.CLOSE) {
-    // 设置程序内部关闭标志
-    isProgrammaticClose = true
     await emit(EventEnum.EXIT)
   } else {
     await nextTick(() => {
@@ -321,8 +318,8 @@ const handleCloseWin = async () => {
     await exit(0)
   } else {
     if (appWindow.label.includes('modal-')) {
-      const webviews = await WebviewWindow.getAll()
-      const need = webviews.find((item) => item.label === 'home' || item.label === 'login')
+      const windows = await Window.getAll()
+      const need = windows.find((item) => item.label === 'home' || item.label === 'login')
       await need?.setEnabled(true)
       await need?.setFocus()
     }
@@ -345,11 +342,6 @@ onMounted(async () => {
   if (appWindow.label === 'home') {
     appWindow.onCloseRequested((event) => {
       info('[ActionBar]监听[home]窗口关闭事件')
-      if (isProgrammaticClose) {
-        // 清理监听器
-        info('[ActionBar]清理[home]窗口的监听器')
-        exit(0)
-      }
       info('[ActionBar]阻止[home]窗口关闭事件')
       event.preventDefault()
       appWindow.hide()

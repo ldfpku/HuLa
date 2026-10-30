@@ -24,6 +24,14 @@ use tokio_tungstenite::{client_async_tls_with_config, tungstenite::protocol::Mes
 use tracing::{debug, error, info, warn};
 use url::Url;
 
+fn visibility_message(background: bool) -> Message {
+    Message::Text(
+        serde_json::json!({ "type": "clientVisibility", "background": background })
+            .to_string()
+            .into(),
+    )
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AckMessage {
@@ -512,6 +520,7 @@ impl WebSocketClient {
         // 创建消息通道
         let (msg_sender, mut msg_receiver) = mpsc::unbounded_channel();
         *self.message_sender.write().await = Some(msg_sender);
+        self.send_visibility().await?;
 
         // 创建关闭信号通道
         let (close_sender, mut close_receiver) = mpsc::unbounded_channel();
@@ -840,6 +849,9 @@ impl WebSocketClient {
             "mailNew" => {
                 info!("New mail");
                 let _ = app_handle.emit_to("home", "ws-mail-new", data);
+            }
+            "todoReminder" => {
+                let _ = app_handle.emit_to("home", "ws-todo-reminder", data);
             }
             "msgMarkItem" => {
                 info!("Message liked/disliked");
@@ -1189,6 +1201,15 @@ impl WebSocketClient {
             .is_app_in_background
             .swap(is_background, Ordering::SeqCst);
 
+        if was_background != is_background {
+            let client = self.clone();
+            tokio::spawn(async move {
+                if let Err(error) = client.send_visibility().await {
+                    warn!("Failed to report websocket visibility: {}", error);
+                }
+            });
+        }
+
         if is_background && !was_background {
             info!("App entered background mode");
             // 重置后台心跳失败计数
@@ -1207,6 +1228,14 @@ impl WebSocketClient {
                 }
             });
         }
+    }
+
+    async fn send_visibility(&self) -> Result<()> {
+        let sender = self.message_sender.read().await;
+        if let Some(sender) = sender.as_ref() {
+            sender.send(visibility_message(self.is_app_in_background.load(Ordering::SeqCst)))?;
+        }
+        Ok(())
     }
 
     /// 检查并恢复连接（从后台恢复时调用）
@@ -1329,5 +1358,23 @@ impl WebSocketClient {
         });
 
         sync_messages(params, state).await
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::visibility_message;
+    use tokio_tungstenite::tungstenite::protocol::Message;
+
+    #[test]
+    fn visibility_frames_preserve_foreground_and_background() {
+        for background in [false, true] {
+            let Message::Text(payload) = visibility_message(background) else {
+                panic!("visibility must use a text frame");
+            };
+            let parsed: serde_json::Value = serde_json::from_str(&payload).unwrap();
+            assert_eq!(parsed["type"], "clientVisibility");
+            assert_eq!(parsed["background"], background);
+        }
     }
 }

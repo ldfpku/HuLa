@@ -109,8 +109,18 @@ impl DatabaseSettings {
 
         // 数据库路径配置：
         let db_path = if cfg!(debug_assertions) && cfg!(desktop) {
-            // 桌面端开发环境：使用项目根目录（src-tauri）
-            let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+            let mut path = match std::env::var_os("HULA_DEV_DB_DIR") {
+                Some(dir) => {
+                    let path = PathBuf::from(dir);
+                    if !path.is_absolute() {
+                        return Err(anyhow::anyhow!("HULA_DEV_DB_DIR must be an absolute path").into());
+                    }
+                    std::fs::create_dir_all(&path)
+                        .map_err(|error| anyhow::anyhow!("Cannot create HULA_DEV_DB_DIR: {error}"))?;
+                    path
+                }
+                None => PathBuf::from(env!("CARGO_MANIFEST_DIR")),
+            };
             path.push(&db_filename);
             path
         } else {

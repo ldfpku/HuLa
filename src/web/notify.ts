@@ -3,14 +3,16 @@
  * - 新消息、新邮件在页面不在前台时用浏览器通知提醒，点击通知回到对应会话或打开邮件
  * - 标签页标题和 favicon 上显示聊天未读数
  *
- * 业务代码里的 sendNotification（被 @ 时、收到新邮件时）原本由替身直接弹出，不管页面是否在前台，
- * 点击也没有反应；这里接管 plugin:notification|notify，统一由本文件弹出。
+ * 新邮件由本文件统一提示并处理点击；直接调用底层通知命令的路径也在此接管。
  * 不用 Web Push：浏览器的推送服务由浏览器厂商提供（如 Chrome 走 Google），属于外部服务。
  */
 import { emit } from '@tauri-apps/api/event'
 import { watch } from 'vue'
 import { MsgEnum, NotificationTypeEnum, RoomTypeEnum } from '@/enums'
 import { useMitt } from '@/hooks/useMitt'
+import { APP_FEATURES } from '@/common/backend'
+import { isPhoneLayout } from '@/hooks/usePhoneLayout'
+import { useI18nGlobal } from '@/services/i18n'
 import router from '@/router'
 import type { MessageType } from '@/services/types'
 import { WsResponseMessageType } from '@/services/wsType'
@@ -19,6 +21,9 @@ import { useGlobalStore } from '@/stores/global'
 import { useGroupStore } from '@/stores/group'
 import { type MailNewEvent, useMailStore } from '@/stores/mail'
 import { useUserStore } from '@/stores/user'
+import { useTodoStore } from '@/stores/todo'
+import { useTodoWorkspaceStore } from '@/stores/todoWorkspace'
+import { useWorkspaceStore } from '@/stores/workspace'
 import { AvatarUtils } from '@/utils/AvatarUtils'
 import { renderReplyContent } from '@/utils/RenderReplyContent'
 import { badgeText, baseTitle, isPageActive, titleWithUnread, withBasePath } from './notifyUtils'
@@ -127,12 +132,43 @@ const onMessage = (data: MessageType) => {
 }
 
 const onMail = (mail: MailNewEvent) => {
+  const account = useUserStore().userInfo?.uid ?? ''
   show({
     title: `新邮件：${mail.fromName || mail.from}`,
     body: mail.subject || '(无主题)',
     tag: `smj-mail-${mail.messageId}`,
-    onClick: () => void useMailStore().openMail()
+    onClick: () => {
+      void useMailStore()
+        .openMailNotification(mail, account)
+        .catch((error) => {
+          console.error('[web] 打开邮件通知失败:', error)
+          window.$message?.error(error instanceof Error ? error.message : '打开邮件失败，请重试')
+        })
+    }
   })
+}
+
+const onTodoReminder = (data: unknown) => {
+  if (!APP_FEATURES.todoWorkspace) return
+  void useTodoWorkspaceStore()
+    .receiveReminders(data)
+    .then((reminders) => {
+      for (const reminder of reminders) {
+        show({
+          title: useI18nGlobal().t('todo.reminders'),
+          body: reminder.title,
+          tag: `smj-todo-${reminder.id}`,
+          onClick: () => {
+            if (isPhoneLayout.value) void useTodoStore().open()
+            else useWorkspaceStore().openTodo()
+          }
+        })
+      }
+    })
+    .catch((error) => {
+      console.error('[web] 接收待办提醒失败:', error)
+      window.$message?.warning(useI18nGlobal().t('todo.error'))
+    })
 }
 
 /** 业务代码的 sendNotification 改由上面的 onMessage / onMail 弹出，这里不再重复弹 */
@@ -223,6 +259,7 @@ export const startWebNotify = (label: string) => {
 
   useMitt.on(WsResponseMessageType.RECEIVE_MESSAGE, onMessage)
   useMitt.on(WsResponseMessageType.MAIL_NEW, onMail)
+  useMitt.on(WsResponseMessageType.TODO_REMINDER, onTodoReminder)
 
   const setTitle = createTitleBadge()
   const setFavicon = createFaviconBadge()

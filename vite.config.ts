@@ -145,7 +145,7 @@ const createWebAppManifest = (base: string) => {
 
 // https://vitejs.dev/config/
 /**! 不需要优化前端打包(如开启gzip) */
-export default defineConfig(({ mode }: ConfigEnv) => {
+export default defineConfig(({ mode, command }: ConfigEnv) => {
   // 获取当前环境的配置,如何设置第三个参数则加载所有变量，而不是以"VITE_"前缀的变量
   const config = loadEnv(mode, process.cwd(), '')
   const currentPlatform = config.TAURI_ENV_PLATFORM
@@ -185,7 +185,10 @@ export default defineConfig(({ mode }: ConfigEnv) => {
     base: isWeb ? '/im/' : '/',
     // 桌面版“检查更新”里显示的版本发布日期（打包时间）
     define: {
-      'import.meta.env.VITE_BUILD_TIME': JSON.stringify(new Date().toISOString())
+      'import.meta.env.VITE_BUILD_TIME': JSON.stringify(new Date().toISOString()),
+      'import.meta.env.VITE_WEB_MAIL_ORIGIN': JSON.stringify(
+        config.VITE_WEB_MAIL_ORIGIN || (isWeb && command === 'serve' ? webProxyTarget : '')
+      )
     },
     resolve: {
       alias: {

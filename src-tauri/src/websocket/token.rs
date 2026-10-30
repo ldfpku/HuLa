@@ -79,7 +79,7 @@ pub async fn refresh_after_refusal(app: &AppHandle, refused: &str) -> RefreshOut
 }
 
 fn emit_relogin(app: &AppHandle) {
-    let _ = if app.get_webview_window("home").is_some() {
+    let _ = if app.get_window("home").is_some() {
         app.emit_to("home", "relogin", ())
     } else if app.get_webview_window("mobile-home").is_some() {
         app.emit_to("mobile-home", "relogin", ())

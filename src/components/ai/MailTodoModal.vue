@@ -1,10 +1,10 @@
 <template>
-  <n-modal v-model:show="visible" :mask-closable="!saving" class="rounded-8px w-480px">
+  <n-modal v-model:show="visible" :mask-closable="!saving" :close-on-esc="!saving" class="rounded-8px w-480px">
     <div
       class="bg-[--bg-popover] w-480px box-border p-[18px_22px] flex flex-col gap-14px text-[--text-color] max-h-[calc(100vh-4rem)] overflow-y-auto">
       <div class="flex items-center justify-between">
         <span class="text-15px font-600">邮件转待办</span>
-        <svg class="size-12px cursor-pointer select-none" @click="visible = false">
+        <svg class="size-12px cursor-pointer select-none" @click="!saving && (visible = false)">
           <title>{{ t('tooltip.close') }}</title>
           <use href="#close"></use>
         </svg>
@@ -22,24 +22,37 @@
         <p v-if="draftError" class="text-12px color-#d03553">{{ draftError }}，可以直接手动填写。</p>
         <n-form label-placement="left" label-width="72" :show-feedback="false" class="flex flex-col gap-12px">
           <n-form-item label="待办">
-            <n-input v-model:value="title" :maxlength="100" placeholder="要做的事" clearable />
+            <n-input v-model:value="title" :maxlength="100" placeholder="要做的事" clearable :disabled="saving" />
           </n-form-item>
           <n-form-item label="截止时间">
-            <n-date-picker v-model:value="dueAt" type="datetime" format="yyyy-MM-dd HH:mm" clearable class="w-full" />
+            <n-date-picker
+              v-model:value="dueAt"
+              type="datetime"
+              format="yyyy-MM-dd HH:mm"
+              clearable
+              class="w-full"
+              :disabled="saving" />
           </n-form-item>
           <n-form-item label="要点">
             <n-input
               v-model:value="notes"
               type="textarea"
               :maxlength="2000"
+              :disabled="saving"
               :autosize="{ minRows: 3, maxRows: 8 }"
               placeholder="完成这件事需要知道的信息" />
           </n-form-item>
         </n-form>
         <n-flex justify="end" :size="10">
           <n-button size="small" secondary :disabled="saving" @click="generate">确认使用 AI 生成</n-button>
-          <n-button size="small" secondary @click="visible = false">取消</n-button>
-          <n-button size="small" color="#034fbc" text-color="#ffffff" :loading="saving" :disabled="!title.trim()" @click="save">
+          <n-button size="small" secondary :disabled="saving" @click="visible = false">取消</n-button>
+          <n-button
+            size="small"
+            color="#034fbc"
+            text-color="#ffffff"
+            :loading="saving"
+            :disabled="!title.trim()"
+            @click="save">
             保存到我的待办
           </n-button>
         </n-flex>
@@ -51,6 +64,7 @@
 <script setup lang="ts">
 import { useTodoStore } from '@/stores/todo'
 import { draftMailTodo } from '@/utils/ImRequestUtils'
+import { TodoSavedRefreshError } from '@/utils/TodoMutationError'
 import { useI18n } from 'vue-i18n'
 
 const { t } = useI18n()
@@ -99,13 +113,21 @@ const generate = async () => {
 }
 
 const save = async () => {
+  if (saving.value) return
   saving.value = true
   try {
     await todoStore.add({ title: title.value.trim(), notes: notes.value, dueAt: dueAt.value, ...source() })
     window.$message?.success('已保存到我的待办')
     visible.value = false
   } catch (err) {
-    console.error('[MailTodo] 保存待办失败:', err)
+    if (err instanceof TodoSavedRefreshError) {
+      console.warn('[MailTodo] 待办已保存但刷新失败:', err)
+      visible.value = false
+      window.$message?.warning(err.message)
+    } else {
+      console.error('[MailTodo] 保存待办失败:', err)
+      window.$message?.error(err instanceof Error ? err.message : t('todo.error'))
+    }
   } finally {
     saving.value = false
   }

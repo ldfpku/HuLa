@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { refreshTokens, requestPath, tokenStore } from './imClient'
+import { imRequest, refreshTokens, requestPath, tokenStore } from './imClient'
 import { createCommands } from './commands'
 import { WebSocketClient } from './wsClient'
 
@@ -43,6 +43,32 @@ describe('web IM request timeout', () => {
 })
 
 describe('web IM request behavior', () => {
+  it('sends a status change in the JSON body and preserves a saved-but-pending response', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(new Response(JSON.stringify({ code: 503, msg: '状态已保存，但同步失败，系统将自动重试' })))
+    vi.stubGlobal('fetch', fetchMock)
+    await expect(imRequest('changeUserState', { id: '2' })).rejects.toThrow('状态已保存')
+    const url = new URL(fetchMock.mock.calls[0][0])
+    expect(url.pathname).toBe('/api/im/im/user/state/changeState')
+    expect(url.searchParams.has('id')).toBe(false)
+    expect(fetchMock.mock.calls[0][1].method).toBe('POST')
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({ id: '2' })
+  })
+
+  it('sends the to-do page cursor unchanged through the web route', async () => {
+    const cursor = '[1,"all",123,"todo_2"]'
+    const page = { items: [], hasMore: false, nextCursor: null }
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ code: 200, data: page })))
+    vi.stubGlobal('fetch', fetchMock)
+    await expect(imRequest('todoPage', undefined, { status: 'all', pageSize: 50, cursor })).resolves.toEqual(page)
+    const url = new URL(fetchMock.mock.calls[0][0])
+    expect(url.pathname).toBe('/api/im/im/todo/page')
+    expect(url.searchParams.get('cursor')).toBe(cursor)
+    expect(url.searchParams.get('status')).toBe('all')
+    expect(fetchMock.mock.calls[0][1].method).toBe('GET')
+  })
+
   it('still retries failed read-only fetches', async () => {
     vi.useFakeTimers()
     const fetchMock = vi

@@ -28,6 +28,7 @@ export enum WsResponseMessageType {
   MEETING_STATUS = 'meetingStatus',
   /** 新邮件 */
   MAIL_NEW = 'mailNew',
+  TODO_REMINDER = 'todoReminder',
   /** 新好友申请 */
   REQUEST_NEW_FRIEND = 'requestNewFriend',
   /** 群成员变动 */

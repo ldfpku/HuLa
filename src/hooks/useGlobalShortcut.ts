@@ -2,6 +2,7 @@ import { invoke } from '@tauri-apps/api/core'
 import { LogicalPosition, LogicalSize } from '@tauri-apps/api/dpi'
 import { emitTo, listen } from '@tauri-apps/api/event'
 import { WebviewWindow } from '@tauri-apps/api/webviewWindow'
+import { Window } from '@tauri-apps/api/window'
 import { register, unregister } from '@tauri-apps/plugin-global-shortcut'
 import { useSettingStore } from '@/stores/setting.ts'
 import { isMac } from '@/utils/PlatformConstants'
@@ -70,7 +71,7 @@ export const useGlobalShortcut = () => {
    */
   const handleScreenshot = async () => {
     try {
-      const homeWindow = await WebviewWindow.getByLabel('home')
+      const homeWindow = await Window.getByLabel('home')
       if (!homeWindow) return
 
       const captureWindow = await WebviewWindow.getByLabel('capture')
@@ -128,7 +129,7 @@ export const useGlobalShortcut = () => {
     lastToggleTime = currentTime
 
     try {
-      const homeWindow = await WebviewWindow.getByLabel('home')
+      const homeWindow = await Window.getByLabel('home')
       if (!homeWindow) {
         console.warn('Home window not found')
         return

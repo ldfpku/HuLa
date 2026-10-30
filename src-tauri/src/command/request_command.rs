@@ -268,7 +268,7 @@ pub async fn im_request_command(
                 if e.to_string().contains("请重新登录") {
                     if user_uid.is_empty() {
                     } else {
-                        if app_handle.get_webview_window("home").is_some() {
+                        if app_handle.get_window("home").is_some() {
                             if let Err(err) = app_handle.emit_to("home", "relogin", ()) {
                                 let _ = err;
                             }

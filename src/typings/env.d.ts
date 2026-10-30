@@ -4,6 +4,8 @@ interface ImportMetaEnv {
   readonly VITE_APP_NAME: string
   /** 网页版开发时 /api 代理到的服务端 */
   readonly VITE_WEB_PROXY_TARGET?: string
+  /** 网页版允许打开的邮箱站点来源，默认当前站点 */
+  readonly VITE_WEB_MAIL_ORIGIN?: string
   /** 桌面版发布说明，打包流程从发布标签写入 */
   readonly VITE_RELEASE_NOTES?: string
   /** 打包时间（vite.config.ts 写入），作为桌面版发布日期 */

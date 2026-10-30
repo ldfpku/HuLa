@@ -25,6 +25,86 @@ describe('fetchSocketTicket', () => {
 })
 
 describe('WebSocketClient.init', () => {
+  it('reports the current tab visibility on connect and changes, without queueing after disconnect', async () => {
+    const { WebSocketClient } = await import('./wsClient')
+    const { tokenStore } = await import('./imClient')
+    tokenStore.set({ uid: 'u1', token: 'tok-1', refreshToken: 'r1' })
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response(JSON.stringify({ code: 200, data: { ticket: 'tk' } })))
+    )
+    const sockets: Array<{ onopen?: () => void; send: ReturnType<typeof vi.fn> }> = []
+    vi.stubGlobal(
+      'WebSocket',
+      class {
+        static OPEN = 1
+        readyState = 1
+        onopen?: () => void
+        close = vi.fn()
+        send = vi.fn()
+        constructor() {
+          sockets.push(this)
+        }
+      }
+    )
+    const visibility = vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible')
+    const ws = new WebSocketClient(() => {})
+    await ws.init('visibility-test')
+    await vi.waitFor(() => expect(sockets[0]?.onopen).toBeTypeOf('function'))
+    sockets[0].onopen?.()
+    expect(sockets[0].send).toHaveBeenLastCalledWith(JSON.stringify({ type: 'clientVisibility', background: false }))
+    visibility.mockReturnValue('hidden')
+    document.dispatchEvent(new Event('visibilitychange'))
+    expect(sockets[0].send).toHaveBeenLastCalledWith(JSON.stringify({ type: 'clientVisibility', background: true }))
+    ws.disconnect()
+    sockets[0].send.mockClear()
+    document.dispatchEvent(new Event('visibilitychange'))
+    expect(sockets[0].send).not.toHaveBeenCalled()
+    visibility.mockRestore()
+    vi.unstubAllGlobals()
+  })
+
+  it('allows background timer throttling but reconnects when the heartbeat remains missing', async () => {
+    const { WebSocketClient } = await import('./wsClient')
+    const { tokenStore } = await import('./imClient')
+    tokenStore.set({ uid: 'u1', token: 'tok-1', refreshToken: 'r1' })
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response(JSON.stringify({ code: 200, data: { ticket: 'tk' } })))
+    )
+    const sockets: Array<{ onopen?: () => void; close: ReturnType<typeof vi.fn> }> = []
+    vi.stubGlobal(
+      'WebSocket',
+      class {
+        static OPEN = 1
+        readyState = 1
+        onopen?: () => void
+        close = vi.fn()
+        send = vi.fn()
+        constructor() {
+          sockets.push(this)
+        }
+      }
+    )
+    const visibility = vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('hidden')
+    const ws = new WebSocketClient(() => {})
+    await ws.init('background-test')
+    await vi.waitFor(() => expect(sockets[0]?.onopen).toBeTypeOf('function'))
+    vi.useFakeTimers()
+    try {
+      sockets[0].onopen?.()
+      await vi.advanceTimersByTimeAsync(70_000)
+      expect(sockets[0].close).not.toHaveBeenCalled()
+      await vi.advanceTimersByTimeAsync(70_000)
+      expect(sockets[0].close).toHaveBeenCalled()
+    } finally {
+      ws.disconnect()
+      vi.useRealTimers()
+      visibility.mockRestore()
+      vi.unstubAllGlobals()
+    }
+  })
+
   it('forwards a profile change to the shared websocket listeners', async () => {
     const { WebSocketClient } = await import('./wsClient')
     const { tokenStore } = await import('./imClient')

@@ -412,7 +412,7 @@ fn play_audio_internal(path: &str, handle: &AppHandle) -> Result<(), String> {
 #[tauri::command]
 pub fn set_height(height: u32, handle: AppHandle) -> Result<(), String> {
     let home_window = handle
-        .get_webview_window("home")
+        .get_window("home")
         .ok_or("未找到 home 窗口")?;
 
     let sf = home_window

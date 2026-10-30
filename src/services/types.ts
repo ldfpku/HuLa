@@ -1078,6 +1078,8 @@ export type TodoItem = {
   title: string
   notes: string
   dueAt: number | null
+  dueDate: string | null
+  dueTimeZone: string | null
   done: boolean
   doneAt: number | null
   sourceType: 'manual' | 'mail'
@@ -1085,6 +1087,63 @@ export type TodoItem = {
   sourceTitle: string
   /** 来源邮件在邮件网页里的路径 */
   sourcePath: string | null
+  ownerId: string
+  listId: string | null
+  assigneeId: string | null
+  important: boolean
+  myDay: string | null
+  version: number
+  remindAt: number | null
+  repeat: TodoRepeat | null
   createdAt: number
   updatedAt: number
+}
+
+export type TodoRepeatKind = 'daily' | 'weekly' | 'monthly' | 'yearly'
+export type TodoRepeat = { kind: TodoRepeatKind; timeZone: string }
+
+export type TodoPage = {
+  items: TodoItem[]
+  hasMore: boolean
+  nextCursor: string | null
+}
+
+export type TodoView = 'all' | 'owned' | 'tasks' | 'important' | 'planned' | 'day' | 'assigned' | 'list'
+export type TodoSort = 'created' | 'due' | 'title'
+
+export type TodoList = {
+  id: string
+  name: string
+  position: number
+  createdAt: number
+  updatedAt: number
+}
+
+export type TodoStep = {
+  id: string
+  todoId: string
+  title: string
+  done: boolean
+  position: number
+  version: number
+  createdAt: number
+  updatedAt: number
+}
+
+export type TodoReminder = {
+  id: string
+  todoId: string
+  title: string
+  scheduledAt: number
+  createdAt: number
+}
+
+export type TodoAttachment = {
+  id: string
+  todoId: string
+  available: boolean
+  name: string | null
+  size: number | null
+  path: string | null
+  createdAt: number
 }

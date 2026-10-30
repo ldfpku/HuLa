@@ -7,7 +7,7 @@ pub fn handle_app_event<R: Runtime>(app_handle: &AppHandle<R>, event: RunEvent) 
     match event {
         RunEvent::Reopen { .. } => {
             // 直接尝试获取 home 窗口，如果存在则显示并置于最顶部
-            if let Some(home_window) = app_handle.get_webview_window("home") {
+            if let Some(home_window) = app_handle.get_window("home") {
                 let _ = home_window.show();
                 let _ = home_window.unminimize();
                 let _ = home_window.set_focus();

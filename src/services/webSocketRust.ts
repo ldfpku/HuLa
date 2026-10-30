@@ -95,6 +95,7 @@ class ListenerController {
 
 class RustWebSocketClient {
   private listenerController: ListenerController = new ListenerController()
+  private visibilityUpdate: Promise<void> = Promise.resolve()
 
   constructor() {
     info('[RustWS] Rust WebSocket 客户端初始化')
@@ -114,12 +115,21 @@ class RustWebSocketClient {
       info(`[RustWS] 初始化连接参数: ${JSON.stringify(params)}`)
 
       await invoke('ws_init_connection', { params })
+      await this.setAppBackgroundState(document.visibilityState !== 'visible')
 
       info('[RustWS] WebSocket 连接初始化成功')
     } catch (err) {
       error(`[RustWS] 连接初始化失败: ${err}`)
       throw err
     }
+  }
+
+  async setAppBackgroundState(isBackground: boolean): Promise<void> {
+    const update = this.visibilityUpdate.then(async () => {
+      await invoke('ws_set_app_background_state', { isBackground })
+    })
+    this.visibilityUpdate = update.catch(() => {})
+    return update
   }
 
   /**
@@ -295,6 +305,12 @@ class RustWebSocketClient {
       await listen('ws-mail-new', (event: any) => {
         info('新邮件')
         useMitt.emit(WsResponseMessageType.MAIL_NEW, event.payload)
+      })
+    )
+
+    this.listenerController.add(
+      await listen('ws-todo-reminder', (event) => {
+        useMitt.emit(WsResponseMessageType.TODO_REMINDER, event.payload)
       })
     )
 

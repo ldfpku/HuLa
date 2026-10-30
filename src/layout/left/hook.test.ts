@@ -37,6 +37,9 @@ vi.mock('@/stores/group', () => ({
 vi.mock('@/stores/loginHistory.ts', () => ({ useLoginHistoriesStore: () => ({ updateLoginHistory: mocks.history }) }))
 vi.mock('@/stores/mail', () => ({ useMailStore: () => ({}) }))
 vi.mock('@/stores/todo', () => ({ useTodoStore: () => ({}) }))
+vi.mock('@/stores/workspace', () => ({
+  useWorkspaceStore: () => reactive({ active: 'chat', openChat: vi.fn(), openTodo: vi.fn() })
+}))
 vi.mock('@/stores/menuTop.ts', () => ({ useMenuTopStore: () => reactive({ menuTop: [{ url: 'message' }] }) }))
 vi.mock('@/stores/setting.ts', () => ({ useSettingStore: () => ({ themes: { content: 'light', pattern: 'light' } }) }))
 vi.mock('@/stores/user.ts', () => ({ useUserStore: () => mocks.user }))

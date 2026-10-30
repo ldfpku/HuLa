@@ -19,7 +19,18 @@
       <n-flex vertical class="w-full h-100vh bg-#f1f1f1 rounded-6px box-border p-13px" data-tauri-drag-region>
         <n-scrollbar style="max-height: 215px">
           <n-flex align="center" :size="10">
-            <n-flex @click="handleResetState" vertical justify="center" align="center" :size="8" class="status-item">
+            <n-flex
+              role="button"
+              tabindex="0"
+              @click="handleResetState"
+              @keydown.enter.prevent="handleResetState"
+              @keydown.space.prevent="handleResetState"
+              :aria-disabled="changing"
+              vertical
+              justify="center"
+              align="center"
+              :size="8"
+              class="status-item">
               <svg class="size-24px color-#d03553">
                 <use href="#forbid"></use>
               </svg>
@@ -29,6 +40,11 @@
             </n-flex>
             <n-flex
               @click="handleActive(item)"
+              @keydown.enter.prevent="handleActive(item)"
+              @keydown.space.prevent="handleActive(item)"
+              role="button"
+              tabindex="0"
+              :aria-disabled="changing"
               :class="{ active: hasCustomState && currentState?.id === item.id }"
               v-for="item in stateList"
               :key="item.title"
@@ -56,7 +72,8 @@ import type { UserState } from '@/services/types'
 import { useUserStore } from '@/stores/user'
 import { useUserStatusStore } from '@/stores/userStatus'
 import { useOnlineStatus } from '@/hooks/useOnlineStatus.ts'
-import { changeUserState } from '@/utils/ImRequestUtils'
+import { changeUserState, getUserDetail } from '@/utils/ImRequestUtils'
+import { changeOwnUserState, userStateChangeError } from '@/utils/UserStateChange'
 import { userStateIcon } from '@/utils/UserStateIcon'
 
 const userStatusStore = useUserStatusStore()
@@ -64,6 +81,8 @@ const userStore = useUserStore()
 const { stateList, stateId } = storeToRefs(userStatusStore)
 const { currentState, statusIcon, statusTitle, statusBgColor, hasCustomState, isConnectionPending } = useOnlineStatus()
 const { t } = useI18n()
+const changing = ref(false)
+let stateChangeSequence = 0
 const resetState = computed<UserState>(() => ({
   id: '0',
   title: t('auth.onlineStatus.reset_title'),
@@ -89,24 +108,36 @@ watchEffect(() => {
  * @param { UserState } item 状态
  */
 const handleActive = async (item: UserState) => {
+  if (changing.value) return
+  changing.value = true
+  const sequence = ++stateChangeSequence
   try {
-    const uid = userStore.userInfo?.uid
-    if (!uid) throw new Error(t('home.profile_edit.toast.account_changed'))
-    await changeUserState({ id: item.id })
-    if (userStore.userInfo?.uid !== uid) {
-      window.$message?.warning(t('home.profile_edit.toast.account_changed'))
-      return
-    }
+    const applied = await changeOwnUserState(item.id, {
+      currentAccount: () => userStore.userInfo?.uid,
+      change: (id) => changeUserState({ id }),
+      readCurrent: () => getUserDetail(false),
+      isCurrent: () => stateChangeSequence === sequence,
+      apply: (id) => {
+        stateId.value = id
+        if (userStore.userInfo) userStore.userInfo.userStateId = id
+      },
+      accountChangedMessage: t('home.profile_edit.toast.account_changed')
+    })
 
-    stateId.value = item.id === '0' ? '1' : item.id
-    userStore.userInfo.userStateId = stateId.value
-
+    if (!applied) return
     window.$message?.success(t('auth.onlineStatus.messages.success'))
   } catch (error) {
+    if (stateChangeSequence !== sequence) return
     console.error('更新状态失败:', error)
-    window.$message?.error(t('auth.onlineStatus.messages.error'))
+    window.$message?.error(userStateChangeError(error, t('auth.onlineStatus.messages.error')))
+  } finally {
+    changing.value = false
   }
 }
+
+onUnmounted(() => {
+  stateChangeSequence++
+})
 
 onMounted(async () => {
   await getCurrentWebviewWindow().show()
@@ -137,10 +168,16 @@ onMounted(async () => {
     -webkit-box-orient: vertical;
     white-space: normal;
   }
-  &:not(.active):hover {
+
+  &:not(.active):not([aria-disabled='true']):hover {
     background: #ccc;
     cursor: pointer;
   }
+}
+
+.status-item[aria-disabled='true'] {
+  opacity: 0.5;
+  cursor: wait;
 }
 
 .active {

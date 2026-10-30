@@ -37,9 +37,12 @@ use desktops::media_permission::{
 };
 #[cfg(desktop)]
 use desktops::mail_window::set_mail_window_identity;
+#[cfg(target_os = "windows")]
+use desktops::mail_notification::show_mail_notification;
 #[cfg(desktop)]
 use desktops::embedded_mail::{
-    close_embedded_mail, create_embedded_mail, navigate_embedded_mail,
+    close_embedded_mail, create_embedded_mail, navigate_embedded_mail, prepare_embedded_mail_logout,
+    release_embedded_mail_logout,
     set_embedded_mail_visible, update_embedded_mail_bounds,
 };
 #[cfg(desktop)]
@@ -284,7 +287,7 @@ pub async fn build_request_client() -> Result<reqwest::Client, CommonError> {
 pub async fn handle_logout_windows(app_handle: &tauri::AppHandle) {
     tracing::info!("[LOGOUT] Starting to close windows and preserve capture/checkupdate windows");
 
-    let all_windows = app_handle.webview_windows();
+    let all_windows = app_handle.windows();
     tracing::info!("[LOGOUT] Found {} windows", all_windows.len());
 
     // 收集需要关闭的窗口和需要隐藏的窗口
@@ -334,7 +337,7 @@ pub async fn handle_logout_windows(app_handle: &tauri::AppHandle) {
             }
             Err(error) => {
                 // 检查窗口是否还存在
-                if app_handle.get_webview_window(&label).is_none() {
+                if app_handle.get_window(&label).is_none() {
                     tracing::info!(
                         "[LOGOUT] Window {} no longer exists, skipping closure",
                         label
@@ -480,6 +483,8 @@ fn get_invoke_handlers() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Se
         default_window_icon,
         #[cfg(desktop)]
         set_mail_window_identity,
+        #[cfg(target_os = "windows")]
+        show_mail_notification,
         #[cfg(desktop)]
         create_embedded_mail,
         #[cfg(desktop)]
@@ -490,6 +495,10 @@ fn get_invoke_handlers() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Se
         set_embedded_mail_visible,
         #[cfg(desktop)]
         close_embedded_mail,
+        #[cfg(desktop)]
+        prepare_embedded_mail_logout,
+        #[cfg(desktop)]
+        release_embedded_mail_logout,
         #[cfg(desktop)]
         screenshot,
         #[cfg(desktop)]

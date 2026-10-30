@@ -1,20 +1,24 @@
 import { info } from '@tauri-apps/plugin-log'
 import { useTimeoutFn } from '@vueuse/core'
 import { IsYesEnum, MittEnum, ThemeEnum } from '@/enums'
+import { APP_FEATURES } from '@/common/backend'
 import { useMitt } from '@/hooks/useMitt.ts'
 import { useWindow } from '@/hooks/useWindow.ts'
+import { isPhoneLayout } from '@/hooks/usePhoneLayout'
 import router from '@/router'
 import type { BadgeType, ModifyUserInfoType, UserInfoType } from '@/services/types.ts'
 import { useI18nGlobal } from '@/services/i18n'
 import { useGroupStore } from '@/stores/group'
 import { useLoginHistoriesStore } from '@/stores/loginHistory.ts'
 import { useMailStore } from '@/stores/mail'
+import { useWorkspaceStore } from '@/stores/workspace'
 import { useTodoStore } from '@/stores/todo'
 import { useMenuTopStore } from '@/stores/menuTop.ts'
 import { useSettingStore } from '@/stores/setting.ts'
 import { useUserStore } from '@/stores/user.ts'
 import { useUserStatusStore } from '@/stores/userStatus.ts'
 import { ModifyUserInfo, setUserBadge } from '@/utils/ImRequestUtils'
+import { isDesktop, isWeb } from '@/utils/PlatformConstants'
 import { storeToRefs } from 'pinia'
 
 export const leftHook = () => {
@@ -28,7 +32,9 @@ export const leftHook = () => {
   const { themes } = settingStore
   const userStatusStore = useUserStatusStore()
   const { currentState } = storeToRefs(userStatusStore)
-  const activeUrl = ref<string>(menuTop.value?.[0]?.url || 'message')
+  const workspace = useWorkspaceStore()
+  const chatUrl = ref<string>(menuTop.value?.[0]?.url || 'message')
+  const activeUrl = computed(() => (workspace.active === 'mail' || workspace.active === 'todo' ? workspace.active : chatUrl.value))
   const settingShow = ref(false)
   const shrinkStatus = ref(false)
   const groupStore = useGroupStore()
@@ -157,6 +163,10 @@ export const leftHook = () => {
   ) => {
     // 我的待办在弹窗中打开
     if (url === 'todo') {
+      if (APP_FEATURES.todoWorkspace && (isDesktop() || isWeb()) && !isPhoneLayout.value) {
+        workspace.openTodo()
+        return
+      }
       useTodoStore()
         .open()
         .catch((error) => info(`打开待办失败: ${error}`))
@@ -194,7 +204,8 @@ export const leftHook = () => {
         })
       }, 300)
     } else {
-      activeUrl.value = url
+      workspace.openChat()
+      chatUrl.value = url
       router.push(`/${url}`)
     }
   }
@@ -221,7 +232,7 @@ export const leftHook = () => {
 
   onMounted(async () => {
     /** 页面加载的时候默认显示消息列表 */
-    pageJumps(activeUrl.value)
+    pageJumps(chatUrl.value)
     window.addEventListener('click', closeMenu, true)
 
     useMitt.on(MittEnum.SHRINK_WINDOW, (event: any) => {
@@ -231,7 +242,8 @@ export const leftHook = () => {
       infoShow.value = false
     })
     useMitt.on(MittEnum.TO_SEND_MSG, (event: any) => {
-      activeUrl.value = event.url
+      workspace.openChat()
+      chatUrl.value = event.url
     })
   })
 

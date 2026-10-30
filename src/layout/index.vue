@@ -4,20 +4,27 @@
     class="relative flex bg-[--right-bg-color] h-full"
     :class="{ 'is-dragging-files': isDraggingFiles, 'min-w-310px': !isPhoneLayout, 'smj-phone': isPhoneLayout }">
     <!-- 手机单栏：列表页是“中栏 + 底部导航（左栏）”，进入聊天或联系人详情后右栏占满一屏 -->
-    <div class="flex flex-1 min-h-0" :class="{ 'flex-col-reverse': isPhoneLayout }">
+    <div class="flex flex-1 min-w-0 min-h-0" :class="{ 'flex-col-reverse': isPhoneLayout }">
       <!-- 使用keep-alive包裹异步组件 -->
       <keep-alive>
         <AsyncLeft v-show="!currentPhonePane" />
       </keep-alive>
-      <keep-alive>
-        <AsyncCenter v-show="!currentPhonePane" />
-      </keep-alive>
-      <!-- 手机上也要挂载（首屏加载遮罩要等三栏都加载完），没进入聊天/详情时隐藏；注释不能放在 keep-alive 里，开发模式会把它算作第二个子节点 -->
-      <keep-alive>
-        <AsyncRight v-if="isPhoneLayout || !shrinkStatus" v-show="!isPhoneLayout || !!currentPhonePane" />
-      </keep-alive>
+      <div v-show="showChatWorkspace" class="flex flex-1 min-w-0 min-h-0">
+        <keep-alive>
+          <AsyncCenter v-show="!currentPhonePane" />
+        </keep-alive>
+        <!-- 手机上也要挂载，首屏加载遮罩要等三栏都加载完 -->
+        <keep-alive>
+          <AsyncRight v-if="isPhoneLayout || !shrinkStatus" v-show="!isPhoneLayout || !!currentPhonePane" />
+        </keep-alive>
+      </div>
+      <EmbeddedMailWorkspace v-if="embeddedMailEnabled" v-show="showMailWorkspace" :blocked="overlayVisible" />
+      <TodoWorkspace v-if="todoWorkspaceEnabled" v-show="showTodoWorkspace" :active="showTodoWorkspace" />
     </div>
-    <div v-if="overlayVisible" data-smj-boot-loading class="absolute inset-0 z-10 flex items-center justify-center bg-[--right-bg-color]">
+    <div
+      v-if="overlayVisible"
+      data-smj-boot-loading
+      class="absolute inset-0 z-10 flex items-center justify-center bg-[--right-bg-color]">
       <LoadingSpinner :percentage="loadingPercentage" :loading-text="loadingText" />
     </div>
 
@@ -36,13 +43,18 @@
 
 <script setup lang="ts">
 import { WebviewWindow } from '@tauri-apps/api/webviewWindow'
+import { sendNotification } from '@tauri-apps/plugin-notification'
 import { info } from '@tauri-apps/plugin-log'
 import { useI18n } from 'vue-i18n'
 import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
+import EmbeddedMailWorkspace from '@/components/workspace/EmbeddedMailWorkspace.vue'
+import TodoWorkspace from '@/components/workspace/TodoWorkspace.vue'
+import { APP_FEATURES } from '@/common/backend'
 import { useCheckUpdate } from '@/hooks/useCheckUpdate'
 import { useLogin } from '@/hooks/useLogin'
 import { useMitt } from '@/hooks/useMitt.ts'
 import rustWebSocketClient from '@/services/webSocketRust'
+import { guardedLogout } from '@/services/GuardedLogout'
 import { useContactStore } from '@/stores/contacts.ts'
 import { useGlobalStore } from '@/stores/global.ts'
 import { isDesktop, isMobile, isWeb, isWindows } from '@/utils/PlatformConstants'
@@ -51,13 +63,15 @@ import { MittEnum, MsgEnum, NotificationTypeEnum, TauriCommand } from '@/enums'
 import { clearListener, initListener, readCountQueue } from '@/utils/ReadCountQueue'
 import { emitTo, listen } from '@tauri-apps/api/event'
 import type { UnlistenFn } from '@tauri-apps/api/event'
-import { UserAttentionType } from '@tauri-apps/api/window'
+import { UserAttentionType, Window } from '@tauri-apps/api/window'
 import type { MessageType } from '@/services/types.ts'
 import { WsResponseMessageType } from '@/services/wsType.ts'
 import { useChatStore } from '@/stores/chat'
 import { useFileStore } from '@/stores/file'
 import { type MailNewEvent, useMailStore } from '@/stores/mail'
 import { useUserStore } from '@/stores/user'
+import { useWorkspaceStore } from '@/stores/workspace'
+import { useTodoWorkspaceStore } from '@/stores/todoWorkspace'
 import { useSettingStore } from '@/stores/setting.ts'
 import { useInitialSyncStore } from '@/stores/initialSync.ts'
 import { invokeSilently } from '@/utils/TauriInvokeHandler'
@@ -75,6 +89,14 @@ import type { FilesMeta } from '@/services/types'
 const { t } = useI18n()
 const route = useRoute()
 const userStore = useUserStore()
+const workspace = useWorkspaceStore()
+const embeddedMailEnabled = APP_FEATURES.embeddedMailWorkspace && isDesktop() && !isWeb()
+const todoWorkspaceEnabled = computed(
+  () => APP_FEATURES.todoWorkspace && (isDesktop() || isWeb()) && !isPhoneLayout.value
+)
+const showMailWorkspace = computed(() => embeddedMailEnabled && workspace.active === 'mail')
+const showTodoWorkspace = computed(() => todoWorkspaceEnabled.value && workspace.active === 'todo')
+const showChatWorkspace = computed(() => !showMailWorkspace.value && !showTodoWorkspace.value)
 const chatStore = useChatStore()
 const groupStore = useGroupStore()
 const fileStore = useFileStore()
@@ -117,8 +139,14 @@ const syncInitialSyncState = () => {
 
 watch(
   () => userUid.value,
-  () => {
+  (uid, previousUid) => {
+    if (previousUid && uid !== previousUid) workspace.reset()
     syncInitialSyncState()
+    if (uid && APP_FEATURES.todoWorkspace) {
+      void useTodoWorkspaceStore()
+        .refreshReminders()
+        .catch((error) => console.error('刷新待办提醒失败:', error))
+    }
   },
   { immediate: true }
 )
@@ -385,7 +413,25 @@ const addFileToStore = (data: MessageType) => {
 
 // 新邮件：更新未读数并弹出系统通知
 useMitt.on(WsResponseMessageType.MAIL_NEW, (data: MailNewEvent) => {
-  useMailStore().handleMailNew(data)
+  void useMailStore()
+    .handleMailNew(data)
+    .catch((error) => {
+      console.error('显示邮件通知失败:', error)
+      window.$message.error(error instanceof Error ? error.message : '显示邮件通知失败')
+    })
+})
+
+useMitt.on(WsResponseMessageType.TODO_REMINDER, (data: unknown) => {
+  if (!APP_FEATURES.todoWorkspace || isWeb()) return
+  void useTodoWorkspaceStore()
+    .receiveReminders(data)
+    .then((reminders) => {
+      for (const reminder of reminders) sendNotification({ title: t('todo.reminders'), body: reminder.title })
+    })
+    .catch((error) => {
+      console.error('接收待办提醒失败:', error)
+      window.$message?.warning(t('todo.error'))
+    })
 })
 
 useMitt.on(WsResponseMessageType.RECEIVE_MESSAGE, async (data: MessageType) => {
@@ -422,7 +468,7 @@ useMitt.on(WsResponseMessageType.RECEIVE_MESSAGE, async (data: MessageType) => {
     // 只有非免打扰的会话才发送通知和触发图标闪烁
     if (session && session.muteNotification !== NotificationTypeEnum.NOT_DISTURB) {
       // 检查 home 窗口状态
-      const home = await WebviewWindow.getByLabel('home')
+      const home = await Window.getByLabel('home')
       let shouldPlaySound = false
 
       if (home) {
@@ -529,8 +575,60 @@ const setupNativeFileDropListeners = async () => {
 }
 
 let sessionExpiryTimer: ReturnType<typeof setTimeout> | undefined
+let reloginTimer: ReturnType<typeof setTimeout> | undefined
+let unlistenMailNotification: UnlistenFn | undefined
 let expiringSession = false
 let sessionExpiryReady = false
+let sessionDisposed = false
+let logoutInFlight: Promise<void> | undefined
+const guardedSessionLogout = () => {
+  if (logoutInFlight) return logoutInFlight
+  const uid = userStore.userInfo?.uid
+  const mail = useMailStore()
+  logoutInFlight = guardedLogout({
+    prepare: mail.prepareLogout,
+    release: mail.releaseLogout,
+    logout: async () => {
+      if (userStore.userInfo?.uid !== uid) throw new Error('账号已切换，请重新操作')
+      await resetLoginState()
+      await logout()
+    }
+  }).finally(() => {
+    logoutInFlight = undefined
+  })
+  return logoutInFlight
+}
+
+const reportSessionLogoutError = async (error: unknown) => {
+  console.error('会话失效后退出失败:', error)
+  if (isDesktop() && !isWeb()) {
+    try {
+      const home = await Window.getByLabel('home')
+      await home?.unminimize()
+      await home?.show()
+      await home?.setFocus()
+    } catch (windowError) {
+      console.error('显示主窗口失败:', windowError)
+    }
+  }
+  window.$message.error(
+    typeof error === 'string' ? error : error instanceof Error ? error.message : t('login.session_logout_failed')
+  )
+}
+
+const retryRelogin = async (uid: string | undefined, notify = true) => {
+  if (sessionDisposed || userStore.userInfo?.uid !== uid) return
+  try {
+    await guardedSessionLogout()
+  } catch (error) {
+    if (notify) await reportSessionLogoutError(error)
+    else console.error('重试会话退出失败:', error)
+    if (!sessionDisposed && userStore.userInfo?.uid === uid) {
+      reloginTimer = setTimeout(() => void retryRelogin(uid, false), 60_000)
+    }
+  }
+}
+
 const scheduleDesktopSessionExpiry = () => {
   if (!isDesktop() || isWeb() || expiringSession || !sessionExpiryReady) return
   if (sessionExpiryTimer) clearTimeout(sessionExpiryTimer)
@@ -540,9 +638,12 @@ const scheduleDesktopSessionExpiry = () => {
   if (remaining <= 0) {
     expiringSession = true
     window.$message.warning(t('login.session_expired'))
-    void resetLoginState().then(logout).catch((error) => {
-      console.error('免登录到期后退出失败:', error)
-      window.$message.error(t('login.session_logout_failed'))
+    void guardedSessionLogout().catch(async (error) => {
+      await reportSessionLogoutError(error)
+      expiringSession = false
+      if (!sessionDisposed && userStore.userInfo?.uid === uid) {
+        sessionExpiryTimer = setTimeout(scheduleDesktopSessionExpiry, 60_000)
+      }
     })
     return
   }
@@ -551,8 +652,8 @@ const scheduleDesktopSessionExpiry = () => {
 
 listen('relogin', async () => {
   info('收到重新登录事件')
-  await resetLoginState()
-  await logout()
+  if (reloginTimer) clearTimeout(reloginTimer)
+  await retryRelogin(userStore.userInfo?.uid)
 })
 
 onBeforeMount(async () => {
@@ -577,6 +678,23 @@ onBeforeMount(async () => {
 })
 
 onMounted(async () => {
+  if (isDesktop() && !isWeb() && isWindows()) {
+    try {
+      const unlisten = await listen<{ account: string; messageId: string }>('mail-notification-click', (event) => {
+        void useMailStore()
+          .openMailNotification({ messageId: event.payload.messageId, subject: '' }, event.payload.account)
+          .catch((error) => {
+            console.error('打开邮件通知失败:', error)
+            window.$message.error(error instanceof Error ? error.message : '打开邮件通知失败')
+          })
+      })
+      if (sessionDisposed) unlisten()
+      else unlistenMailNotification = unlisten
+    } catch (error) {
+      console.error('注册邮件通知监听失败:', error)
+      window.$message.error('注册邮件通知监听失败，请重启应用')
+    }
+  }
   window.addEventListener('focus', scheduleDesktopSessionExpiry)
   clearPhonePane()
   useMailStore().refreshUnread()
@@ -589,7 +707,7 @@ onMounted(async () => {
   })
 
   // 监听home窗口被聚焦的事件，当窗口被聚焦时自动关闭状态栏通知
-  const homeWindow = await WebviewWindow.getByLabel('home')
+  const homeWindow = await Window.getByLabel('home')
   if (homeWindow) {
     // 设置业务消息监听器
     await rustWebSocketClient.setupBusinessMessageListeners()
@@ -624,8 +742,11 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
+  sessionDisposed = true
+  unlistenMailNotification?.()
   window.removeEventListener('focus', scheduleDesktopSessionExpiry)
   if (sessionExpiryTimer) clearTimeout(sessionExpiryTimer)
+  if (reloginTimer) clearTimeout(reloginTimer)
   cleanupNativeFileDropListeners()
   clearListener()
   // 清除Web Worker计时器

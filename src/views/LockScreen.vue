@@ -111,6 +111,7 @@
 </template>
 <script setup lang="ts">
 import { WebviewWindow } from '@tauri-apps/api/webviewWindow'
+import { Window } from '@tauri-apps/api/window'
 import { onKeyStroke } from '@vueuse/core'
 import dayjs from 'dayjs'
 import { type InputInst } from 'naive-ui'
@@ -202,7 +203,7 @@ const init = () => {
 
 /** 隐藏其他窗口 */
 const hideOtherWindows = async () => {
-  const allWindows = await WebviewWindow.getAll()
+  const allWindows = await Window.getAll()
   const windowsToHide = allWindows.filter(
     (window) => !whitelistWindows.includes(window.label) && window.label !== 'lockScreen'
   )
@@ -216,7 +217,7 @@ const hideOtherWindows = async () => {
 /** 显示之前隐藏的窗口 */
 const showHiddenWindows = async () => {
   for (const windowLabel of hiddenWindows.value) {
-    const window = await WebviewWindow.getByLabel(windowLabel)
+    const window = await Window.getByLabel(windowLabel)
     if (window) {
       await window.show()
     }

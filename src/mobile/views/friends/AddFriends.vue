@@ -140,7 +140,7 @@
 
 <script setup lang="ts">
 import { emitTo } from '@tauri-apps/api/event'
-import { WebviewWindow } from '@tauri-apps/api/webviewWindow'
+import { Window } from '@tauri-apps/api/window'
 import { useDebounceFn } from '@vueuse/core'
 import FloatBlockList from '@/components/common/FloatBlockList.vue'
 import { ThemeEnum } from '@/enums'
@@ -408,7 +408,7 @@ const handleAddFriend = async (item: any) => {
 const handleEditProfile = async () => {
   // 获取主窗口
   if (!isMobile()) {
-    const homeWindow = await WebviewWindow.getByLabel('home')
+    const homeWindow = await Window.getByLabel('home')
     // 激活主窗口
     await homeWindow?.setFocus()
   }

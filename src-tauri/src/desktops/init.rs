@@ -23,7 +23,7 @@ impl<R: Runtime> CustomInit for tauri::Builder<R> {
                 Some(vec!["--flag1", "--flag2"]),
             ))
             .plugin(tauri_plugin_single_instance::init(|app, _args, _cmd| {
-                let windows = app.webview_windows();
+                let windows = app.windows();
                 // 优先显示已存在的home窗口
                 for (name, window) in windows {
                     if name == "home" {
@@ -94,7 +94,7 @@ impl<R: Runtime> DesktopCustomInit for tauri::Builder<R> {
             }
             WindowEvent::CloseRequested { .. } => {
                 let app_handle = window.app_handle();
-                let windows = app_handle.webview_windows();
+                let windows = app_handle.windows();
                 let win_label = window.label();
 
                 // 检查窗口是否是无效窗口(不重要的可退出的)
