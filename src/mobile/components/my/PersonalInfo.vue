@@ -7,14 +7,18 @@
       <div
         class="self-center h-auto transition-transform duration-300 ease-in-out origin-top"
         :style="{ transform: props.isShow ? 'scale(1) translateY(0)' : 'scale(0.62) translateY(0px)' }">
-        <n-avatar :size="86" :src="AvatarUtils.getAvatarUrl(userDetailInfo?.avatar, userDetailInfo?.uid)" fallback-src="/avatar-light.svg" round />
+        <n-avatar
+          :size="86"
+          :src="AvatarUtils.getAvatarUrl(userDetailInfo?.avatar, userDetailInfo?.uid)"
+          fallback-src="/avatar-light.svg"
+          round />
       </div>
 
       <!-- 基本信息栏 -->
       <div ref="infoBox" class="pl-2 flex gap-8px flex-col transition-transform duration-300 ease-in-out">
         <!-- 名字与在线状态 -->
         <div class="flex flex-warp gap-4 items-center">
-          <n-text class="font-bold text-20px">{{ userDetailInfo!.name }}</n-text>
+          <n-text class="font-bold text-20px">{{ userDetailInfo?.name }}</n-text>
           <div
             v-if="presence !== undefined"
             class="bg-#E7EFE6 flex flex-wrap ps-2 px-8px items-center rounded-full gap-1 h-24px">
@@ -25,14 +29,22 @@
                 class="rounded-50% size-14px" />
             </span>
             <span class="text-bold-style" style="font-size: 12px; color: #373838">
-              {{ presence === OnlineEnum.ONLINE ? t('home.profile_card.status.online') : t('home.profile_card.status.offline') }}
+              {{
+                presence === OnlineEnum.ONLINE
+                  ? t('home.profile_card.status.online')
+                  : t('home.profile_card.status.offline')
+              }}
             </span>
           </div>
         </div>
 
         <!-- 账号 -->
         <div class="flex flex-warp gap-2 items-center">
-          <span class="text-bold-style">{{ t('mobile_personal_info.account') }}:{{ userDetailInfo!.account }}</span>
+          <span class="text-bold-style">
+            {{ t('mobile_personal_info.account') }}:{{
+              userDetailInfo?.account || t('message.directory_contact.unknown_account')
+            }}
+          </span>
           <span v-if="isMyPage" @click="toMyQRCode" class="pe-15px">
             <img class="w-14px h-14px dark:invert" src="@/assets/mobile/my/qr-code.webp" alt="" />
           </span>
@@ -70,7 +82,7 @@
     <div v-if="props.isShow" ref="animatedBox" style="transform: translateZ(0)" class="flex flex-col px-16px">
       <!-- 个人描述 -->
       <div class="mt-2 text-bold-style line-height-24px">
-        {{ isMyPage ? userStore.userInfo?.resume : (userDetailInfo as UserInfoType).resume }}
+        {{ isMyPage ? userStore.userInfo?.resume : (userDetailInfo as UserInfoType | undefined)?.resume }}
       </div>
       <!-- 点赞关注 -->
       <div class="flex flex-wrap justify-around mt-4">
@@ -109,7 +121,7 @@
           secondary
           @click="handleDelete"
           :color="'#d5304f'"
-          v-if="!props.isMyPage && isFriend && !isBotUser(uid)"
+          v-if="APP_FEATURES.friendRequests && !props.isMyPage && isFriend && !isBotUser(uid)"
           class="px-5 py-10px font-bold text-center rounded-full text-12px">
           {{ t('mobile_personal_info.remove_user') }}
         </n-button>
@@ -122,8 +134,9 @@
           @click="handleAddFriend"
           v-if="!props.isMyPage && !isFriend && !isBotUser(uid)"
           class="px-5 py-10px font-bold text-center rounded-full text-12px">
-          +&nbsp;
-          {{ t('mobile_personal_info.add_friend') }}
+          {{
+            APP_FEATURES.friendRequests ? t('mobile_personal_info.add_friend') : t('message.directory_contact.refresh')
+          }}
         </n-button>
         <n-button
           type="primary"
@@ -143,17 +156,19 @@
 <script setup lang="ts">
 import { showDialog } from 'vant'
 import { useRoute, useRouter } from 'vue-router'
+import { APP_FEATURES } from '@/common/backend'
+import { useDirectoryContact } from '@/hooks/useDirectoryContact'
+import { useMobileSingleChat } from '@/hooks/useMobileSingleChat'
 import { useUserStore } from '@/stores/user'
 import { AvatarUtils } from '@/utils/AvatarUtils'
 import 'vant/es/dialog/style'
 import { OnlineEnum, UserType } from '@/enums'
-import { useMessage } from '@/hooks/useMessage.ts'
 import type { UserInfoType, UserItem } from '@/services/types'
-import { useChatStore } from '@/stores/chat'
 import { useContactStore } from '@/stores/contacts'
+import { useChatStore } from '@/stores/chat'
 import { useGlobalStore } from '@/stores/global'
 import { useGroupStore } from '@/stores/group'
-import { getSessionDetailWithFriends } from '@/utils/ImRequestUtils'
+import { getUserByIds } from '@/utils/ImRequestUtils'
 import { useI18n } from 'vue-i18n'
 
 const props = defineProps({
@@ -174,39 +189,27 @@ const props = defineProps({
 })
 
 const { t } = useI18n()
+const { refreshDirectoryContact } = useDirectoryContact()
 const router = useRouter()
 const userStore = useUserStore()
 const groupStore = useGroupStore()
 const route = useRoute()
 const contactStore = useContactStore() // 联系人
-const globalStore = useGlobalStore()
 const chatStore = useChatStore()
-
-const { preloadChatRoom } = useMessage()
+const globalStore = useGlobalStore()
+const { openMobileSingleChat } = useMobileSingleChat()
 const uid = route.params.uid as string
-const isFriend = ref(props.isMyFriend)
+const isFriend = computed(() => contactStore.contactsList.some((item) => item.uid === uid))
 
 const isBotUser = (uid: string) => groupStore.getUserInfo(uid)?.account === UserType.BOT
 
-const toChatRoom = async () => {
-  try {
-    const res = await getSessionDetailWithFriends({ id: uid, roomType: 2 })
-    // 先检查会话是否已存在
-    const existingSession = chatStore.getSession(res.roomId)
-    if (!existingSession) {
-      // 只有当会话不存在时才更新会话列表顺序
-      chatStore.updateSessionLastActiveTime(res.roomId)
-      // 如果会话不存在，需要重新获取会话列表，但保持当前选中的会话
-      await chatStore.getSessionList(true)
-    }
-    await preloadChatRoom(res.roomId)
-    router.push(`/mobile/chatRoom/chatMain`)
-  } catch (error) {
-    console.error('私聊尝试进入聊天室失败:', error)
-  }
-}
+const toChatRoom = () => openMobileSingleChat(uid)
 
 const handleAddFriend = async () => {
+  if (!APP_FEATURES.friendRequests) {
+    if (await refreshDirectoryContact(uid)) await toChatRoom()
+    return
+  }
   globalStore.addFriendModalInfo.uid = uid
   router.push('/mobile/mobileFriends/confirmAddFriend')
 }
@@ -227,7 +230,7 @@ const presence = computed(() => {
   return targetUid ? groupStore.getUserInfo(targetUid)?.activeStatus : undefined
 })
 
-onMounted(() => {
+onMounted(async () => {
   if (!uid) {
     userDetailInfo.value = userStore.userInfo
     return
@@ -236,11 +239,13 @@ onMounted(() => {
   const foundedUser = groupStore.allUserInfo.find((i) => i.uid === uid)
 
   userDetailInfo.value = foundedUser
-
-  const foundedFriend = contactStore.contactsList.find((item) => item.uid === uid)
-
-  if (foundedFriend) {
-    isFriend.value = true
+  if (!foundedUser?.name || !foundedUser.account) {
+    try {
+      const users = await getUserByIds([uid])
+      userDetailInfo.value = users.find((user) => user.uid === uid) ?? foundedUser
+    } catch (error) {
+      console.error('获取用户资料失败:', error)
+    }
   }
 })
 
@@ -259,7 +264,6 @@ const handleDelete = () => {
         try {
           loading.value = true
           await contactStore.onDeleteFriend(userDetailInfo.value.uid)
-          isFriend.value = false
           chatStore.getSessionList(true)
           window.$message.success(t('mobile_personal_info.delete_user.success'))
           router.back()

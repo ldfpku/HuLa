@@ -54,7 +54,11 @@
                   ? t('home.profile_card.status.online')
                   : t('home.profile_card.status.offline')
               }}
-              <template v-if="displayActiveStatus === OnlineEnum.ONLINE && currentStateTitle !== t('home.profile_card.status.online')">
+              <template
+                v-if="
+                  displayActiveStatus === OnlineEnum.ONLINE &&
+                  currentStateTitle !== t('home.profile_card.status.online')
+                ">
                 · {{ currentStateTitle }}
               </template>
             </span>
@@ -79,10 +83,10 @@
                 -apple-system,
                 sans-serif;
             ">
-            {{ groupStore.getUserInfo(uid)?.name }}
+            {{ resolvedUserInfo?.name }}
           </p>
           <span
-            v-if="groupNickname && groupNickname !== groupStore.getUserInfo(uid)?.name"
+            v-if="groupNickname && groupNickname !== resolvedUserInfo?.name"
             class="text-(13px [--chat-text-color])">
             ({{ groupNickname }})
           </span>
@@ -92,7 +96,9 @@
         <n-flex align="center" :size="10">
           <n-flex align="center" :size="12">
             <p class="text-[--info-text-color]">{{ t('home.profile_card.labels.account') }}</p>
-            <span class="text-(12px [--chat-text-color])">{{ `${groupStore.getUserInfo(uid)?.account}` }}</span>
+            <span class="text-(12px [--chat-text-color])">
+              {{ resolvedUserInfo?.account || t('message.directory_contact.unknown_account') }}
+            </span>
 
             <n-tooltip trigger="hover">
               <template #trigger>
@@ -171,7 +177,13 @@
         <n-button v-else-if="isMyFriend" secondary type="primary" @click="handleOpenMsgSession(uid)">
           {{ t('home.profile_card.buttons.message') }}
         </n-button>
-        <n-button v-else secondary @click="addFriend">{{ t('home.profile_card.buttons.add_friend') }}</n-button>
+        <n-button v-else secondary @click="addFriend">
+          {{
+            APP_FEATURES.friendRequests
+              ? t('home.profile_card.buttons.add_friend')
+              : t('message.directory_contact.refresh')
+          }}
+        </n-button>
       </n-flex>
     </n-flex>
   </n-flex>
@@ -180,9 +192,11 @@
 <script setup lang="ts">
 import { storeToRefs } from 'pinia'
 import { useI18n } from 'vue-i18n'
+import { APP_FEATURES } from '@/common/backend'
 import { MittEnum, OnlineEnum, ThemeEnum } from '@/enums/index.ts'
 import { useCommon } from '@/hooks/useCommon.ts'
 import { useMitt } from '@/hooks/useMitt'
+import { useDirectoryContact } from '@/hooks/useDirectoryContact'
 import { useWindow } from '@/hooks/useWindow'
 import { leftHook } from '@/layout/left/hook'
 import { useCachedStore } from '@/stores/cached'
@@ -194,6 +208,8 @@ import { useSettingStore } from '@/stores/setting'
 import { useUserStatusStore } from '@/stores/userStatus'
 import { useUserStore } from '@/stores/user'
 import { AvatarUtils } from '@/utils/AvatarUtils'
+import { getUserByIds } from '@/utils/ImRequestUtils'
+import type { UserItem } from '@/services/types'
 
 const { t } = useI18n()
 
@@ -202,6 +218,7 @@ const { uid, activeStatus } = defineProps<{
   activeStatus?: OnlineEnum
 }>()
 const { createWebviewWindow } = useWindow()
+const { refreshDirectoryContact } = useDirectoryContact()
 const { userUid, openMsgSession } = useCommon()
 const settingStore = useSettingStore()
 const { themes } = storeToRefs(settingStore)
@@ -215,7 +232,26 @@ const userStore = useUserStore()
 const cachedStore = useCachedStore()
 const { stateList } = storeToRefs(userStatusStore)
 
-const resolvedUserInfo = computed(() => groupStore.getUserInfo(uid) ?? null)
+const fetchedUserInfo = ref<UserItem | null>(null)
+const resolvedUserInfo = computed(() => {
+  const cached = groupStore.getUserInfo(uid)
+  return fetchedUserInfo.value?.uid === uid ? { ...cached, ...fetchedUserInfo.value } : (cached ?? null)
+})
+watch(
+  () => uid,
+  async (targetUid) => {
+    fetchedUserInfo.value = null
+    const cached = groupStore.getUserInfo(targetUid)
+    if (!targetUid || (cached?.name && cached.account)) return
+    try {
+      const users = await getUserByIds([targetUid])
+      if (targetUid === uid) fetchedUserInfo.value = users.find((user) => user.uid === targetUid) ?? null
+    } catch (error) {
+      console.error('获取用户资料失败:', error)
+    }
+  },
+  { immediate: true }
+)
 /** 头像加载状态 */
 const badgeLoadedMap = ref<Record<string, boolean>>({})
 const avatarSrc = computed(() => AvatarUtils.getAvatarUrl(resolvedUserInfo.value?.avatar, uid))
@@ -293,7 +329,7 @@ const openEditInfo = () => {
 
 // 处理复制账号
 const handleCopy = () => {
-  const account = groupStore.getUserInfo(uid)?.account
+  const account = resolvedUserInfo.value?.account
   if (account) {
     navigator.clipboard.writeText(account)
     window.$message.success(t('home.profile_card.notification.copy_success', { account }))
@@ -301,9 +337,13 @@ const handleCopy = () => {
 }
 
 const addFriend = async () => {
-  await createWebviewWindow(t('home.profile_card.modal.add_friend'), 'addFriendVerify', 380, 300, '', false, 380, 300)
+  if (!APP_FEATURES.friendRequests) {
+    if (await refreshDirectoryContact(uid)) await handleOpenMsgSession(uid)
+    return
+  }
   globalStore.addFriendModalInfo.show = true
   globalStore.addFriendModalInfo.uid = uid
+  await createWebviewWindow(t('home.profile_card.modal.add_friend'), 'addFriendVerify', 380, 300, '', false, 380, 300)
 }
 
 let enableScroll = () => {}

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
+import { APP_FEATURES } from '@/common/backend'
 import { NotificationTypeEnum, RoomActEnum } from '@/enums'
 import type { SessionItem } from '@/services/types'
 
@@ -50,7 +51,7 @@ const emit = defineEmits<{
 
   <!-- 删除好友（非 bot 用户可见） -->
   <div
-    v-if="!isBotUser"
+    v-if="APP_FEATURES.friendRequests && !isBotUser"
     class="box-item flex-x-center cursor-pointer"
     @click="emit('delete', RoomActEnum.DELETE_FRIEND)">
     <p class="color-#d03553">{{ t('home.chat_header.sidebar.single.delete_friend') }}</p>

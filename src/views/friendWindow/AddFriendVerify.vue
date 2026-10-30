@@ -9,7 +9,7 @@
 
     <!-- 标题 -->
     <p class="absolute-x-center h-fit pt-6px text-(13px [--text-color]) select-none cursor-default">
-      {{ t('message.friend_verify.title') }}
+      {{ t(APP_FEATURES.friendRequests ? 'message.friend_verify.title' : 'message.directory_contact.refresh') }}
     </p>
 
     <!-- 内容区域 -->
@@ -19,14 +19,19 @@
           <n-avatar round size="large" :src="avatarSrc" />
 
           <n-flex vertical :size="10">
-            <p class="text-[--text-color]">{{ userInfo.name }}</p>
+            <p class="text-[--text-color]">{{ userInfo?.name }}</p>
             <p class="text-(12px [--text-color])">
-              {{ t('message.friend_verify.account', { account: userInfo.account }) }}
+              {{
+                t('message.friend_verify.account', {
+                  account: userInfo?.account || t('message.directory_contact.unknown_account')
+                })
+              }}
             </p>
           </n-flex>
         </n-flex>
 
         <n-input
+          v-if="APP_FEATURES.friendRequests"
           v-model:value="requestMsg"
           :allow-input="(value: string) => !value.startsWith(' ') && !value.endsWith(' ')"
           :autosize="requestMsgAutosize"
@@ -41,7 +46,7 @@
           :placeholder="t('message.friend_verify.placeholder')" />
 
         <n-button class="mt-30px" color="#034fbc" text-color="#ffffff" @click="addFriend">
-          {{ t('message.friend_verify.send_btn') }}
+          {{ t(APP_FEATURES.friendRequests ? 'message.friend_verify.send_btn' : 'message.directory_contact.refresh') }}
         </n-button>
       </n-flex>
     </div>
@@ -49,6 +54,8 @@
 </template>
 <script setup lang="ts">
 import { getCurrentWebviewWindow, WebviewWindow } from '@tauri-apps/api/webviewWindow'
+import { APP_FEATURES } from '@/common/backend'
+import { useDirectoryContact } from '@/hooks/useDirectoryContact'
 import { useCommon } from '@/hooks/useCommon.ts'
 import { useGlobalStore } from '@/stores/global.ts'
 import { useUserStore } from '@/stores/user.ts'
@@ -61,25 +68,29 @@ const { t } = useI18n()
 const globalStore = useGlobalStore()
 const userStore = useUserStore()
 const groupStore = useGroupStore()
+const { refreshDirectoryContact } = useDirectoryContact()
 const { countGraphemes } = useCommon()
 const requestMsgAutosize = { minRows: 3, maxRows: 3 }
-const userInfo = ref(groupStore.getUserInfo(globalStore.addFriendModalInfo.uid!)!)
-const avatarSrc = computed(() =>
-  AvatarUtils.getAvatarUrl(userInfo.value?.avatar, globalStore.addFriendModalInfo.uid)
-)
+const userInfo = computed(() => {
+  const uid = globalStore.addFriendModalInfo.uid
+  return uid ? groupStore.getUserInfo(uid) : undefined
+})
+const avatarSrc = computed(() => AvatarUtils.getAvatarUrl(userInfo.value?.avatar, globalStore.addFriendModalInfo.uid))
 const requestMsg = ref()
 
-watch(
-  () => globalStore.addFriendModalInfo.uid,
-  (newUid) => {
-    userInfo.value = groupStore.getUserInfo(newUid!)!
-  }
-)
-
 const addFriend = async () => {
+  const uid = globalStore.addFriendModalInfo.uid
+  if (!APP_FEATURES.friendRequests) {
+    if (await refreshDirectoryContact(uid || '')) await getCurrentWebviewWindow().close()
+    return
+  }
+  if (!uid) {
+    window.$message.error(t('message.directory_contact.refresh_failed'))
+    return
+  }
   await sendAddFriendRequest({
     msg: requestMsg.value,
-    targetUid: globalStore.addFriendModalInfo.uid as string
+    targetUid: uid
   })
   window.$message.success(t('message.friend_verify.toast_success'))
   setTimeout(async () => {
@@ -88,10 +99,8 @@ const addFriend = async () => {
 }
 
 onMounted(async () => {
-  console.log(userInfo.value)
-
   await getCurrentWebviewWindow().show()
-  requestMsg.value = t('message.friend_verify.default_msg', { name: userStore.userInfo!.name })
+  requestMsg.value = t('message.friend_verify.default_msg', { name: userStore.userInfo?.name || '' })
 })
 </script>
 

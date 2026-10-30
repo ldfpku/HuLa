@@ -1,4 +1,6 @@
 import { MittEnum, NotificationTypeEnum, RoomTypeEnum, SessionOperateEnum, UserType } from '@/enums'
+import { APP_FEATURES } from '@/common/backend'
+import { useGroupExit } from '@/hooks/useGroupExit'
 import { useMitt } from '@/hooks/useMitt.ts'
 import { openPhonePane } from '@/hooks/usePhoneLayout'
 import type { SessionItem } from '@/services/types.ts'
@@ -8,7 +10,7 @@ import { useGlobalStore } from '@/stores/global.ts'
 import { useSettingStore } from '@/stores/setting.ts'
 import { useGroupStore } from '@/stores/group'
 import { useUserStore } from '@/stores/user'
-import { confirmGroupAction, openRenameGroupDialog } from '@/utils/groupDialogs'
+import { openRenameGroupDialog } from '@/utils/groupDialogs'
 import { notification, setSessionTop, shield } from '@/utils/ImRequestUtils'
 import { invokeWithErrorHandler } from '../utils/TauriInvokeHandler'
 import { useI18n } from 'vue-i18n'
@@ -28,6 +30,7 @@ const registerShrinkListener = () => {
 
 export const useMessage = () => {
   const { t } = useI18n()
+  const { confirmExitGroup } = useGroupExit()
   const globalStore = useGlobalStore()
   const chatStore = useChatStore()
   const settingStore = useSettingStore()
@@ -307,25 +310,12 @@ export const useMessage = () => {
 
         // 群聊：群主解散（所有成员的群都会消失），其他人退出；都要二次确认
         const dissolve = item.operate === SessionOperateEnum.DISSOLUTION_GROUP
-        confirmGroupAction({
-          title: dissolve ? t('menu.dissolve_group') : t('menu.leave_group'),
-          content: dissolve
-            ? `解散后所有成员都将退出“${item.name}”，聊天记录和群文件列表一并删除，且无法恢复。如只想自己退出，请先在群成员列表里把群主转让给他人。`
-            : `确定退出“${item.name}”？退出后不再接收该群消息。`,
-          positiveText: dissolve ? t('menu.dissolve_group') : t('menu.leave_group'),
-          onConfirm: async () => {
-            await groupStore.exitGroup(item.roomId, dissolve)
-            await handleMsgDelete(item.roomId)
-            window.$message.success(
-              dissolve ? t('message.message_menu.dissolve_group_success') : t('message.message_menu.quit_group_success')
-            )
-          }
-        })
+        confirmExitGroup(item.roomId, item.name, dissolve)
       },
       visible: (item: SessionItem) => {
         // 单聊：只在operate为DELETE_FRIEND时显示
         if (item.type === RoomTypeEnum.SINGLE) {
-          return item.operate === SessionOperateEnum.DELETE_FRIEND
+          return APP_FEATURES.friendRequests && item.operate === SessionOperateEnum.DELETE_FRIEND
         }
 
         // 群聊：不显示频道选项

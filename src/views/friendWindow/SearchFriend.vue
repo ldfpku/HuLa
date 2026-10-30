@@ -11,7 +11,7 @@
     <p
       class="absolute-x-center h-fit pt-6px text-(13px [--text-color]) select-none cursor-default"
       data-tauri-drag-region>
-      {{ t('home.search_window.title') }}
+      {{ t(APP_FEATURES.friendRequests ? 'home.search_window.title' : 'message.directory_contact.search_title') }}
     </p>
 
     <!-- 主要内容 -->
@@ -150,9 +150,11 @@ import { Window } from '@tauri-apps/api/window'
 import { useDebounceFn } from '@vueuse/core'
 import { useI18n } from 'vue-i18n'
 import FloatBlockList from '@/components/common/FloatBlockList.vue'
+import { APP_FEATURES } from '@/common/backend'
 import { ThemeEnum } from '@/enums'
 import { RoomTypeEnum } from '@/enums/index.ts'
 import { useWindow } from '@/hooks/useWindow'
+import { useDirectoryContact } from '@/hooks/useDirectoryContact'
 import type { FriendItem, GroupDetailReq } from '@/services/types'
 import { useCachedStore } from '@/stores/cached'
 import { useContactStore } from '@/stores/contacts'
@@ -164,6 +166,7 @@ import { AvatarUtils } from '@/utils/AvatarUtils'
 import { searchFriend, searchGroup } from '@/utils/ImRequestUtils'
 
 const { createWebviewWindow } = useWindow()
+const { refreshDirectoryContact } = useDirectoryContact()
 const contactStore = useContactStore()
 const userStore = useUserStore()
 const globalStore = useGlobalStore()
@@ -175,7 +178,10 @@ const { themes } = storeToRefs(settingStore)
 const { t } = useI18n()
 const tabs = computed(() => [
   { name: 'recommend', label: t('home.search_window.tabs.recommend') },
-  { name: 'user', label: t('home.search_window.tabs.user') },
+  {
+    name: 'user',
+    label: t(APP_FEATURES.friendRequests ? 'home.search_window.tabs.user' : 'message.directory_contact.search_people')
+  },
   { name: 'group', label: t('home.search_window.tabs.group') }
 ])
 // 搜索类型
@@ -183,7 +189,11 @@ const searchType = ref<'recommend' | 'user' | 'group'>('recommend')
 // 搜索类型对应的placeholder映射
 const searchPlaceholder = computed(() => ({
   recommend: t('home.search_window.placeholder.recommend'),
-  user: t('home.search_window.placeholder.user'),
+  user: t(
+    APP_FEATURES.friendRequests
+      ? 'home.search_window.placeholder.user'
+      : 'message.directory_contact.search_people_placeholder'
+  ),
   group: t('home.search_window.placeholder.group')
 }))
 // 搜索值
@@ -362,6 +372,7 @@ const getButtonText = (uid: string, roomId: string) => {
   // 用户逻辑
   if (isCurrentUser(uid)) return t('home.search_window.buttons.edit_profile')
   if (isFriend(uid)) return t('home.search_window.buttons.message')
+  if (!APP_FEATURES.friendRequests) return t('message.directory_contact.refresh')
   return t('home.search_window.buttons.add')
 }
 
@@ -401,6 +412,12 @@ const handleButtonClick = (item: any) => {
 // 处理添加好友或群聊
 const handleAddFriend = async (item: any) => {
   if (searchType.value === 'user' || searchType.value === 'recommend') {
+    if (!APP_FEATURES.friendRequests) {
+      if (await refreshDirectoryContact(item.uid)) await handleSendMessage(item)
+      return
+    }
+    globalStore.addFriendModalInfo.show = true
+    globalStore.addFriendModalInfo.uid = item.uid
     await createWebviewWindow(
       t('home.search_window.modal.add_friend'),
       'addFriendVerify',
@@ -411,8 +428,6 @@ const handleAddFriend = async (item: any) => {
       380,
       300
     )
-    globalStore.addFriendModalInfo.show = true
-    globalStore.addFriendModalInfo.uid = item.uid
   } else {
     await createWebviewWindow(t('home.search_window.modal.add_group'), 'addGroupVerify', 380, 400, '', false, 380, 400)
     globalStore.addGroupModalInfo.show = true

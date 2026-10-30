@@ -56,6 +56,7 @@ import { parsePresenceChange, PresenceVersionTracker } from '@/utils/PresenceEve
 import { guardedLogout } from '@/services/GuardedLogout'
 import { useMailStore } from '@/stores/mail'
 import { isExpiredSession } from '@/utils/ExpiredSession'
+import { APP_FEATURES } from '@/common/backend'
 import { WindowVisibilityController } from '@/utils/WindowVisibilityController'
 import { useI18n } from 'vue-i18n'
 const mobileRtcCallFloatCell = isMobile()
@@ -85,6 +86,29 @@ const { addListener } = useTauriListener()
 // 只在桌面端初始化窗口管理功能
 const { createWebviewWindow } = isDesktop() ? useWindow() : { createWebviewWindow: () => {} }
 const settingStore = useSettingStore()
+const isContactOwnerWindow = (isDesktop() && appWindow.label === 'home') || isWeb() || isMobile()
+const refreshDirectory = () => {
+  if (!APP_FEATURES.friendRequests && userUid.value) void contactStore.getContactList(true)
+}
+if (isContactOwnerWindow && !APP_FEATURES.friendRequests) {
+  watch(userUid, (uid, previousUid) => {
+    if (previousUid && uid !== previousUid) contactStore.resetAccountState()
+    if (uid) refreshDirectory()
+  })
+  watch(
+    () => [userUid.value, globalStore.currentSession?.type, globalStore.currentSession?.detailId] as const,
+    ([uid, type, targetUid]) => {
+      if (
+        uid &&
+        type === RoomTypeEnum.SINGLE &&
+        targetUid &&
+        !contactStore.contactsList.some((item) => item.uid === targetUid)
+      ) {
+        refreshDirectory()
+      }
+    }
+  )
+}
 const { themes, lockScreen, page, login } = storeToRefs(settingStore)
 // 全局快捷键管理
 const { initializeGlobalShortcut, cleanupGlobalShortcut } = useGlobalShortcut()
@@ -217,14 +241,8 @@ useMitt.on(WsResponseMessageType.NOTIFY_EVENT, async () => {
 const handleSelfRemove = async (roomId: string) => {
   info('本人退出群聊，移除会话数据')
 
-  // 移除会话和群成员数据
-  chatStore.removeSession(roomId)
-  groupStore.removeAllUsers(roomId)
-
-  // 如果当前会话就是被移除的群聊，切换到其他会话
-  if (globalStore.currentSessionRoomId === roomId) {
-    globalStore.updateCurrentSessionRoomId(chatStore.sessionList[0].roomId)
-  }
+  groupStore.removeGroup(roomId)
+  void chatStore.getSessionList(true)
 }
 
 // 处理其他成员被移除
@@ -258,6 +276,7 @@ const isSelfUser = (uid: string): boolean => {
 // 处理自己加入群聊
 const handleSelfAdd = async (roomId: string) => {
   info('本人加入群聊，加载该群聊的会话数据')
+  groupStore.restoreGroup(roomId)
   await chatStore.addSession(roomId)
   try {
     await groupStore.getGroupUserList(roomId, true)
@@ -292,6 +311,10 @@ useMitt.on(
       await handleMemberRemove(param.userList, param.roomId)
     } else {
       await handleMemberAdd(param.userList, param.roomId)
+    }
+    if (isContactOwnerWindow && param.roomId === '1' && !APP_FEATURES.friendRequests) {
+      if (contactStore.contactsOptions.isLoading) await contactStore.getContactList(true)
+      refreshDirectory()
     }
 
     await groupStore.addGroupDetail(param.roomId)
@@ -456,14 +479,8 @@ useMitt.on(WsResponseMessageType.PRESENCE_CHANGED, (payload: unknown) => {
 
 useMitt.on(WsResponseMessageType.ROOM_DISSOLUTION, async (roomId: string) => {
   console.log('收到群解散通知', roomId)
-  // 移除群聊的会话
-  chatStore.removeSession(roomId)
-  // 移除群聊的详情
-  groupStore.removeGroupDetail(roomId)
-  // 如果当前会话为解散的群聊，切换到第一个会话
-  if (globalStore.currentSessionRoomId === roomId) {
-    globalStore.currentSessionRoomId = chatStore.sessionList[0].roomId
-  }
+  groupStore.removeGroup(roomId)
+  void chatStore.getSessionList(true)
 })
 
 useMitt.on(WsResponseMessageType.USER_STATE_CHANGE, async (data: { uid: string; userStateId: string }) => {
@@ -726,7 +743,11 @@ const requestNetworkPermissionForIOS = async () => {
 }
 
 let contactPresenceTimer: ReturnType<typeof setInterval> | undefined
+let contactDirectoryTimer: ReturnType<typeof setInterval> | undefined
 let refreshingContactPresence = false
+const refreshVisibleDirectory = () => {
+  if (document.visibilityState !== 'hidden') refreshDirectory()
+}
 const refreshContactPresence = async () => {
   if (refreshingContactPresence || document.visibilityState === 'hidden') return
   refreshingContactPresence = true
@@ -752,8 +773,14 @@ let visibilityTimer: ReturnType<typeof setInterval> | undefined
 
 onMounted(() => {
   if ((isDesktop() && appWindow.label === 'home') || isWeb() || isMobile()) {
+    refreshDirectory()
     contactPresenceTimer = setInterval(() => void refreshContactPresence(), 30_000)
+    if (!APP_FEATURES.friendRequests) {
+      contactDirectoryTimer = setInterval(refreshVisibleDirectory, 60_000)
+      document.addEventListener('visibilitychange', refreshVisibleDirectory)
+    }
     document.addEventListener('visibilitychange', refreshContactPresence)
+    window.addEventListener('focus', refreshDirectory)
   }
   if (isDesktop() && !isWeb() && appWindow.label === 'home') {
     document.addEventListener('visibilitychange', updateWebSocketVisibility)
@@ -882,7 +909,10 @@ onMounted(() => {
 
 onUnmounted(async () => {
   if (contactPresenceTimer) clearInterval(contactPresenceTimer)
+  if (contactDirectoryTimer) clearInterval(contactDirectoryTimer)
+  document.removeEventListener('visibilitychange', refreshVisibleDirectory)
   document.removeEventListener('visibilitychange', refreshContactPresence)
+  window.removeEventListener('focus', refreshDirectory)
   document.removeEventListener('visibilitychange', updateWebSocketVisibility)
   if (visibilityTimer) clearInterval(visibilityTimer)
   visibilityController.dispose()

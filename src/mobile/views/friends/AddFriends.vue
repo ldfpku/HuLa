@@ -6,7 +6,7 @@
         :hidden-right="true"
         :enable-default-background="false"
         :enable-shadow="false"
-        room-name="添加好友/群" />
+        :room-name="APP_FEATURES.friendRequests ? '添加好友/群' : t('message.directory_contact.search_title')" />
     </template>
 
     <template #container>
@@ -143,6 +143,10 @@ import { emitTo } from '@tauri-apps/api/event'
 import { Window } from '@tauri-apps/api/window'
 import { useDebounceFn } from '@vueuse/core'
 import FloatBlockList from '@/components/common/FloatBlockList.vue'
+import { APP_FEATURES } from '@/common/backend'
+import { useDirectoryContact } from '@/hooks/useDirectoryContact'
+import { useMobileSingleChat } from '@/hooks/useMobileSingleChat'
+import { useI18n } from 'vue-i18n'
 import { ThemeEnum } from '@/enums'
 import { RoomTypeEnum } from '@/enums/index.ts'
 import type { FriendItem, GroupDetailReq } from '@/services/types'
@@ -158,25 +162,28 @@ import { isMobile } from '@/utils/PlatformConstants'
 import router from '@/router'
 
 const contactStore = useContactStore()
+const { t } = useI18n()
+const { refreshDirectoryContact } = useDirectoryContact()
+const { openMobileSingleChat } = useMobileSingleChat()
 const userStore = useUserStore()
 const globalStore = useGlobalStore()
 const settingStore = useSettingStore()
 const cachedStore = useCachedStore()
 const { themes } = storeToRefs(settingStore)
 // 定义标签页
-const tabs = ref([
+const tabs = computed(() => [
   { name: 'recommend', label: '推荐' },
-  { name: 'user', label: '找好友' },
+  { name: 'user', label: APP_FEATURES.friendRequests ? '找好友' : t('message.directory_contact.search_people') },
   { name: 'group', label: '找群聊' }
 ])
 // 搜索类型
 const searchType = ref<'recommend' | 'user' | 'group'>('recommend')
 // 搜索类型对应的placeholder映射
-const searchPlaceholder = {
+const searchPlaceholder = computed(() => ({
   recommend: '输入推荐关键词',
-  user: '输入昵称搜索好友',
+  user: APP_FEATURES.friendRequests ? '输入昵称搜索好友' : t('message.directory_contact.search_people_placeholder'),
   group: '输入群号搜索群聊'
-}
+}))
 // 搜索值
 const searchValue = ref('')
 // 搜索结果
@@ -353,6 +360,7 @@ const getButtonText = (uid: string, roomId: string) => {
   // 用户逻辑
   if (isCurrentUser(uid)) return '编辑资料'
   if (isFriend(uid)) return '发消息'
+  if (!APP_FEATURES.friendRequests) return t('message.directory_contact.refresh')
   return '添加'
 }
 
@@ -392,6 +400,10 @@ const handleButtonClick = (item: any) => {
 // 处理添加好友或群聊
 const handleAddFriend = async (item: any) => {
   if (searchType.value === 'user' || searchType.value === 'recommend') {
+    if (!APP_FEATURES.friendRequests) {
+      if (await refreshDirectoryContact(item.uid)) await handleSendMessage(item)
+      return
+    }
     globalStore.addFriendModalInfo.uid = item.uid
 
     router.push('/mobile/mobileFriends/confirmAddFriend')
@@ -418,6 +430,10 @@ const handleEditProfile = async () => {
 
 // 处理发送消息
 const handleSendMessage = async (item: any) => {
+  if (isMobile()) {
+    await openMobileSingleChat(item.uid)
+    return
+  }
   emitTo('home', 'search_to_msg', { uid: item.uid, roomType: RoomTypeEnum.SINGLE })
 }
 

@@ -84,7 +84,13 @@
     <!-- 底部操作栏 -->
     <div class="px-16px py-10px bg-white border-t border-gray-200 flex justify-between items-center">
       <span class="text-14px">已选择 {{ selectedList.length }} 人</span>
-      <n-button type="primary" :disabled="selectedList.length === 0" @click="createGroup">发起群聊</n-button>
+      <n-button
+        type="primary"
+        :loading="isCreatingGroup"
+        :disabled="selectedList.length < 2 || isCreatingGroup"
+        @click="createGroup">
+        发起群聊
+      </n-button>
     </div>
   </div>
 </template>
@@ -97,14 +103,12 @@ import { useGroupStore } from '@/stores/group'
 import { useUserStatusStore } from '@/stores/userStatus'
 import { AvatarUtils } from '@/utils/AvatarUtils'
 import * as ImRequestUtils from '@/utils/ImRequestUtils'
-import { useChatStore } from '@/stores/chat.ts'
-import { useGlobalStore } from '@/stores/global.ts'
+import { useI18n } from 'vue-i18n'
 
 const userStatusStore = useUserStatusStore()
 const { stateList } = storeToRefs(userStatusStore)
 const groupStore = useGroupStore()
-const chatStore = useChatStore()
-const globalStore = useGlobalStore()
+const { t } = useI18n()
 
 /** 获取用户状态 */
 const getUserState = (uid: string) => {
@@ -158,41 +162,28 @@ const filteredContacts = computed(() => {
 })
 
 // 点击发起群聊
+const isCreatingGroup = ref(false)
 const createGroup = async () => {
+  if (isCreatingGroup.value) return
   if (selectedList.value.length < 2) {
     window.$message.success('两个人无法建群哦')
     return
   }
 
+  isCreatingGroup.value = true
+  let created = false
   try {
-    const result: any = await ImRequestUtils.createGroup({ uidList: selectedList.value })
-
-    await chatStore.getSessionList(true)
-
-    const resultRoomId = result?.roomId != null ? String(result.roomId) : undefined
-    const resultId = result?.id != null ? String(result.id) : undefined
-
-    const matchedSession = chatStore.sessionList.find((session) => {
-      const sessionRoomId = String(session.roomId)
-      const sessionDetailId = session.detailId != null ? String(session.detailId) : undefined
-      return (
-        (resultRoomId !== undefined && sessionRoomId === resultRoomId) ||
-        (resultId !== undefined && (sessionDetailId === resultId || sessionRoomId === resultId))
-      )
-    })
-
-    if (matchedSession?.roomId) {
-      globalStore.updateCurrentSessionRoomId(matchedSession.roomId)
-      await Promise.all([
-        groupStore.addGroupDetail(matchedSession.roomId),
-        groupStore.getGroupUserList(matchedSession.roomId, true)
-      ])
-    }
+    const result = await ImRequestUtils.createGroup({ uidList: selectedList.value })
+    created = true
+    await groupStore.loadCreatedGroup(result)
 
     resetCreateGroupState()
     window.$message.success('创建群聊成功')
   } catch (error) {
-    window.$message.error('创建群聊失败')
+    console.error('创建或加载群聊失败:', error)
+    window.$message.error(created ? t('message.group_action.create_sync_failed') : '创建群聊失败')
+  } finally {
+    isCreatingGroup.value = false
   }
 }
 

@@ -6,6 +6,7 @@ import { revealItemInDir } from '@tauri-apps/plugin-opener'
 import type { FileTypeResult } from 'file-type'
 import { computed, onUnmounted, type InjectionKey } from 'vue'
 import { ErrorType } from '@/common/exception'
+import { APP_FEATURES } from '@/common/backend'
 import {
   MergeMessageType,
   MessageStatusEnum,
@@ -19,6 +20,7 @@ import {
 } from '@/enums'
 import { useCommon } from '@/hooks/useCommon.ts'
 import { useDownload } from '@/hooks/useDownload'
+import { useDirectoryContact } from '@/hooks/useDirectoryContact'
 import { useMitt } from '@/hooks/useMitt.ts'
 import { useVideoViewer } from '@/hooks/useVideoViewer'
 import type { FilesMeta, MessageType, RightMouseMessageItem } from '@/services/types.ts'
@@ -57,6 +59,7 @@ export const useChatMain = (isHistoryMode = false, options: UseChatMainOptions =
   const { t } = useI18n()
   const { openMsgSession, userUid } = useCommon()
   const { createWebviewWindow, sendWindowPayload, startRtcCall } = useWindow()
+  const { refreshDirectoryContact } = useDirectoryContact()
   const { getLocalVideoPath, checkVideoDownloaded } = useVideoViewer()
   const fileDownloadStore = useFileDownloadStore()
   const globalStore = useGlobalStore()
@@ -865,12 +868,17 @@ export const useChatMain = (isHistoryMode = false, options: UseChatMainOptions =
       visible: (item: any) => (item.uid ? item.uid === userUid.value : item.fromUser.uid === userUid.value)
     },
     {
-      label: () => t('menu.add_friend'),
+      label: () => t(APP_FEATURES.friendRequests ? 'menu.add_friend' : 'message.directory_contact.refresh'),
       icon: 'people-plus',
       click: async (item: any) => {
-        await createWebviewWindow('申请加好友', 'addFriendVerify', 380, 300, '', false, 380, 300)
+        const uid = item.uid || item.fromUser.uid
+        if (!APP_FEATURES.friendRequests) {
+          if (await refreshDirectoryContact(uid)) await openMsgSession(uid)
+          return
+        }
         globalStore.addFriendModalInfo.show = true
-        globalStore.addFriendModalInfo.uid = item.uid || item.fromUser.uid
+        globalStore.addFriendModalInfo.uid = uid
+        await createWebviewWindow('申请加好友', 'addFriendVerify', 380, 300, '', false, 380, 300)
       },
       visible: (item: any) => !checkFriendRelation(item.uid || item.fromUser.uid, 'all')
     },

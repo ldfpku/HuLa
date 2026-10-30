@@ -38,6 +38,12 @@ export const useGroupStore = defineStore(
     const loadingGroups = ref<Set<string>>(new Set())
     const fetchPromisesMap = ref<Partial<Record<string, Promise<GroupDetailReq>>>>({})
     let groupCacheVersion = 0
+    const removedGroupIds = ref<string[]>([])
+    const exitRequests = new Map<string, Promise<void>>()
+    const isRemovedGroup = (roomId: string) => removedGroupIds.value.includes(roomId)
+    const restoreGroup = (roomId: string) => {
+      removedGroupIds.value = removedGroupIds.value.filter((id) => id !== roomId)
+    }
 
     // 群组相关状态
     const currentSessionState = ref({
@@ -93,6 +99,7 @@ export const useGroupStore = defineStore(
     }
 
     const setRoomMemberList = (roomId: string, members: UserItem[]) => {
+      if (isRemovedGroup(roomId)) return
       if (!Array.isArray(members) || members.length === 0) {
         userListMap[roomId] = []
         memberOrderCounters[roomId] = 0
@@ -220,16 +227,22 @@ export const useGroupStore = defineStore(
 
     const setGroupDetails = async () => {
       const version = groupCacheVersion
+      const previouslyRemoved = new Set(removedGroupIds.value)
       const data = await ImRequestUtils.groupList()
       if (version !== groupCacheVersion) return false
       if (!Array.isArray(data)) throw new Error('群列表响应格式错误')
-      groupDetails.value = data.filter(isGroupDetail)
+      for (const group of data.filter(isGroupDetail)) {
+        if (previouslyRemoved.has(group.roomId)) restoreGroup(group.roomId)
+      }
+      groupDetails.value = data.filter(isGroupDetail).filter((group) => !isRemovedGroup(group.roomId))
       groupDetailsCache.value = {}
       return true
     }
 
     const clearAccountCache = () => {
       groupCacheVersion++
+      removedGroupIds.value = []
+      exitRequests.clear()
       for (const roomId of Object.keys(userListMap)) delete userListMap[roomId]
       for (const roomId of Object.keys(onlineCountMap)) delete onlineCountMap[roomId]
       for (const roomId of Object.keys(memberOrderCounters)) delete memberOrderCounters[roomId]
@@ -240,11 +253,13 @@ export const useGroupStore = defineStore(
     }
 
     const addGroupDetail = async (roomId: string, forceRefresh = false) => {
+      if (isRemovedGroup(roomId)) return
       if (!forceRefresh && groupDetails.value.find((item) => item.roomId === roomId)) {
         return
       }
       const version = groupCacheVersion
       const data = await ImRequestUtils.getGroupDetail(roomId)
+      if (isRemovedGroup(roomId)) return
       if (version !== groupCacheVersion) throw new Error('账号已切换，放弃旧的群详情')
       if (!isGroupDetail(data) || data.roomId !== roomId) throw new Error(`群组 ${roomId} 详情响应格式错误`)
       const index = groupDetails.value.findIndex((item) => item.roomId === roomId)
@@ -465,6 +480,9 @@ export const useGroupStore = defineStore(
 
     const removeGroupDetail = (roomId: string) => {
       groupDetails.value = groupDetails.value.filter((item) => item.roomId !== roomId)
+      delete groupDetailsCache.value[roomId]
+      delete fetchPromisesMap.value[roomId]
+      loadingGroups.value.delete(roomId)
     }
 
     const isAdminOrLord = () => {
@@ -556,6 +574,7 @@ export const useGroupStore = defineStore(
 
       for (const roomId of uniqueRoomIds) {
         if (version !== groupCacheVersion) break
+        if (isRemovedGroup(roomId)) continue
         if (groupDetailsCache.value[roomId] || loadingGroups.value.has(roomId)) {
           continue
         }
@@ -563,7 +582,7 @@ export const useGroupStore = defineStore(
         loadingGroups.value.add(roomId)
         try {
           const detail = await fetchGroupDetailSafely(roomId)
-          if (version === groupCacheVersion) groupDetailsCache.value[roomId] = detail
+          if (version === groupCacheVersion && !isRemovedGroup(roomId)) groupDetailsCache.value[roomId] = detail
         } catch (error) {
           console.error(`[group] 加载群 ${roomId} 详情失败:`, error)
         } finally {
@@ -592,12 +611,14 @@ export const useGroupStore = defineStore(
       const failures: unknown[] = []
       for (const roomId of new Set(roomIds)) {
         if (version !== groupCacheVersion) return
+        if (isRemovedGroup(roomId)) continue
         try {
           let detail = groups.get(roomId)
           if (!detail) {
             detail = await fetchGroupDetailSafely(roomId, true)
           }
           if (version !== groupCacheVersion) return
+          if (isRemovedGroup(roomId)) continue
           const current = groupDetails.value.find((group) => group.roomId === roomId)
           if (current) {
             current.memberNum = detail.memberNum
@@ -619,6 +640,7 @@ export const useGroupStore = defineStore(
      * @param forceRefresh 是否强制刷新,默认false
      */
     const getGroupUserList = async (roomId: string, forceRefresh = false) => {
+      if (isRemovedGroup(roomId)) return []
       if (!roomId) {
         console.warn('[group] skip member refresh, invalid room id:', roomId)
         return []
@@ -642,7 +664,7 @@ export const useGroupStore = defineStore(
 
       const version = groupCacheVersion
       const data = await ImRequestUtils.groupListMember(roomId)
-      if (version !== groupCacheVersion) return []
+      if (version !== groupCacheVersion || isRemovedGroup(roomId)) return []
       if (!data) {
         userListOptions.loading = false
         return []
@@ -881,27 +903,68 @@ export const useGroupStore = defineStore(
      * @param roomId 要退出的群聊ID
      * @param dissolve 群主解散群聊
      */
-    const exitGroup = async (roomId: string, dissolve = false) => {
-      if (!roomId) return
-
-      await ImRequestUtils.exitGroup(dissolve ? { roomId, dissolve: true } : { roomId })
-
-      // 更新群成员缓存，移除自己
-      const currentUserList = userListMap[roomId] || []
-      const updatedList = currentUserList.filter((user: UserItem) => user.uid !== userStore.userInfo!.uid)
-      setRoomMemberList(roomId, updatedList)
-
-      // 删除对应的群详情缓存
+    const removeGroup = (roomId: string) => {
+      if (!isRemovedGroup(roomId)) removedGroupIds.value.push(roomId)
       removeGroupDetail(roomId)
-
-      // 更新会话列表，使用传入的 roomId
+      delete userListMap[roomId]
+      delete memberOrderCounters[roomId]
+      delete onlineCountMap[roomId]
+      chatStore.clearRoomMessages(roomId)
       chatStore.removeSession(roomId)
-
-      // 如果退出的是当前选中的会话，则切换到新的当前会话
       if (globalStore.currentSessionRoomId === roomId) {
-        const fallbackSession = chatStore.sessionList[0]
-        globalStore.updateCurrentSessionRoomId(fallbackSession ? fallbackSession.roomId : '')
+        globalStore.updateCurrentSessionRoomId(chatStore.sessionList[0]?.roomId ?? '')
       }
+      if (currentSessionState.value.roomId === roomId) cleanupSession()
+    }
+
+    const exitGroup = (roomId: string, dissolve = false): Promise<void> => {
+      const pending = exitRequests.get(roomId)
+      if (pending) return pending
+      const uid = userStore.userInfo?.uid
+      const version = groupCacheVersion
+      const request = (async () => {
+        if (!roomId || roomId === '1' || !uid) throw new Error('无法退出或解散该群聊')
+        await ImRequestUtils.exitGroup(dissolve ? { roomId, dissolve: true } : { roomId })
+        if (version !== groupCacheVersion || userStore.userInfo?.uid !== uid) {
+          throw new Error('账号已切换，请在原账号中确认群聊状态')
+        }
+        removeGroup(roomId)
+        // 服务端已删除成员关系，不能再调用隐藏会话接口；强制同步以清掉 SQLite 旧会话。
+        void chatStore.getSessionList(true)
+      })()
+      exitRequests.set(roomId, request)
+      void request.then(
+        () => {
+          if (exitRequests.get(roomId) === request) exitRequests.delete(roomId)
+        },
+        () => {
+          if (exitRequests.get(roomId) === request) exitRequests.delete(roomId)
+        }
+      )
+      return request
+    }
+
+    const loadCreatedGroup = async (result: unknown) => {
+      const version = groupCacheVersion
+      const normalizeId = (id: unknown) => (typeof id === 'string' || typeof id === 'number' ? String(id) : undefined)
+      const resultRoomId =
+        result && typeof result === 'object' && 'roomId' in result ? normalizeId(result.roomId) : undefined
+      const resultId = result && typeof result === 'object' && 'id' in result ? normalizeId(result.id) : undefined
+      if (!resultRoomId && !resultId) throw new Error('创建群聊响应缺少群聊标识')
+      await chatStore.getSessionList(true)
+      if (version !== groupCacheVersion) throw new Error('账号已切换，放弃加载旧账号的群聊')
+      const session = chatStore.sessionList.find(
+        (item) => item.roomId === resultRoomId || item.roomId === resultId || item.detailId === resultId
+      )
+      const roomId = session?.roomId ?? resultRoomId ?? resultId
+      if (!roomId) throw new Error('无法确定新建群聊的房间')
+      restoreGroup(roomId)
+      if (!session) await chatStore.addSession(roomId)
+      if (version !== groupCacheVersion) throw new Error('账号已切换，放弃加载旧账号的群聊')
+      if (!chatStore.getSession(roomId)) throw new Error('新建群聊会话加载失败')
+      globalStore.updateCurrentSessionRoomId(roomId)
+      await Promise.all([addGroupDetail(roomId), getGroupUserList(roomId, true)])
+      return roomId
     }
 
     /**
@@ -987,6 +1050,11 @@ export const useGroupStore = defineStore(
       revokeAdmin,
       removeGroupMembers,
       exitGroup,
+      loadCreatedGroup,
+      removeGroup,
+      restoreGroup,
+      isRemovedGroup,
+      removedGroupIds,
       transferOwner,
       renameGroup,
       refreshGroupMembers,

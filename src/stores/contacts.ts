@@ -25,6 +25,9 @@ export const useContactStore = defineStore(StoresEnum.CONTACTS, () => {
 
   /** 联系人列表 */
   const contactsList = ref<FriendItem[]>([])
+  const contactsOwnerUid = ref<string>()
+  const contactsLoaded = ref(false)
+  const contactsLoadError = ref(false)
   /** 好友请求列表 */
   const requestFriendsList = ref<NoticeItem[]>([])
 
@@ -32,39 +35,74 @@ export const useContactStore = defineStore(StoresEnum.CONTACTS, () => {
   const contactsOptions = ref({ isLast: false, isLoading: false, cursor: '' })
   /** 好友请求列表分页选项 */
   const applyPageOptions = ref({ isLast: false, cursor: '', pageNo: 1 })
+  let contactsVersion = 0
+  let refreshPromise: Promise<boolean> | undefined
+  let refreshUid: string | undefined
 
   /**
    * 获取联系人列表
    * @param isFresh 是否刷新列表，true则重新加载，false则加载更多
    */
-  const getContactList = async (isFresh = false) => {
-    // 非刷新模式下，如果已经加载完或正在加载中，则直接返回
-    if (!isFresh) {
-      console.log(contactsOptions.value.isLast)
-      if (contactsOptions.value.isLast) return
+  const getContactList = (isFresh = false): Promise<boolean> => {
+    const requestUid = userStore.userInfo?.uid
+    if (!requestUid) return Promise.resolve(false)
+    if (contactsOwnerUid.value !== requestUid) {
+      contactsVersion++
+      contactsOwnerUid.value = requestUid
+      contactsList.value = []
+      contactsLoaded.value = false
+      contactsLoadError.value = false
+      contactsOptions.value = { isLast: false, isLoading: false, cursor: '' }
     }
-    if (isFresh) {
-      contactsOptions.value.cursor = ''
-      contactsOptions.value.isLast = false
-    }
-    contactsOptions.value.isLoading = true
-    try {
-      const data = await getFriendPage({ cursor: contactsOptions.value.cursor })
+    if (isFresh && refreshPromise && refreshUid === requestUid) return refreshPromise
+    if (!isFresh && (contactsOptions.value.isLast || contactsOptions.value.isLoading)) return Promise.resolve(false)
 
-      if (!data) return
-      // 刷新模式下替换整个列表，否则追加到列表末尾
-      if (isFresh) {
-        contactsList.value = data.list
-      } else {
-        contactsList.value.push(...data.list)
+    const version = ++contactsVersion
+    const cursor = isFresh ? '' : contactsOptions.value.cursor
+    contactsOptions.value.isLoading = true
+    const request = (async () => {
+      try {
+        const data = await getFriendPage({ cursor })
+        if (version !== contactsVersion || userStore.userInfo?.uid !== requestUid) return false
+        if (!data || !Array.isArray(data.list)) throw new Error('通讯录响应格式错误')
+        if (isFresh) {
+          contactsList.value = data.list
+        } else {
+          contactsList.value.push(...data.list)
+        }
+        contactsOptions.value.cursor = data.cursor
+        contactsOptions.value.isLast = data.isLast
+        contactsLoaded.value = true
+        contactsLoadError.value = false
+        return true
+      } catch (error) {
+        console.error('获取联系人列表失败:', error)
+        if (version === contactsVersion && userStore.userInfo?.uid === requestUid) contactsLoadError.value = true
+        return false
+      } finally {
+        if (version === contactsVersion) contactsOptions.value.isLoading = false
       }
-      contactsOptions.value.cursor = data.cursor
-      contactsOptions.value.isLast = data.isLast
-    } catch (error) {
-      console.error('获取联系人列表失败:', error)
-    } finally {
-      contactsOptions.value.isLoading = false
+    })()
+    if (isFresh) {
+      refreshUid = requestUid
+      refreshPromise = request
+      void request.then(() => {
+        if (refreshPromise === request) {
+          refreshPromise = undefined
+          refreshUid = undefined
+        }
+      })
     }
+    return request
+  }
+
+  const refreshDirectoryContact = async (uid: string): Promise<'found' | 'missing' | 'failed'> => {
+    if (!uid) {
+      console.error('刷新通讯录失败：缺少用户 ID')
+      return 'failed'
+    }
+    if (!(await getContactList(true))) return 'failed'
+    return contactsList.value.some((contact) => contact.uid === uid) ? 'found' : 'missing'
   }
 
   const refreshPresence = async () => {
@@ -248,7 +286,13 @@ export const useContactStore = defineStore(StoresEnum.CONTACTS, () => {
 
   /** 清理账号相关的联系人和申请状态，避免切换账号时复用旧数据 */
   const resetAccountState = () => {
+    contactsVersion++
+    refreshPromise = undefined
+    refreshUid = undefined
     contactsList.value = []
+    contactsOwnerUid.value = undefined
+    contactsLoaded.value = false
+    contactsLoadError.value = false
     requestFriendsList.value = []
     contactsOptions.value = { isLast: false, isLoading: false, cursor: '' }
     applyPageOptions.value = { isLast: false, cursor: '', pageNo: 1 }
@@ -256,11 +300,15 @@ export const useContactStore = defineStore(StoresEnum.CONTACTS, () => {
 
   return {
     getContactList,
+    refreshDirectoryContact,
     refreshPresence,
     applyPresence,
     getApplyPage,
     getApplyUnReadCount,
     contactsList,
+    contactsOwnerUid,
+    contactsLoaded,
+    contactsLoadError,
     requestFriendsList,
     contactsOptions,
     applyPageOptions,

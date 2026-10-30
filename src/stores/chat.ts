@@ -539,9 +539,28 @@ export const useChatStore = defineStore(
     }
 
     // 获取会话列表
-    const getSessionList = async (_isFresh = false) => {
+    let sessionListRequest: Promise<void> | null = null
+    let queuedSessionRefresh: Promise<void> | null = null
+    const getSessionList = (isFresh = false): Promise<void> => {
+      if (sessionListRequest) {
+        if (!isFresh) return sessionListRequest
+        queuedSessionRefresh ??= sessionListRequest.then(() => {
+          queuedSessionRefresh = null
+          return getSessionList(true)
+        })
+        return queuedSessionRefresh
+      }
+      const request = loadSessionList(isFresh).finally(() => {
+        if (sessionListRequest === request) sessionListRequest = null
+      })
+      sessionListRequest = request
+      return request
+    }
+
+    const loadSessionList = async (isFresh: boolean) => {
+      const previouslyRemoved = new Set(groupStore.removedGroupIds)
+      const requestUid = userStore.userInfo?.uid
       try {
-        if (sessionOptions.isLoading) return
         sessionOptions.isLoading = true
         globalStore.unreadReady = false
         const prevSessions =
@@ -554,10 +573,14 @@ export const useChatStore = defineStore(
                 {} as Record<string, SessionItem>
               )
             : undefined
-        const data: any = await invokeWithErrorHandler(TauriCommand.LIST_CONTACTS, undefined, {
-          customErrorMessage: '获取会话列表失败',
-          errorType: ErrorType.Network
-        }).catch(() => {
+        const data = await invokeWithErrorHandler<SessionItem[]>(
+          TauriCommand.LIST_CONTACTS,
+          { forceRefresh: isFresh },
+          {
+            customErrorMessage: '获取会话列表失败',
+            errorType: ErrorType.Network
+          }
+        ).catch(() => {
           sessionOptions.isLoading = false
           return null
         })
@@ -565,6 +588,10 @@ export const useChatStore = defineStore(
           // 拉取失败也要恢复未读角标的展示，避免 unreadReady 卡在 false
           globalStore.unreadReady = true
           unreadCountManager.refreshBadge(globalStore.unReadMark, feedStore.unreadCount)
+          return
+        }
+        if (userStore.userInfo?.uid !== requestUid) {
+          console.warn('[chat] 账号已切换，放弃旧的会话列表')
           return
         }
 
@@ -577,14 +604,14 @@ export const useChatStore = defineStore(
         //   }))
         // )
 
-        sessionList.value = [...data]
-        syncPersistedUnreadCounts()
-        sessionOptions.isLoading = false
-
-        // 同步更新 sessionMap
-        for (const session of sessionList.value) {
-          sessionMap.value[session.roomId] = session
+        if (isFresh) {
+          for (const session of data) {
+            if (previouslyRemoved.has(session.roomId)) groupStore.restoreGroup(session.roomId)
+          }
         }
+        sessionList.value = data.filter((session) => !groupStore.isRemovedGroup(session.roomId))
+        sessionMap.value = Object.fromEntries(sessionList.value.map((session) => [session.roomId, session]))
+        syncPersistedUnreadCounts()
 
         sortAndUniqueSessionList()
 
@@ -675,7 +702,9 @@ export const useChatStore = defineStore(
     }
 
     const addSession = async (roomId: string) => {
+      if (groupStore.isRemovedGroup(roomId)) return
       const resp = await getSessionDetail({ id: roomId })
+      if (groupStore.isRemovedGroup(roomId)) return
       // 先插入会话到列表，确保后续的 updateSession 能找到会话
       sessionList.value.unshift(resp)
       // 同步更新 sessionMap
@@ -697,6 +726,7 @@ export const useChatStore = defineStore(
 
     // 推送消息
     const pushMsg = async (msg: MessageType, options: { isActiveChatView?: boolean; activeRoomId?: string } = {}) => {
+      if (groupStore.isRemovedGroup(msg.message.roomId)) return
       if (!msg.message.id) {
         msg.message.id = `${msg.message.roomId}_${msg.message.sendTime}_${msg.fromUser.uid}`
       }
@@ -1268,12 +1298,11 @@ export const useChatStore = defineStore(
         delete lastReadActiveTime.value[roomId]
         sessionUnreadStore.setLastRead(userStore.userInfo?.uid, roomId, 0)
 
-        if (globalStore.currentSessionRoomId === roomId) {
-          globalStore.updateCurrentSessionRoomId(sessionList.value[0].roomId)
-        }
-
         // 删除会话后更新未读计数
         requestUnreadCountUpdate()
+      }
+      if (globalStore.currentSessionRoomId === roomId) {
+        globalStore.updateCurrentSessionRoomId(sessionList.value[0]?.roomId ?? '')
       }
       removeUnreadCountCache(roomId)
     }

@@ -1,4 +1,17 @@
 {
+  "group_action": {
+    "create_sync_failed": "The group was created, but the list could not be loaded. Refresh your conversations instead of creating it again.",
+    "dissolve_title": "Disband “{name}”?",
+    "dissolve_content": "All members will lose access and the group will be removed from conversations and groups. This cannot be undone. To leave without disbanding, transfer ownership first.",
+    "dissolve_pending": "Disbanding…",
+    "dissolve_success": "Group disbanded and removed from the list",
+    "dissolve_failed": "Could not disband the group. Please try again.",
+    "leave_title": "Leave “{name}”?",
+    "leave_content": "You will no longer receive messages from this group. It will be removed from your conversations and groups.",
+    "leave_pending": "Leaving…",
+    "leave_success": "Left the group and removed it from the list",
+    "leave_failed": "Could not leave the group. Please try again."
+  },
   "file": {
     "unknown_file": "Unknown file",
     "unknown_error": "Unknown error",
@@ -143,6 +156,18 @@
     "requesting": "Requesting device permission...",
     "reauthorize": "Re-authorize",
     "got_it": "Got it"
+  },
+  "directory_contact": {
+    "refresh": "Refresh directory",
+    "search_title": "Find people or groups",
+    "search_people": "Find people",
+    "search_people_placeholder": "Search people by name or account",
+    "open_failed": "Could not open the chat. Please try again.",
+    "refresh_failed": "Could not refresh the directory. Check your connection and try again.",
+    "unavailable": "This user is not in the organization directory. Contact your administrator.",
+    "not_in_directory": "Not in the organization directory",
+    "checking": "Synchronizing directory",
+    "unknown_account": "Unknown"
   },
   "friend_verify": {
     "title": "Add friend request",

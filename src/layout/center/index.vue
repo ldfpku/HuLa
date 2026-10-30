@@ -142,7 +142,12 @@
             :render-target-label="renderLabel" />
 
           <n-flex align="center" justify="center" class="p-16px">
-            <n-button :disabled="selectedValue.length < 2" color="#034fbc" text-color="#ffffff" @click="handleCreateGroup">
+            <n-button
+              :loading="isCreatingGroup"
+              :disabled="selectedValue.length < 2 || isCreatingGroup"
+              color="#034fbc"
+              text-color="#ffffff"
+              @click="handleCreateGroup">
               {{ t('home.create_group.action') }}
             </n-button>
           </n-flex>
@@ -153,14 +158,13 @@
 </template>
 
 <script setup lang="ts">
+import { APP_FEATURES } from '@/common/backend'
 import { WebviewWindow } from '@tauri-apps/api/webviewWindow'
 import { useWindowSize } from '@vueuse/core'
 import { MittEnum } from '@/enums'
 import { useMitt } from '@/hooks/useMitt.ts'
 import { useWindow } from '@/hooks/useWindow'
 import router from '@/router'
-import { useChatStore } from '@/stores/chat.ts'
-import { useGlobalStore } from '@/stores/global.ts'
 import { useGroupStore } from '@/stores/group'
 import { useSettingStore } from '@/stores/setting.ts'
 import * as ImRequestUtils from '@/utils/ImRequestUtils'
@@ -171,9 +175,7 @@ import { useI18n } from 'vue-i18n'
 const { t } = useI18n()
 const { createWebviewWindow } = useWindow()
 
-const chatStore = useChatStore()
 const settingStore = useSettingStore()
-const globalStore = useGlobalStore()
 const groupStore = useGroupStore()
 const { page } = storeToRefs(settingStore)
 const appWindow = WebviewWindow.getCurrent()
@@ -212,10 +214,15 @@ const addPanels = ref({
       }
     },
     {
-      label: 'home.action.add_friend_or_group',
+      label: APP_FEATURES.friendRequests ? 'home.action.add_friend_or_group' : 'message.directory_contact.search_title',
       icon: 'people-plus',
       click: async () => {
-        await createWebviewWindow(t('home.action.add_friend_or_group'), 'searchFriend', 500, 580)
+        await createWebviewWindow(
+          t(APP_FEATURES.friendRequests ? 'home.action.add_friend_or_group' : 'message.directory_contact.search_title'),
+          'searchFriend',
+          500,
+          580
+        )
       }
     }
   ]
@@ -350,38 +357,23 @@ const resetCreateGroupState = () => {
   createGroupModal.value = false
 }
 
+const isCreatingGroup = ref(false)
 const handleCreateGroup = async () => {
-  if (selectedValue.value.length < 2) return
+  if (selectedValue.value.length < 2 || isCreatingGroup.value) return
+  isCreatingGroup.value = true
+  let created = false
   try {
-    const result: any = await ImRequestUtils.createGroup({ uidList: selectedValue.value })
-
-    // 创建成功后刷新会话列表以显示新群聊
-    await chatStore.getSessionList(true)
-
-    const resultRoomId = result?.roomId != null ? String(result.roomId) : undefined
-    const resultId = result?.id != null ? String(result.id) : undefined
-
-    const matchedSession = chatStore.sessionList.find((session) => {
-      const sessionRoomId = String(session.roomId)
-      const sessionDetailId = session.detailId != null ? String(session.detailId) : undefined
-      return (
-        (resultRoomId !== undefined && sessionRoomId === resultRoomId) ||
-        (resultId !== undefined && (sessionDetailId === resultId || sessionRoomId === resultId))
-      )
-    })
-
-    if (matchedSession?.roomId) {
-      globalStore.updateCurrentSessionRoomId(matchedSession.roomId)
-      await Promise.all([
-        groupStore.addGroupDetail(matchedSession.roomId),
-        groupStore.getGroupUserList(matchedSession.roomId, true)
-      ])
-    }
+    const result = await ImRequestUtils.createGroup({ uidList: selectedValue.value })
+    created = true
+    await groupStore.loadCreatedGroup(result)
 
     resetCreateGroupState()
     window.$message.success(t('home.create_group.success'))
   } catch (error) {
-    window.$message.error(t('home.create_group.fail'))
+    console.error('创建或加载群聊失败:', error)
+    window.$message.error(t(created ? 'message.group_action.create_sync_failed' : 'home.create_group.fail'))
+  } finally {
+    isCreatingGroup.value = false
   }
 }
 

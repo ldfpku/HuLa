@@ -6,4 +6,8 @@ describe('workspace entry points', () => {
     expect(APP_FEATURES.embeddedMailWorkspace).toBe(true)
     expect(APP_FEATURES.todoWorkspace).toBe(true)
   })
+
+  it('uses the organization directory instead of friend requests', () => {
+    expect(APP_FEATURES.friendRequests).toBe(false)
+  })
 })

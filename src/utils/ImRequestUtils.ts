@@ -408,7 +408,7 @@ export async function modifyFriendRemark(body: { targetUid: string; remark: stri
 }
 
 export async function createGroup(body: { uidList: string[] }) {
-  return await imRequest({
+  return await imRequest<{ roomId?: string | number; id?: string | number }>({
     url: ImUrlEnum.CREATE_GROUP,
     body
   })

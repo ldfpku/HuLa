@@ -17,5 +17,6 @@ export const MFA_REQUIRED_MESSAGE = 'MFA_REQUIRED'
 export const APP_FEATURES = {
   plugins: false,
   embeddedMailWorkspace: true,
-  todoWorkspace: true
+  todoWorkspace: true,
+  friendRequests: false
 } as const

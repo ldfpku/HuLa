@@ -8,11 +8,19 @@
       v-if="isSingleChat && !isFriend"
       :style="{ height: `${footerHeight}px` }"
       class="absolute inset-0 z-997 backdrop-blur-md cursor-default flex-center select-none pointer-events-auto light:bg-[rgba(255,255,255,0.1)] dark:bg-[rgba(33,33,33,0.1)]">
-      <n-flex align="center" justify="center" class="pb-60px">
+      <n-flex vertical align="center" justify="center" class="pb-60px">
         <svg class="size-24px">
           <use href="#cloudError"></use>
         </svg>
-        <span class="text-(14px [--chat-text-color])">{{ t('editor.relation.not_friends') }}</span>
+        <span class="text-(14px [--chat-text-color])">
+          {{ directoryStatusText }}
+        </span>
+        <n-button
+          v-if="!APP_FEATURES.friendRequests"
+          :loading="contactStore.contactsOptions.isLoading"
+          @click="refreshDirectoryContact(detailId)">
+          {{ t('message.directory_contact.refresh') }}
+        </n-button>
       </n-flex>
     </div>
 
@@ -223,9 +231,11 @@ import { open } from '@tauri-apps/plugin-dialog'
 import { isPhoneLayout } from '@/hooks/usePhoneLayout'
 import { readFile } from '@tauri-apps/plugin-fs'
 import { FOOTER_HEIGHT, MAX_FOOTER_HEIGHT, MIN_FOOTER_HEIGHT } from '@/common/constants'
+import { APP_FEATURES } from '@/common/backend'
 import LocationModal from '@/components/rightBox/location/LocationModal.vue'
 import { CallTypeEnum, MittEnum, MobilePanelStateEnum, MsgEnum, RoomTypeEnum } from '@/enums'
 import { useChatLayoutGlobal } from '@/hooks/useChatLayout'
+import { useDirectoryContact } from '@/hooks/useDirectoryContact'
 import { type SelectionRange, useCommon } from '@/hooks/useCommon.ts'
 import { useGlobalShortcut } from '@/hooks/useGlobalShortcut.ts'
 import { useMitt } from '@/hooks/useMitt'
@@ -261,6 +271,7 @@ const props = withDefaults(
 const detailId = computed(() => props.detailId || '')
 const globalStore = useGlobalStore()
 const contactStore = useContactStore()
+const { refreshDirectoryContact } = useDirectoryContact()
 const historyStore = useHistoryStore()
 const chatStore = useChatStore()
 const settingStore = useSettingStore()
@@ -365,6 +376,17 @@ const isFriend = computed(() => {
   const target = detailId.value
   if (!target) return false
   return contactStore.contactsList.some((contact: FriendItem) => contact.uid === target)
+})
+const directoryStatusText = computed(() => {
+  if (APP_FEATURES.friendRequests) return t('editor.relation.not_friends')
+  if (contactStore.contactsOptions.isLoading || (!contactStore.contactsLoaded && !contactStore.contactsLoadError)) {
+    return t('message.directory_contact.checking')
+  }
+  return t(
+    contactStore.contactsLoadError
+      ? 'message.directory_contact.refresh_failed'
+      : 'message.directory_contact.unavailable'
+  )
 })
 
 // 监听emojiShow的变化，当emojiShow为true时关闭recentlyTip

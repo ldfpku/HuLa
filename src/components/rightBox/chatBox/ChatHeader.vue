@@ -57,7 +57,7 @@
               <svg class="size-16px color-#d03553">
                 <use href="#close"></use>
               </svg>
-              <p class="text-(12px [--text-color])">{{ t('home.chat_header.status_abnormal') }}</p>
+              <p class="text-(12px [--text-color])">{{ directoryStatusText }}</p>
             </n-flex>
           </template>
         </n-flex>
@@ -310,6 +310,7 @@
 </template>
 
 <script setup lang="ts">
+import { APP_FEATURES } from '@/common/backend'
 import { useI18n } from 'vue-i18n'
 import { ErrorType } from '@/common/exception'
 import { useDisplayMedia } from '@vueuse/core'
@@ -328,6 +329,7 @@ import {
   UserType
 } from '@/enums'
 import { useAvatarUpload } from '@/hooks/useAvatarUpload'
+import { useGroupExit } from '@/hooks/useGroupExit'
 import { useMyRoomInfoUpdater } from '@/hooks/useMyRoomInfoUpdater'
 import { useMitt } from '@/hooks/useMitt.ts'
 import { useOnlineStatus } from '@/hooks/useOnlineStatus'
@@ -354,6 +356,7 @@ import ScheduleMeetingModal from '@/components/meeting/ScheduleMeetingModal.vue'
 import ChatSummaryModal from '@/components/ai/ChatSummaryModal.vue'
 
 const { t } = useI18n()
+const { confirmExitGroup } = useGroupExit()
 const { createModalWindow, startRtcCall } = useWindow()
 // 使用useDisplayMedia获取屏幕共享的媒体流
 const { stream, stop } = useDisplayMedia()
@@ -473,6 +476,17 @@ const shouldShowDeleteFriend = computed(() => {
   const session = activeItem.value
   if (!session || session.type === RoomTypeEnum.GROUP) return false
   return contactStore.contactsList.some((item) => item.uid === session.detailId)
+})
+const directoryStatusText = computed(() => {
+  if (APP_FEATURES.friendRequests) return t('home.chat_header.status_abnormal')
+  if (contactStore.contactsOptions.isLoading || (!contactStore.contactsLoaded && !contactStore.contactsLoadError)) {
+    return t('message.directory_contact.checking')
+  }
+  return t(
+    contactStore.contactsLoadError
+      ? 'message.directory_contact.refresh_failed'
+      : 'message.directory_contact.not_in_directory'
+  )
 })
 const groupUserList = computed(() => groupStore.userList)
 const userList = computed(() => {
@@ -764,14 +778,21 @@ const deleteRoomMessages = async (roomId: string) => {
 
 /** 删除操作二次提醒 */
 const handleDelete = (label: RoomActEnum) => {
+  if (label === RoomActEnum.DISSOLUTION_GROUP || label === RoomActEnum.EXIT_GROUP) {
+    confirmExitGroup(
+      currentSessionRoomId.value,
+      activeItem.value?.name ?? '',
+      label === RoomActEnum.DISSOLUTION_GROUP,
+      () => {
+        sidebarShow.value = false
+      }
+    )
+    return
+  }
   modalShow.value = true
   optionsType.value = label
   if (label === RoomActEnum.DELETE_FRIEND) {
     tips.value = t('home.chat_header.modal.tips.delete_friend')
-  } else if (label === RoomActEnum.DISSOLUTION_GROUP) {
-    tips.value = t('home.chat_header.modal.tips.dissolve_group')
-  } else if (label === RoomActEnum.EXIT_GROUP) {
-    tips.value = t('home.chat_header.modal.tips.exit_group')
   } else if (label === RoomActEnum.UPDATE_GROUP_NAME) {
     tips.value = t('home.chat_header.modal.tips.rename_group', {
       name: pendingGroupInfo.value?.groupName ?? ''
@@ -800,40 +821,6 @@ const handleConfirm = async () => {
       sidebarShow.value = false
     } catch (error) {
       console.error('删除好友失败:', error)
-    }
-  } else if (currentOption === RoomActEnum.DISSOLUTION_GROUP) {
-    if (targetRoomId === '1') {
-      window.$message.warning(t('home.chat_header.toast.dissolve_not_allowed'))
-      modalShow.value = false
-      return
-    }
-
-    try {
-      await groupStore.exitGroup(targetRoomId, true)
-      window.$message.success(t('home.chat_header.toast.dissolve_success'))
-      // 删除当前的会话
-      useMitt.emit(MittEnum.DELETE_SESSION, targetRoomId)
-      modalShow.value = false
-      sidebarShow.value = false
-    } catch (error) {
-      console.error('解散群聊失败:', error)
-    }
-  } else if (currentOption === RoomActEnum.EXIT_GROUP) {
-    if (targetRoomId === '1') {
-      window.$message.warning(t('home.chat_header.toast.exit_not_allowed'))
-      modalShow.value = false
-      return
-    }
-
-    try {
-      await groupStore.exitGroup(targetRoomId)
-      window.$message.success(t('home.chat_header.toast.exit_success'))
-      // 删除当前的会话
-      useMitt.emit(MittEnum.DELETE_SESSION, targetRoomId)
-      modalShow.value = false
-      sidebarShow.value = false
-    } catch (error) {
-      console.error('退出群聊失败:', error)
     }
   } else if (currentOption === RoomActEnum.DELETE_RECORD) {
     await deleteRoomMessages(targetRoomId)

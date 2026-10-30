@@ -25,10 +25,6 @@ pub async fn save_contact_batch(
     contacts: Vec<im_contact::Model>,
     login_uid: &str,
 ) -> Result<(), CommonError> {
-    if contacts.is_empty() {
-        return Ok(());
-    }
-
     // 使用事务确保操作的原子性
     let txn = db.begin().await?;
 
@@ -94,4 +90,35 @@ pub async fn update_contact_hide(
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use migration::{Migrator, MigratorTrait};
+    use sea_orm::{Database, Set};
+
+    #[tokio::test]
+    async fn empty_contact_sync_removes_only_the_selected_accounts_sessions() {
+        let db = Database::connect("sqlite::memory:").await.unwrap();
+        Migrator::up(&db, None).await.unwrap();
+        for uid in ["owner", "other"] {
+            im_contact::ActiveModel {
+                id: Set("group".to_string()),
+                detail_id: Set("group".to_string()),
+                room_id: Set("group".to_string()),
+                login_uid: Set(uid.to_string()),
+                ..Default::default()
+            }
+            .insert(&db)
+            .await
+            .unwrap();
+        }
+
+        save_contact_batch(&db, vec![], "owner").await.unwrap();
+        assert!(list_contact(&db, "owner").await.unwrap().is_empty());
+        assert_eq!(list_contact(&db, "other").await.unwrap().len(), 1);
+        save_contact_batch(&db, vec![], "owner").await.unwrap();
+        assert!(list_contact(&db, "owner").await.unwrap().is_empty());
+    }
 }

@@ -3,6 +3,7 @@ import { NInput, NSelect } from 'naive-ui'
 import type { UserItem } from '@/services/types'
 import { useGroupStore } from '@/stores/group'
 import { useUserStore } from '@/stores/user'
+import { AppException } from '@/common/exception'
 
 /** 群名称上限，与服务端一致 */
 export const GROUP_NAME_MAX_LENGTH = 30
@@ -55,20 +56,44 @@ export const confirmGroupAction = (options: {
   title: string
   content: string
   positiveText: string
+  negativeText?: string
+  pendingText?: string
+  errorMessage?: string
   onConfirm: () => Promise<void>
 }) => {
-  window.$dialog.warning({
+  let pending = false
+  const dialog = window.$dialog.warning({
     title: options.title,
     content: options.content,
     positiveText: options.positiveText,
-    negativeText: '取消',
+    negativeText: options.negativeText ?? '取消',
+    positiveButtonProps: { type: 'error' },
     onPositiveClick: async () => {
+      if (pending) return false
+      pending = true
+      dialog.loading = true
+      dialog.closable = false
+      dialog.maskClosable = false
+      dialog.closeOnEsc = false
+      dialog.negativeButtonProps = { disabled: true }
+      dialog.positiveText = options.pendingText ?? options.positiveText
       try {
         await options.onConfirm()
         return true
       } catch (error) {
         console.error(`${options.title}失败:`, error)
+        if (!(error instanceof AppException)) {
+          window.$message.error(options.errorMessage ?? `${options.title}失败，请重试`)
+        }
         return false
+      } finally {
+        pending = false
+        dialog.loading = false
+        dialog.closable = true
+        dialog.maskClosable = true
+        dialog.closeOnEsc = true
+        dialog.negativeButtonProps = { disabled: false }
+        dialog.positiveText = options.positiveText
       }
     }
   })

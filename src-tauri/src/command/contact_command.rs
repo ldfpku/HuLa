@@ -14,9 +14,12 @@ use tauri::State;
 use tokio::sync::{Mutex, RwLock};
 use tracing::{error, info};
 
+static CONTACT_SYNC_LOCK: Mutex<()> = Mutex::const_new(());
+
 #[tauri::command]
 pub async fn list_contacts_command(
     state: State<'_, AppData>,
+    force_refresh: Option<bool>,
 ) -> Result<Vec<im_contact::Model>, String> {
     info!("Querying all conversation list:");
     let result: Result<Vec<im_contact::Model>, CommonError> = async {
@@ -25,6 +28,10 @@ pub async fn list_contacts_command(
             let user_info = state.user_info.lock().await;
             user_info.uid.clone()
         };
+        if force_refresh.unwrap_or(false) {
+            return fetch_and_update_contacts(state.db_conn.clone(), state.rc.clone(), login_uid)
+                .await;
+        }
 
         // 先尝试从本地 SQLite 读取（即时返回）
         let local_data = list_contact(&*state.db_conn.read().await, &login_uid).await;
@@ -72,6 +79,8 @@ async fn fetch_and_update_contacts(
     request_client: Arc<Mutex<ImRequestClient>>,
     login_uid: String,
 ) -> Result<Vec<im_contact::Model>, CommonError> {
+    // 避免旧的后台同步在强制刷新之后覆盖 SQLite 会话列表。
+    let sync_guard = CONTACT_SYNC_LOCK.lock().await;
     let old_tokens = capture_token_snapshot_arc(&request_client).await;
 
     let resp: Option<Vec<im_contact::Model>> = request_client
@@ -99,6 +108,7 @@ async fn fetch_and_update_contacts(
                 )
             })?;
 
+        drop(sync_guard);
         Ok(data)
     } else {
         Err(CommonError::UnexpectedError(anyhow::anyhow!(

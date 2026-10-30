@@ -7,7 +7,7 @@
           :hidden-right="true"
           :enable-default-background="false"
           :enable-shadow="false"
-          room-name="添加好友" />
+          :room-name="APP_FEATURES.friendRequests ? '添加好友' : t('message.directory_contact.refresh')" />
       </template>
 
       <template #container>
@@ -19,12 +19,15 @@
                 <n-avatar round size="large" :src="avatarSrc" />
 
                 <n-flex vertical :size="10">
-                  <p class="text-[--text-color]">{{ userInfo.name }}</p>
-                  <p class="text-(12px [--text-color])">账号: {{ userInfo.account }}</p>
+                  <p class="text-[--text-color]">{{ userInfo?.name }}</p>
+                  <p class="text-(12px [--text-color])">
+                    账号: {{ userInfo?.account || t('message.directory_contact.unknown_account') }}
+                  </p>
                 </n-flex>
               </n-flex>
 
               <n-input
+                v-if="APP_FEATURES.friendRequests"
                 v-model:value="requestMsg"
                 :allow-input="(value: string) => !value.startsWith(' ') && !value.endsWith(' ')"
                 :autosize="requestMsgAutosize"
@@ -38,7 +41,9 @@
                 type="textarea"
                 placeholder="输入几句话，对TA说些什么吧" />
 
-              <n-button class="mt-30px" color="#034fbc" @click="addFriend">添加好友</n-button>
+              <n-button class="mt-30px" color="#034fbc" @click="addFriend">
+                {{ APP_FEATURES.friendRequests ? '添加好友' : t('message.directory_contact.refresh') }}
+              </n-button>
             </n-flex>
           </div>
         </div>
@@ -49,6 +54,10 @@
 
 <script setup lang="ts">
 import { useCommon } from '@/hooks/useCommon.ts'
+import { APP_FEATURES } from '@/common/backend'
+import { useDirectoryContact } from '@/hooks/useDirectoryContact'
+import { useMobileSingleChat } from '@/hooks/useMobileSingleChat'
+import { useI18n } from 'vue-i18n'
 import { useGlobalStore } from '@/stores/global.ts'
 import { useGroupStore } from '@/stores/group'
 import { useUserStore } from '@/stores/user.ts'
@@ -59,23 +68,32 @@ import router from '@/router'
 const globalStore = useGlobalStore()
 const userStore = useUserStore()
 const groupStore = useGroupStore()
+const { t } = useI18n()
+const { refreshDirectoryContact } = useDirectoryContact()
+const { openMobileSingleChat } = useMobileSingleChat()
 const { countGraphemes } = useCommon()
 const requestMsgAutosize = { minRows: 3, maxRows: 3 }
-const userInfo = ref(groupStore.getUserInfo(globalStore.addFriendModalInfo.uid!)!)
+const userInfo = computed(() => {
+  const uid = globalStore.addFriendModalInfo.uid
+  return uid ? groupStore.getUserInfo(uid) : undefined
+})
 const avatarSrc = computed(() => AvatarUtils.getAvatarUrl(userInfo.value?.avatar, userInfo.value?.uid))
 const requestMsg = ref()
 
-watch(
-  () => globalStore.addFriendModalInfo.uid,
-  (newUid) => {
-    userInfo.value = groupStore.getUserInfo(newUid!)!
-  }
-)
-
 const addFriend = async () => {
+  const uid = globalStore.addFriendModalInfo.uid
+  if (!APP_FEATURES.friendRequests) {
+    if (uid && (await refreshDirectoryContact(uid))) await openMobileSingleChat(uid)
+    else if (!uid) window.$message.error(t('message.directory_contact.refresh_failed'))
+    return
+  }
+  if (!uid) {
+    window.$message.error(t('message.directory_contact.refresh_failed'))
+    return
+  }
   await sendAddFriendRequest({
     msg: requestMsg.value,
-    targetUid: globalStore.addFriendModalInfo.uid as string
+    targetUid: uid
   })
   window.$message.success('已发送好友申请')
   setTimeout(() => {
@@ -84,8 +102,7 @@ const addFriend = async () => {
 }
 
 onMounted(async () => {
-  console.log(userInfo.value)
-  requestMsg.value = `我是${userStore.userInfo!.name}`
+  requestMsg.value = `我是${userStore.userInfo?.name || ''}`
 })
 </script>
 

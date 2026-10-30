@@ -1,5 +1,6 @@
 <template>
   <n-flex
+    v-if="APP_FEATURES.friendRequests"
     @click="handleApply('friend')"
     align="center"
     justify="space-between"
@@ -30,7 +31,9 @@
         <ContextMenu @contextmenu="showMenu($event)" @select="handleSelect($event.label)" :menu="menuList">
           <n-collapse-item :title="t('home.friends_list.collapse.friend')" name="1">
             <template #header-extra>
-              <span class="text-(11px [--text-muted-color])">{{ onlineCount }}/{{ contactStore.contactsList.length }}</span>
+              <span class="text-(11px [--text-muted-color])">
+                {{ onlineCount }}/{{ contactStore.contactsList.length }}
+              </span>
             </template>
             <n-scrollbar style="max-height: calc(100vh / var(--page-scale, 1) - 270px)" @scroll="handleFriendScroll">
               <!-- 用户框 多套一层div来移除默认的右键事件然后覆盖掉因为margin空隙而导致右键可用 -->
@@ -116,6 +119,7 @@
   </n-tabs>
 </template>
 <script setup lang="ts" name="friendsList">
+import { APP_FEATURES } from '@/common/backend'
 import { storeToRefs } from 'pinia'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'

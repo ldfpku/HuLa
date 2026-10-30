@@ -1,4 +1,17 @@
 {
+  "group_action": {
+    "create_sync_failed": "群聊已创建，但列表加载失败，请刷新会话列表，不要重复创建",
+    "dissolve_title": "解散群聊“{name}”？",
+    "dissolve_content": "解散后，所有成员将失去该群的访问权限，群聊会从会话和群列表中移除。此操作无法撤销；如果只想自己退出，请先转让群主。",
+    "dissolve_pending": "正在解散…",
+    "dissolve_success": "群聊已解散，并已从列表移除",
+    "dissolve_failed": "解散失败，请稍后重试",
+    "leave_title": "退出群聊“{name}”？",
+    "leave_content": "退出后将不再接收该群消息，群聊会从会话和群列表中移除。",
+    "leave_pending": "正在退出…",
+    "leave_success": "已退出群聊，并已从列表移除",
+    "leave_failed": "退出失败，请稍后重试"
+  },
   "file": {
     "unknown_file": "未知文件",
     "unknown_error": "未知错误",
@@ -143,6 +156,18 @@
     "requesting": "正在请求设备权限...",
     "reauthorize": "重新授权",
     "got_it": "知道了"
+  },
+  "directory_contact": {
+    "refresh": "刷新通讯录",
+    "search_title": "查找联系人或群聊",
+    "search_people": "找联系人",
+    "search_people_placeholder": "输入昵称或账号搜索联系人",
+    "open_failed": "打开聊天失败，请重试",
+    "refresh_failed": "通讯录刷新失败，请检查网络后重试",
+    "unavailable": "该用户不在组织通讯录中，请联系管理员",
+    "not_in_directory": "不在组织通讯录中",
+    "checking": "正在同步通讯录",
+    "unknown_account": "未知"
   },
   "friend_verify": {
     "title": "申请加好友",

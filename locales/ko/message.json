@@ -1,4 +1,17 @@
 {
+  "group_action": {
+    "create_sync_failed": "그룹은 생성되었지만 목록을 불러오지 못했습니다. 다시 생성하지 말고 대화 목록을 새로고침해 주세요.",
+    "dissolve_title": "“{name}” 그룹을 해산할까요?",
+    "dissolve_content": "모든 멤버가 접근 권한을 잃으며 대화 및 그룹 목록에서 삭제됩니다. 되돌릴 수 없습니다. 혼자 나가려면 먼저 그룹장을 위임하세요.",
+    "dissolve_pending": "해산 중…",
+    "dissolve_success": "그룹을 해산하고 목록에서 삭제했습니다",
+    "dissolve_failed": "그룹 해산에 실패했습니다. 다시 시도해 주세요.",
+    "leave_title": "“{name}” 그룹에서 나갈까요?",
+    "leave_content": "이 그룹의 메시지를 더 이상 받지 않으며 대화 및 그룹 목록에서 삭제됩니다.",
+    "leave_pending": "나가는 중…",
+    "leave_success": "그룹에서 나가고 목록에서 삭제했습니다",
+    "leave_failed": "그룹 나가기에 실패했습니다. 다시 시도해 주세요."
+  },
   "file": {
     "unknown_file": "알 수 없는 파일",
     "unknown_error": "알 수 없는 오류",
@@ -126,6 +139,18 @@
     "requesting": "장치 권한 요청 중...",
     "reauthorize": "다시 권한 부여",
     "got_it": "확인"
+  },
+  "directory_contact": {
+    "refresh": "주소록 새로고침",
+    "search_title": "연락처 또는 그룹 찾기",
+    "search_people": "연락처 찾기",
+    "search_people_placeholder": "이름 또는 계정으로 연락처 검색",
+    "open_failed": "채팅을 열지 못했습니다. 다시 시도하세요.",
+    "refresh_failed": "주소록을 새로고침하지 못했습니다. 연결을 확인하고 다시 시도하세요.",
+    "unavailable": "조직 주소록에 없는 사용자입니다. 관리자에게 문의하세요.",
+    "not_in_directory": "조직 주소록에 없음",
+    "checking": "주소록을 동기화하는 중",
+    "unknown_account": "알 수 없음"
   },
   "friend_verify": {
     "title": "친구 추가 요청",

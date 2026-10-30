@@ -245,9 +245,9 @@
 </template>
 
 <script setup lang="ts">
-import { MittEnum, NotificationTypeEnum, OnlineEnum, RoleEnum, RoomTypeEnum } from '@/enums'
+import { NotificationTypeEnum, OnlineEnum, RoleEnum, RoomTypeEnum } from '@/enums'
 import { useAvatarUpload } from '@/hooks/useAvatarUpload'
-import { useMitt } from '@/hooks/useMitt.ts'
+import { useGroupExit } from '@/hooks/useGroupExit'
 import { useMyRoomInfoUpdater } from '@/hooks/useMyRoomInfoUpdater'
 import router from '@/router'
 import type { UserItem } from '@/services/types'
@@ -275,6 +275,7 @@ defineOptions({
 })
 
 const { t } = useI18n()
+const { confirmExitGroup } = useGroupExit()
 
 const dialog = useDialog()
 const userStore = useUserStore()
@@ -374,61 +375,37 @@ const goToNotice = () => {
   })
 }
 
-// 退出登录逻辑
 async function handleExit() {
+  const session = activeItem.value
+  if (!session) {
+    window.$message.warning(t('mobile_chat_setting.session_not_exist'))
+    return
+  }
+  if (isGroup.value) {
+    confirmExitGroup(currentSessionRoomId.value, session.name, isLord.value, async () => {
+      await router.push('/mobile/message')
+    })
+    return
+  }
   dialog.error({
     title: '提示',
-    content: isGroup.value
-      ? isLord.value
-        ? t('mobile_chat_setting.confirm_disband_group')
-        : t('mobile_chat_setting.confirm_leave_group')
-      : t('mobile_chat_setting.confirm_delete_friend'),
+    content: t('mobile_chat_setting.confirm_delete_friend'),
     positiveText: t('components.common.confirm'),
     negativeText: t('components.common.cancel'),
     onPositiveClick: async () => {
-      const session = activeItem.value
-      if (!session) {
-        window.$message.warning(t('mobile_chat_setting.session_not_exist'))
-        return
-      }
       try {
-        if (isGroup.value) {
-          if (isLord.value) {
-            if (currentSessionRoomId.value === '1') {
-              window.$message.warning(t('mobile_chat_setting.disband_channel_failed'))
-              return
-            }
-
-            groupStore.exitGroup(currentSessionRoomId.value, true).then(() => {
-              window.$message.success(t('mobile_chat_setting.group_disbanded'))
-              // 删除当前的会话
-              useMitt.emit(MittEnum.DELETE_SESSION, currentSessionRoomId.value)
-            })
-          } else {
-            if (currentSessionRoomId.value === '1') {
-              window.$message.warning(t('mobile_chat_setting.leave_channel_failed'))
-              return
-            }
-
-            groupStore.exitGroup(currentSessionRoomId.value).then(() => {
-              window.$message.success(t('mobile_chat_setting.group_left'))
-              // 删除当前的会话
-              useMitt.emit(MittEnum.DELETE_SESSION, currentSessionRoomId.value)
-            })
-          }
-        } else {
-          const detailId = session.detailId
-          if (!detailId) {
-            window.$message.warning(t('mobile_chat_setting.get_friend_info_failed'))
-            return
-          }
-          await deleteFriend({ targetUid: detailId })
-          window.$message.success(t('mobile_chat_setting.delete_friend_success'))
+        const detailId = session.detailId
+        if (!detailId) {
+          window.$message.warning(t('mobile_chat_setting.get_friend_info_failed'))
+          return
         }
+        await deleteFriend({ targetUid: detailId })
+        window.$message.success(t('mobile_chat_setting.delete_friend_success'))
 
         router.push('/mobile/message')
       } catch (error) {
-        console.error('创建登录窗口失败:', error)
+        console.error('删除好友失败:', error)
+        return false
       }
     },
     onNegativeClick: () => {
