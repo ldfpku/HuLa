@@ -1,24 +1,27 @@
 <template>
   <!-- 单独使用n-config-provider来包裹不需要主题切换的界面 -->
   <n-config-provider :theme="naiveTheme" data-tauri-drag-region class="login-box size-full rounded-8px select-none">
-    <!--顶部操作栏-->
-    <ActionBar :max-w="false" :shrink="false" proxy />
+    <header class="login-header" data-tauri-drag-region>
+      <ActionBar :max-w="false" :shrink="false" proxy />
+      <div class="login-brand" data-tauri-drag-region>
+        <BrandLogo class="login-logo" on-dark />
+      </div>
+    </header>
 
     <!--  手动登录样式  -->
-    <n-flex vertical :size="22" v-if="uiState === 'manual'">
+    <n-flex vertical :size="14" v-if="uiState === 'manual'" class="login-manual">
       <!-- 头像 -->
-      <n-flex justify="center" class="w-full pt-12px" data-tauri-drag-region>
+      <n-flex justify="center" class="w-full" data-tauri-drag-region>
         <n-avatar
-          class="welcome size-80px rounded-50% border-(2px solid #fff) dark:border-(2px solid #606060)"
+          class="login-avatar size-56px rounded-50%"
           :color="themes.content === ThemeEnum.DARK ? '#282828' : '#fff'"
           :fallback-src="themes.content === ThemeEnum.DARK ? '/avatar-dark.svg' : '/avatar-light.svg'"
           :src="AvatarUtils.getAvatarUrl(info.avatar, info.uid)" />
       </n-flex>
 
       <!-- 登录菜单 -->
-      <n-flex class="ma text-center h-full w-260px" vertical :size="16">
+      <n-flex class="login-form" vertical :size="12">
         <n-input
-          :class="{ 'pl-16px': loginHistories.length > 0 }"
           size="large"
           v-model:value="info.account"
           type="text"
@@ -63,7 +66,10 @@
               @click="giveAccount(item)"
               class="p-8px cursor-pointer hover:bg-#90909020 dark:hover:bg-#90909030 hover:rounded-6px">
               <div class="flex-between-center">
-                <n-avatar :src="AvatarUtils.getAvatarUrl(item.avatar, item.uid)" color="#fff" class="size-28px rounded-50%" />
+                <n-avatar
+                  :src="AvatarUtils.getAvatarUrl(item.avatar, item.uid)"
+                  color="#fff"
+                  class="size-28px rounded-50%" />
                 <p class="text-14px color-#505050 dark:color-#fefefe">{{ item.account }}</p>
                 <svg @click.stop="delAccount(item)" class="w-12px h-12px dark:color-#fefefe">
                   <title>{{ t('tooltip.remove_account') }}</title>
@@ -75,7 +81,6 @@
         </div>
 
         <n-input
-          class="pl-16px"
           maxlength="128"
           minlength="6"
           size="large"
@@ -94,7 +99,6 @@
         <!-- 两步验证码：服务端要求时才显示 -->
         <n-input
           v-if="mfaRequired"
-          class="pl-16px"
           maxlength="32"
           size="large"
           v-model:value="info.code"
@@ -112,7 +116,7 @@
           :disabled="loginDisabled"
           color="#034fbc"
           text-color="#ffffff"
-          class="gradient-button w-full mt-8px mb-10px"
+          class="login-submit w-full"
           @click="normalLogin('PC', true, false)">
           <span>{{ loginText }}</span>
         </n-button>
@@ -120,23 +124,21 @@
     </n-flex>
 
     <!-- 自动登录样式 -->
-    <n-flex v-else-if="uiState === 'auto'" vertical :size="29" data-tauri-drag-region>
-      <n-flex justify="center" class="mt-15px">
-        <BrandLogo class="w-128px h-auto" on-dark />
-      </n-flex>
-      <n-flex :size="30" vertical>
+    <n-flex v-else-if="uiState === 'auto'" vertical :size="28" class="login-auto" data-tauri-drag-region>
+      <n-flex :size="18" vertical align="center">
         <!-- 头像 -->
         <n-flex justify="center">
           <n-avatar
             round
-            :size="110"
+            class="login-avatar"
+            :size="88"
             :color="themes.content === ThemeEnum.DARK ? '#282828' : '#fff'"
             :fallback-src="themes.content === ThemeEnum.DARK ? '/avatar-dark.svg' : '/avatar-light.svg'"
             :src="AvatarUtils.getAvatarUrl(userStore.userInfo?.avatar, userStore.userInfo?.uid)" />
         </n-flex>
 
         <n-flex justify="center">
-          <n-ellipsis style="max-width: 200px" class="text-(18px [--chat-text-color])">
+          <n-ellipsis style="max-width: 240px" class="login-name">
             {{ userStore.userInfo?.name || '' }}
           </n-ellipsis>
         </n-flex>
@@ -148,7 +150,7 @@
           :disabled="loginDisabled"
           color="#034fbc"
           text-color="#ffffff"
-          class="gradient-button w-200px mt-12px mb-40px"
+          class="login-submit w-260px"
           @click="triggerAutoLogin">
           <span>{{ loginText }}</span>
         </n-button>
@@ -161,36 +163,25 @@
     </div>
 
     <!-- 底部操作栏 -->
-    <div
-      v-if="uiState === 'auto'"
-      class="text-14px grid grid-cols-[1fr_auto_1fr] items-center gap-x-12px w-full"
-      id="bottomBar">
-      <div
-        class="color-[--link-color] cursor-pointer justify-self-end text-right"
-        :title="cancelLoginTitle"
-        @click="cancelAutoLoginAndShowManual">
+    <div v-if="uiState === 'auto'" class="login-footer" id="bottomBar">
+      <button type="button" class="login-footer-action" :title="cancelLoginTitle" @click="cancelAutoLoginAndShowManual">
         {{ cancelLoginLabel }}
-      </div>
-      <div class="w-1px h-14px bg-#ccc dark:bg-#707070 justify-self-center"></div>
-      <div
-        class="color-[--link-color] cursor-pointer justify-self-start text-left"
-        :title="removeAccountTitle"
-        @click="removeStoredAccount">
+      </button>
+      <div class="login-footer-divider" aria-hidden="true"></div>
+      <button type="button" class="login-footer-action" :title="removeAccountTitle" @click="removeStoredAccount">
         {{ removeAccountLabel }}
-      </div>
+      </button>
     </div>
-    <div v-else class="text-14px grid grid-cols-[1fr_auto_1fr] items-center gap-x-12px w-full" id="bottomBar">
-      <div
+    <div v-else class="login-footer" id="bottomBar">
+      <button
+        type="button"
         v-if="ACCOUNT_FEATURES.qrCodeLogin"
-        class="color-[--link-color] cursor-pointer justify-self-end text-right"
+        class="login-footer-action"
         :title="qrCodeTitle"
         @click="router.push('/qrCode')">
         {{ qrCodeLabel }}
-      </div>
-      <div v-else></div>
-      <div
-        :class="ACCOUNT_FEATURES.qrCodeLogin ? 'bg-#ccc dark:bg-#707070' : ''"
-        class="w-1px h-14px justify-self-center"></div>
+      </button>
+      <div v-if="ACCOUNT_FEATURES.qrCodeLogin" class="login-footer-divider" aria-hidden="true"></div>
       <div class="justify-self-start text-left">
         <n-popover
           trigger="click"
@@ -200,7 +191,7 @@
           :show-checkmark="false"
           :show-arrow="false">
           <template #trigger>
-            <div class="color-[--link-color] cursor-pointer" :title="moreTitle">{{ moreLabel }}</div>
+            <button type="button" class="login-footer-action" :title="moreTitle">{{ moreLabel }}</button>
           </template>
           <n-flex vertical :size="2">
             <div
@@ -651,6 +642,137 @@ onUnmounted(() => {
 </script>
 
 <style scoped lang="scss">
-@use '@/styles/scss/global/login-bg';
 @use '@/styles/scss/login';
+
+.login-box {
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+  background: #f7f9fc;
+  color: #172b4d;
+}
+
+.login-header {
+  flex: none;
+  background: #034fbc;
+  --action-bar-icon-color: #ffffff;
+}
+
+.login-brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 76px;
+}
+
+.login-logo {
+  display: block;
+  width: 108px;
+  height: auto;
+}
+
+.login-manual {
+  flex: none;
+  padding: 16px 30px 8px;
+}
+
+.login-form {
+  position: relative;
+  width: 100%;
+}
+
+.login-avatar {
+  outline: 4px solid #ffffff;
+  box-shadow: 0 2px 12px #0a1f5414;
+}
+
+.login-auto {
+  flex: 1;
+  justify-content: center;
+  padding: 28px 30px;
+}
+
+.login-name {
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 28px;
+}
+
+.login-submit {
+  height: 42px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+:deep(.n-input) {
+  border-radius: 8px;
+  text-align: left;
+}
+
+:deep(.n-input .n-input__input, .n-input .n-input__textarea) {
+  margin-left: 0;
+}
+
+.login-footer {
+  display: flex;
+  flex: none;
+  justify-content: center;
+  align-items: center;
+  gap: 14px;
+  margin-top: auto;
+  padding: 6px 20px 20px;
+}
+
+.login-footer-action {
+  padding: 4px 2px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: #52647e;
+  font: inherit;
+  font-size: 13px;
+  line-height: 20px;
+  cursor: pointer;
+
+  &:hover {
+    color: #034fbc;
+  }
+
+  &:focus-visible {
+    outline: 2px solid #034fbc;
+    outline-offset: 3px;
+  }
+}
+
+.login-footer-divider {
+  width: 1px;
+  height: 12px;
+  background: #d7dfeb;
+}
+
+html[data-theme='dark'] .login-box {
+  background: #151d28;
+  color: #e6edf7;
+}
+
+html[data-theme='dark'] .login-avatar {
+  outline-color: #263345;
+}
+
+html[data-theme='dark'] .login-footer-action {
+  color: #b7c5d8;
+
+  &:hover {
+    color: #ffffff;
+  }
+
+  &:focus-visible {
+    outline-color: #8dbbfa;
+  }
+}
+
+html[data-theme='dark'] .login-footer-divider {
+  background: #41516a;
+}
 </style>
