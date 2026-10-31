@@ -11,6 +11,13 @@
       <button v-if="retryable" type="button" class="underline" @click="retry">重试</button>
       <button v-else type="button" aria-label="关闭提示" @click="errorMessage = ''">×</button>
     </div>
+    <div
+      v-if="downloadMessage"
+      class="flex items-center justify-between gap-12px px-12px py-6px text-12px"
+      role="status">
+      <span>{{ downloadMessage }}</span>
+      <button type="button" aria-label="关闭提示" @click="downloadMessage = ''">×</button>
+    </div>
     <div ref="container" class="flex-1 min-h-0 min-w-0" />
   </section>
 </template>
@@ -32,10 +39,14 @@ const container = ref<HTMLElement | null>(null)
 const bounds = shallowRef<MailViewBounds | null>(null)
 const obscured = ref(false)
 const errorMessage = ref('')
+const downloadMessage = ref('')
 const retryable = ref(true)
 const pageVisible = ref(!document.hidden)
 const account = computed(() => user.userInfo?.uid ?? '')
-const active = computed(() => workspace.active === 'mail' && !props.blocked && !obscured.value && pageVisible.value)
+const active = computed(
+  () =>
+    workspace.active === 'mail' && !props.blocked && !workspace.sidebarMenuOpen && !obscured.value && pageVisible.value
+)
 
 const controller = new EmbeddedMailController({
   requestSso: async (target) => (await getMailSsoUrl(target)).url,
@@ -79,22 +90,35 @@ let frame = 0
 let resizeObserver: ResizeObserver | undefined
 let mutationObserver: MutationObserver | undefined
 let unlisten: UnlistenFn | undefined
+let unlistenDownload: UnlistenFn | undefined
 let listening: Promise<void> | undefined
 let disposed = false
 
 const registerErrorListener = () => {
   if (unlisten || disposed) return Promise.resolve()
-  listening ??= listen<string>('mail-workspace-error', (event) => {
-    errorMessage.value = event.payload
-    retryable.value = false
+  listening ??= (async () => {
+    const stopError = await listen<string>('mail-workspace-error', (event) => {
+      errorMessage.value = event.payload
+      retryable.value = false
+    })
+    try {
+      const stopDownload = await listen<string>('mail-workspace-download', (event) => {
+        downloadMessage.value = event.payload
+      })
+      if (disposed) {
+        stopError()
+        stopDownload()
+      } else {
+        unlisten = stopError
+        unlistenDownload = stopDownload
+      }
+    } catch (error) {
+      stopError()
+      throw error
+    }
+  })().finally(() => {
+    listening = undefined
   })
-    .then((stop) => {
-      if (disposed) stop()
-      else unlisten = stop
-    })
-    .finally(() => {
-      listening = undefined
-    })
   return listening
 }
 
@@ -163,6 +187,7 @@ onBeforeUnmount(() => {
   window.removeEventListener('resize', scheduleMeasure)
   document.removeEventListener('visibilitychange', visibilityChanged)
   unlisten?.()
+  unlistenDownload?.()
   void controller.dispose()
 })
 </script>

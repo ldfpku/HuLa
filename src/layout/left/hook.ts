@@ -34,7 +34,9 @@ export const leftHook = () => {
   const { currentState } = storeToRefs(userStatusStore)
   const workspace = useWorkspaceStore()
   const chatUrl = ref<string>(menuTop.value?.[0]?.url || 'message')
-  const activeUrl = computed(() => (workspace.active === 'mail' || workspace.active === 'todo' ? workspace.active : chatUrl.value))
+  const activeUrl = computed(() =>
+    workspace.active === 'mail' || workspace.active === 'todo' ? workspace.active : chatUrl.value
+  )
   const settingShow = ref(false)
   const shrinkStatus = ref(false)
   const groupStore = useGroupStore()
@@ -225,7 +227,7 @@ export const leftHook = () => {
   }
 
   const closeMenu = (event: any) => {
-    if (!event.target.matches('.setting-item, .more, .more *')) {
+    if (!(event.target instanceof Element) || !event.target.closest('.setting-item, .more')) {
       settingShow.value = false
     }
   }

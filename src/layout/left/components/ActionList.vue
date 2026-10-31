@@ -248,7 +248,6 @@
               tabindex="0"
               :aria-label="t('home.action.more')"
               :aria-expanded="settingShow"
-              @click="settingShow = !settingShow"
               @keydown.enter.prevent="settingShow = !settingShow"
               @keydown.space.prevent="settingShow = !settingShow">
               <use :href="settingShow ? '#hamburger-button-action' : '#hamburger-button'"></use>
@@ -262,9 +261,9 @@
                   role="button"
                   tabindex="0"
                   :aria-label="item.label"
-                  @click="() => item.click()"
-                  @keydown.enter.prevent="() => item.click()"
-                  @keydown.space.prevent="() => item.click()">
+                  @click="selectMoreItem(item)"
+                  @keydown.enter.prevent="selectMoreItem(item)"
+                  @keydown.space.prevent="selectMoreItem(item)">
                   <svg>
                     <use :href="`#${item.icon}`"></use>
                   </svg>
@@ -292,6 +291,7 @@ import { APP_FEATURES } from '@/common/backend'
 import { usePluginsStore } from '@/stores/plugins.ts'
 import { useSettingStore } from '@/stores/setting.ts'
 import { useFeedStore } from '@/stores/feed.ts'
+import { useWorkspaceStore } from '@/stores/workspace'
 import { useItemsBottom, useMoreList } from '../config.tsx'
 import { leftHook } from '../hook.ts'
 import DefinePlugins from './definePlugins/index.vue'
@@ -330,6 +330,21 @@ const miniShowPlugins = computed(() => {
   return activePlugins.value.filter((i) => i.miniShow)
 })
 const { activeUrl, openWindowsList, settingShow, tipShow, pageJumps } = leftHook()
+const workspace = useWorkspaceStore()
+const selectMoreItem = (item: OPT.L.MoreList) => {
+  settingShow.value = false
+  void item.click()
+}
+watch(
+  settingShow,
+  (open) => {
+    workspace.sidebarMenuOpen = open
+  },
+  { flush: 'sync' }
+)
+onUnmounted(() => {
+  workspace.sidebarMenuOpen = false
+})
 
 const handleTipShow = (item: any) => {
   tipShow.value = false

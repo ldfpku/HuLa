@@ -10,6 +10,7 @@ export const useWorkspaceStore = defineStore(
   () => {
     const active = ref<MainWorkspace>('chat')
     const mailNavigation = ref<MailNavigation | null>(null)
+    const sidebarMenuOpen = ref(false)
 
     const openChat = () => {
       active.value = 'chat'
@@ -28,9 +29,10 @@ export const useWorkspaceStore = defineStore(
     const reset = () => {
       active.value = 'chat'
       mailNavigation.value = null
+      sidebarMenuOpen.value = false
     }
 
-    return { active, mailNavigation, openChat, openMail, openTodo, reset }
+    return { active, mailNavigation, sidebarMenuOpen, openChat, openMail, openTodo, reset }
   },
   {
     share: {

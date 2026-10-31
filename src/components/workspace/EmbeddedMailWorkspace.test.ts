@@ -84,8 +84,49 @@ describe('embedded mail workspace', () => {
     const wrapper = mount(EmbeddedMailWorkspace, { props: { blocked: false }, attachTo: document.body })
     await vi.waitFor(() => expect(wrapper.text()).toContain('状态监听失败'))
     await wrapper.get('button').trigger('click')
-    await vi.waitFor(() => expect(mocks.listen).toHaveBeenCalledTimes(2))
+    await vi.waitFor(() => expect(mocks.listen).toHaveBeenCalledTimes(3))
     expect(wrapper.text()).not.toContain('状态监听失败')
+    expect(error).toHaveBeenCalled()
+    wrapper.unmount()
+  })
+
+  it('hides the native mail view while the sidebar menu is open and restores it afterwards', async () => {
+    const workspace = useWorkspaceStore()
+    workspace.openMail()
+    const wrapper = mount(EmbeddedMailWorkspace, { props: { blocked: false }, attachTo: document.body })
+    await vi.waitFor(() => expect(mocks.invoke).toHaveBeenCalledWith('set_embedded_mail_visible', { visible: true }))
+    workspace.sidebarMenuOpen = true
+    await vi.waitFor(() =>
+      expect(mocks.invoke).toHaveBeenLastCalledWith('set_embedded_mail_visible', { visible: false })
+    )
+    workspace.sidebarMenuOpen = false
+    await vi.waitFor(() =>
+      expect(mocks.invoke).toHaveBeenLastCalledWith('set_embedded_mail_visible', { visible: true })
+    )
+    wrapper.unmount()
+  })
+
+  it('shows desktop download completion and failures', async () => {
+    const workspace = useWorkspaceStore()
+    workspace.openMail()
+    const wrapper = mount(EmbeddedMailWorkspace, { props: { blocked: false }, attachTo: document.body })
+    await vi.waitFor(() => expect(mocks.listen).toHaveBeenCalledTimes(2))
+    const download = mocks.listen.mock.calls.find(([name]) => name === 'mail-workspace-download')?.[1]
+    const error = mocks.listen.mock.calls.find(([name]) => name === 'mail-workspace-error')?.[1]
+    download?.({ payload: '附件已下载至 Downloads\\guide.html' })
+    await vi.waitFor(() => expect(wrapper.get('[role="status"]').text()).toContain('guide.html'))
+    error?.({ payload: '邮件附件下载失败，请重试' })
+    await vi.waitFor(() => expect(wrapper.get('[role="alert"]').text()).toContain('下载失败'))
+    wrapper.unmount()
+  })
+
+  it('cleans up the error listener if registering the download listener fails', async () => {
+    const stop = vi.fn()
+    mocks.listen.mockResolvedValueOnce(stop).mockRejectedValueOnce(new Error('listener unavailable'))
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const wrapper = mount(EmbeddedMailWorkspace, { props: { blocked: false }, attachTo: document.body })
+    await vi.waitFor(() => expect(wrapper.text()).toContain('状态监听失败'))
+    expect(stop).toHaveBeenCalledOnce()
     expect(error).toHaveBeenCalled()
     wrapper.unmount()
   })

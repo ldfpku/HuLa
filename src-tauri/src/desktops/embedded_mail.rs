@@ -3,7 +3,7 @@ use serde::Deserialize;
 use sha2::{Digest, Sha256};
 use tauri::{
     AppHandle, Emitter, LogicalPosition, LogicalSize, Manager, Runtime, State, Webview, WebviewUrl,
-    webview::{NewWindowResponse, WebviewBuilder},
+    webview::{DownloadEvent, NewWindowResponse, WebviewBuilder},
 };
 use tauri_plugin_opener::OpenerExt;
 use url::Url;
@@ -216,6 +216,38 @@ pub async fn create_embedded_mail<R: Runtime>(
                 open_external(&nav_app, next);
                 false
             }
+        })
+        .on_download(|webview, event| {
+            match event {
+                DownloadEvent::Requested { destination, .. } => {
+                    if !destination.is_absolute() {
+                        eprintln!("邮件下载路径无效: {}", destination.display());
+                        if let Err(error) = webview.app_handle().emit_to("home", "mail-workspace-error", "邮件下载路径无效") {
+                            eprintln!("显示邮件下载错误失败: {error}");
+                        }
+                        return false;
+                    }
+                }
+                DownloadEvent::Finished { path, success, .. } => {
+                    let app = webview.app_handle();
+                    if success {
+                        let message = match path {
+                            Some(path) => format!("附件已下载至 {}", path.display()),
+                            None => "附件已下载至下载文件夹".to_string(),
+                        };
+                        if let Err(error) = app.emit_to("home", "mail-workspace-download", message) {
+                            eprintln!("显示邮件下载结果失败: {error}");
+                        }
+                    } else {
+                        eprintln!("邮件附件下载失败");
+                        if let Err(error) = app.emit_to("home", "mail-workspace-error", "邮件附件下载失败，请重试") {
+                            eprintln!("显示邮件下载错误失败: {error}");
+                        }
+                    }
+                }
+                _ => {}
+            }
+            true
         })
         .on_new_window(move |next, _features| {
             if next.origin() == origin {

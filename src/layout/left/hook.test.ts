@@ -105,4 +105,20 @@ describe('chat profile name', () => {
     expect(mocks.warning).toHaveBeenCalled()
     wrapper.unmount()
   })
+
+  it('keeps the more menu open for clicks inside it and closes on outside clicks', () => {
+    const { result, wrapper } = createHook()
+    const menu = document.createElement('div')
+    menu.className = 'setting-item'
+    const item = document.createElement('span')
+    menu.appendChild(item)
+    document.body.appendChild(menu)
+    result.settingShow.value = true
+    item.click()
+    expect(result.settingShow.value).toBe(true)
+    document.body.click()
+    expect(result.settingShow.value).toBe(false)
+    menu.remove()
+    wrapper.unmount()
+  })
 })
