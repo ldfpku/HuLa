@@ -113,10 +113,13 @@ describe('embedded mail workspace', () => {
     await vi.waitFor(() => expect(mocks.listen).toHaveBeenCalledTimes(2))
     const download = mocks.listen.mock.calls.find(([name]) => name === 'mail-workspace-download')?.[1]
     const error = mocks.listen.mock.calls.find(([name]) => name === 'mail-workspace-error')?.[1]
+    download?.({ payload: '正在下载附件，保存至 Downloads\\guide.html' })
+    await vi.waitFor(() => expect(wrapper.get('[role="status"]').text()).toContain('正在下载'))
     download?.({ payload: '附件已下载至 Downloads\\guide.html' })
     await vi.waitFor(() => expect(wrapper.get('[role="status"]').text()).toContain('guide.html'))
     error?.({ payload: '邮件附件下载失败，请重试' })
     await vi.waitFor(() => expect(wrapper.get('[role="alert"]').text()).toContain('下载失败'))
+    expect(wrapper.find('[role="status"]').exists()).toBe(false)
     wrapper.unmount()
   })
 

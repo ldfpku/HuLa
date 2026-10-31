@@ -1,6 +1,7 @@
 use crate::AppData;
 use serde::Deserialize;
 use sha2::{Digest, Sha256};
+use std::path::Path;
 use tauri::{
     AppHandle, Emitter, LogicalPosition, LogicalSize, Manager, Runtime, State, Webview, WebviewUrl,
     webview::{DownloadEvent, NewWindowResponse, WebviewBuilder},
@@ -92,6 +93,10 @@ fn is_read_only_share(url: &Url) -> bool {
     url.path()
         .strip_prefix("/api/im/mail/share/")
         .is_some_and(|id| id.len() == 32 && id.bytes().all(|byte| byte.is_ascii_hexdigit()))
+}
+
+fn download_start_message(destination: &Path) -> Option<String> {
+    destination.is_absolute().then(|| format!("正在下载附件，保存至 {}", destination.display()))
 }
 
 async fn navigate_safely<R: Runtime>(webview: Webview<R>, next: Url) -> Result<(), String> {
@@ -220,12 +225,15 @@ pub async fn create_embedded_mail<R: Runtime>(
         .on_download(|webview, event| {
             match event {
                 DownloadEvent::Requested { destination, .. } => {
-                    if !destination.is_absolute() {
+                    let Some(message) = download_start_message(destination) else {
                         eprintln!("邮件下载路径无效: {}", destination.display());
                         if let Err(error) = webview.app_handle().emit_to("home", "mail-workspace-error", "邮件下载路径无效") {
                             eprintln!("显示邮件下载错误失败: {error}");
                         }
                         return false;
+                    };
+                    if let Err(error) = webview.app_handle().emit_to("home", "mail-workspace-download", message) {
+                        eprintln!("显示邮件下载状态失败: {error}");
                     }
                 }
                 DownloadEvent::Finished { path, success, .. } => {
@@ -350,7 +358,17 @@ pub async fn close_embedded_mail<R: Runtime>(
 
 #[cfg(test)]
 mod tests {
-    use super::{MailViewBounds, is_read_only_share, validate_account, validate_sso_url};
+    use super::{MailViewBounds, download_start_message, is_read_only_share, validate_account, validate_sso_url};
+
+    #[test]
+    fn download_start_displays_the_absolute_destination() {
+        let destination = std::env::temp_dir().join("attachment.pdf");
+        assert_eq!(
+            download_start_message(&destination),
+            Some(format!("正在下载附件，保存至 {}", destination.display()))
+        );
+        assert_eq!(download_start_message(std::path::Path::new("attachment.pdf")), None);
+    }
 
     #[test]
     fn only_a_single_share_page_is_treated_as_read_only() {

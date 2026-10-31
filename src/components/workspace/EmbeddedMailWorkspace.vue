@@ -13,9 +13,9 @@
     </div>
     <div
       v-if="downloadMessage"
-      class="flex items-center justify-between gap-12px px-12px py-6px text-12px"
+      class="flex items-start justify-between gap-12px bg-blue-50 px-12px py-8px text-13px color-#174ea6"
       role="status">
-      <span>{{ downloadMessage }}</span>
+      <span class="min-w-0 break-all">{{ downloadMessage }}</span>
       <button type="button" aria-label="关闭提示" @click="downloadMessage = ''">×</button>
     </div>
     <div ref="container" class="flex-1 min-h-0 min-w-0" />
@@ -99,6 +99,7 @@ const registerErrorListener = () => {
   listening ??= (async () => {
     const stopError = await listen<string>('mail-workspace-error', (event) => {
       errorMessage.value = event.payload
+      downloadMessage.value = ''
       retryable.value = false
     })
     try {
