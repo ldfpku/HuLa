@@ -1,3 +1,9 @@
+> ⚠️ **本仓库已归档（Archived），不再维护。**
+> 代码已迁入 monorepo **SMJ Workspace**，唯一维护与发布源为 👉 **https://github.com/ldfpku/smj-workspace**（本仓库对应其中的 `apps/client`）。
+> 本仓库仅作历史备份保留，请勿在此提交。
+
+---
+
 <p align="center">
   <img width="350px" height="150px" src="public/brand/smj-wordmark-color.svg"/>
 </p>
