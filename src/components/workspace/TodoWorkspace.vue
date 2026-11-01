@@ -169,11 +169,12 @@
       </main>
 
       <aside
-        v-if="store.selected"
-        class="todo-detail flex flex-col min-h-0 w-310px shrink-0 border-l border-[--line-color] p-16px">
+        class="todo-detail flex flex-col min-h-0 w-310px shrink-0 border-l border-[--line-color] p-16px"
+        :class="{ 'is-empty': !store.selected }">
         <div class="flex items-center justify-between">
           <h2 class="font-600">{{ t('todo.details') }}</h2>
           <button
+            v-if="store.selected"
             ref="detailCloseButton"
             type="button"
             class="todo-icon"
@@ -182,7 +183,18 @@
             ×
           </button>
         </div>
-        <n-scrollbar class="flex-1 min-h-0 mt-12px">
+        <div
+          v-if="!store.selected"
+          class="todo-detail-empty flex flex-1 min-h-0 flex-col items-center justify-center gap-10px px-20px text-center">
+          <svg class="todo-detail-empty-icon" viewBox="0 0 24 24" width="48" height="48" aria-hidden="true">
+            <path
+              fill="currentColor"
+              d="M9 2a2 2 0 0 0-2 2H5.5A1.5 1.5 0 0 0 4 5.5v15A1.5 1.5 0 0 0 5.5 22h13a1.5 1.5 0 0 0 1.5-1.5v-15A1.5 1.5 0 0 0 18.5 4H17a2 2 0 0 0-2-2H9Zm0 2h6v2H9V4Zm-1.3 7.3 1.4-1.4 1.9 1.9 3.9-3.9 1.4 1.4-5.3 5.3-3.3-3.3Z" />
+          </svg>
+          <p class="todo-detail-empty-title text-14px font-600">{{ t('todo.emptyDetailTitle') }}</p>
+          <p class="text-12px text-[--chat-text-color]">{{ t('todo.emptyDetail') }}</p>
+        </div>
+        <n-scrollbar v-else class="flex-1 min-h-0 mt-12px">
           <label class="text-12px">{{ t('todo.titleLabel') }}</label>
           <n-input
             v-model:value="editTitle"
@@ -962,6 +974,15 @@ onBeforeUnmount(() => {
 .todo-detail p {
   overflow-wrap: anywhere;
 }
+.todo-detail-empty {
+  color: var(--chat-text-color);
+  .todo-detail-empty-icon {
+    opacity: 0.35;
+  }
+  .todo-detail-empty-title {
+    color: var(--text-color);
+  }
+}
 .todo-nav-button {
   border: 0;
   border-radius: 6px;
@@ -1009,10 +1030,15 @@ onBeforeUnmount(() => {
   }
 }
 @container (max-width: 760px) {
+  /* 窄屏空间有限：未选中任务时隐藏常驻的空详情面板，让任务列表占满 */
+  .todo-body:not(.has-detail) > .todo-detail {
+    display: none;
+  }
+  /* 选中任务后，详情占满整块，隐藏任务列表 */
   .todo-body.has-detail > main {
     display: none;
   }
-  .todo-detail {
+  .todo-body.has-detail > .todo-detail {
     flex: 1 1 0;
     width: auto;
     min-width: 0;

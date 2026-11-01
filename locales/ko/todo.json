@@ -28,6 +28,8 @@
   "completed": "완료됨",
   "details": "작업 세부 정보",
   "closeDetails": "세부 정보 닫기",
+  "emptyDetail": "목록에서 작업을 선택하여 세부 정보를 보고 편집하세요",
+  "emptyDetailTitle": "선택된 작업 없음",
   "titleLabel": "제목",
   "notes": "메모",
   "steps": "단계",

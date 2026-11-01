@@ -28,6 +28,8 @@
   "completed": "Completed",
   "details": "Task details",
   "closeDetails": "Close details",
+  "emptyDetail": "Select a task from the list to view and edit its details",
+  "emptyDetailTitle": "No task selected",
   "titleLabel": "Title",
   "notes": "Notes",
   "steps": "Steps",

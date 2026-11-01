@@ -28,6 +28,8 @@
   "completed": "已完成",
   "details": "任务详情",
   "closeDetails": "关闭详情",
+  "emptyDetail": "从左侧列表中选择一个任务，查看并编辑它的详情",
+  "emptyDetailTitle": "未选择任务",
   "titleLabel": "标题",
   "notes": "备注",
   "steps": "步骤",
